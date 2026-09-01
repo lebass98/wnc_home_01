@@ -60,7 +60,7 @@ export default function AdminLayout() {
   const sidebar = (
     <div className="flex h-full flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       <div className="flex h-16 items-center border-b border-slate-200 px-6 dark:border-slate-700">
-        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
           워드앤코드 관리자
         </span>
       </div>
@@ -72,7 +72,7 @@ export default function AdminLayout() {
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-3 text-[0.95rem] font-semibold transition ${
+              `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${
                 isActive
                   ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
@@ -90,7 +90,7 @@ export default function AdminLayout() {
       <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
         <Link
           to="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-3 text-[0.95rem] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
           <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path

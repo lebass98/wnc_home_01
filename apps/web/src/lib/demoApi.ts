@@ -720,6 +720,25 @@ export function handleDemoRequest(
     return db.setting
   }
 
+  if (rawPath === '/settings/seo' && method === 'PUT') {
+    db.setting = {
+      ...db.setting,
+      metaTitle: body.metaTitle || null,
+      metaDescription: body.metaDescription || null,
+      metaKeywords: body.metaKeywords || null,
+      ogTitle: body.ogTitle || null,
+      ogDescription: body.ogDescription || null,
+      ogImage: body.ogImage || null,
+      allowIndexing: Boolean(body.allowIndexing),
+      googleVerification: body.googleVerification || null,
+      naverVerification: body.naverVerification || null,
+      gaId: body.gaId || null,
+      updatedAt: new Date().toISOString(),
+    }
+    save(db)
+    return db.setting
+  }
+
   // --- 업로드 (데모: 파일을 base64 로 그대로 돌려준다) ---
   if (rawPath === '/uploads' && method === 'POST') {
     return { url: body?.dataUrl ?? '' }

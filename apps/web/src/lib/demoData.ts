@@ -272,6 +272,16 @@ export interface DemoSetting {
   description: string | null
   adminEmail: string
   titleImage: string | null
+  metaTitle: string | null
+  metaDescription: string | null
+  metaKeywords: string | null
+  ogTitle: string | null
+  ogDescription: string | null
+  ogImage: string | null
+  allowIndexing: boolean
+  googleVerification: string | null
+  naverVerification: string | null
+  gaId: string | null
   updatedAt: string
 }
 
@@ -282,6 +292,16 @@ export function createDemoSetting(): DemoSetting {
     description: '웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.',
     adminEmail: 'admin@wnc.co.kr',
     titleImage: null,
+    metaTitle: '워드앤코드 — 웹·모바일 개발 파트너',
+    metaDescription: '기업 홈페이지와 관리자 시스템, 업무 자동화 솔루션을 만듭니다.',
+    metaKeywords: '홈페이지 제작, 업무 자동화, 클라우드',
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
+    allowIndexing: true,
+    googleVerification: null,
+    naverVerification: null,
+    gaId: null,
     updatedAt: isoDaysAgo(0),
   }
 }

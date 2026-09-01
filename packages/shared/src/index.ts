@@ -282,6 +282,22 @@ export interface SiteSetting {
   adminEmail: string
   /** 헤더에 표시될 로고 이미지 */
   titleImage: string | null
+
+  /* SEO */
+  metaTitle: string | null
+  metaDescription: string | null
+  /** 쉼표로 구분한 키워드 */
+  metaKeywords: string | null
+  ogTitle: string | null
+  ogDescription: string | null
+  ogImage: string | null
+  /** 끄면 검색엔진 수집을 막는다 (noindex) */
+  allowIndexing: boolean
+  googleVerification: string | null
+  naverVerification: string | null
+  /** Google Analytics 측정 ID */
+  gaId: string | null
+
   updatedAt: string
 }
 
@@ -291,4 +307,17 @@ export interface SiteSettingInput {
   description?: string | null
   adminEmail: string
   titleImage?: string | null
+}
+
+export interface SeoSettingInput {
+  metaTitle?: string | null
+  metaDescription?: string | null
+  metaKeywords?: string | null
+  ogTitle?: string | null
+  ogDescription?: string | null
+  ogImage?: string | null
+  allowIndexing: boolean
+  googleVerification?: string | null
+  naverVerification?: string | null
+  gaId?: string | null
 }

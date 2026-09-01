@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import type { PageListItem } from '@wnc/shared'
 import { api } from '../lib/api'
+import { useSiteSeo } from '../lib/seo'
 
 const NAV = [
   { to: '/about', label: '회사소개' },
@@ -13,6 +14,7 @@ const NAV = [
 ]
 
 export default function SiteLayout() {
+  useSiteSeo()
   const [open, setOpen] = useState(false)
   const [navPages, setNavPages] = useState<PageListItem[]>([])
   const { pathname } = useLocation()

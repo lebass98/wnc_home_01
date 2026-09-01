@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { SiteSetting, SiteSettingInput } from '@wnc/shared'
+import type { SeoSettingInput, SiteSetting, SiteSettingInput } from '@wnc/shared'
 import { api, IS_DEMO } from '../../lib/api'
 import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
@@ -11,58 +11,20 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key']
 
-const EMPTY: SiteSettingInput = {
-  siteName: '',
-  siteUrl: '',
-  description: '',
-  adminEmail: '',
-  titleImage: null,
-}
-
 export default function SettingsPage() {
   const [params, setParams] = useSearchParams()
   const tab: TabKey = params.get('tab') === 'seo' ? 'seo' : 'general'
 
-  const [form, setForm] = useState<SiteSettingInput>(EMPTY)
+  const [setting, setSetting] = useState<SiteSetting | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     api<SiteSetting>('/settings')
-      .then((s) =>
-        setForm({
-          siteName: s.siteName,
-          siteUrl: s.siteUrl,
-          description: s.description ?? '',
-          adminEmail: s.adminEmail,
-          titleImage: s.titleImage,
-        }),
-      )
+      .then(setSetting)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
-
-  function set<K extends keyof SiteSettingInput>(key: K, value: SiteSettingInput[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }))
-    setNotice('')
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    setNotice('')
-    try {
-      await api<SiteSetting>('/settings', { method: 'PUT', body: form, auth: true })
-      setNotice('설정을 저장했습니다.')
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   return (
     <>
@@ -88,111 +50,397 @@ export default function SettingsPage() {
         </nav>
       </div>
 
-      {tab === 'seo' ? (
-        <div className="card p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">SEO</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            검색엔진 관련 설정은 아직 준비 중입니다.
-          </p>
-        </div>
-      ) : loading ? (
+      {error && <ErrorMessage message={error} />}
+
+      {loading || !setting ? (
         <Loading />
+      ) : tab === 'seo' ? (
+        <SeoForm setting={setting} />
       ) : (
-        <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">사이트 정보</h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">기본 사이트 정보를 설정합니다.</p>
-
-          <div className="mt-6 space-y-5">
-            {error && <ErrorMessage message={error} />}
-            {notice && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                {notice}
-              </div>
-            )}
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label htmlFor="siteName" className="label">
-                  사이트 이름 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="siteName"
-                  required
-                  maxLength={100}
-                  value={form.siteName}
-                  onChange={(e) => set('siteName', e.target.value)}
-                  className="input"
-                  placeholder="워드앤코드"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="siteUrl" className="label">
-                  사이트 URL <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="siteUrl"
-                  required
-                  type="url"
-                  maxLength={200}
-                  value={form.siteUrl}
-                  onChange={(e) => set('siteUrl', e.target.value)}
-                  className="input"
-                  placeholder="https://wnc.co.kr"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="description" className="label">
-                사이트 설명
-              </label>
-              <textarea
-                id="description"
-                rows={4}
-                maxLength={500}
-                value={form.description ?? ''}
-                onChange={(e) => set('description', e.target.value)}
-                className="input resize-y"
-                placeholder="사이트에 대한 간단한 설명을 입력하세요."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="adminEmail" className="label">
-                관리자 이메일 <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="adminEmail"
-                required
-                type="email"
-                maxLength={200}
-                value={form.adminEmail}
-                onChange={(e) => set('adminEmail', e.target.value)}
-                className="input"
-                placeholder="admin@wnc.co.kr"
-              />
-            </div>
-
-            <div>
-              <span className="label">사이트 타이틀 이미지</span>
-              <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
-                헤더에 표시될 로고 이미지입니다.
-              </p>
-              <ImageDropzone value={form.titleImage ?? null} onChange={(url) => set('titleImage', url)} />
-            </div>
-          </div>
-
-          <div className="mt-8 flex gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? '저장 중...' : '저장'}
-            </button>
-          </div>
-        </form>
+        <GeneralForm setting={setting} />
       )}
     </>
   )
 }
+
+/** 저장 결과 안내 — 성공/실패를 같은 자리에 보여준다. */
+function SaveNotice({ error, notice }: { error: string; notice: string }) {
+  if (error) return <ErrorMessage message={error} />
+  if (notice) {
+    return (
+      <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        {notice}
+      </div>
+    )
+  }
+  return null
+}
+
+/* ------------------------------- 일반 ------------------------------- */
+
+function GeneralForm({ setting }: { setting: SiteSetting }) {
+  const [form, setForm] = useState<SiteSettingInput>({
+    siteName: setting.siteName,
+    siteUrl: setting.siteUrl,
+    description: setting.description ?? '',
+    adminEmail: setting.adminEmail,
+    titleImage: setting.titleImage,
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  function set<K extends keyof SiteSettingInput>(key: K, value: SiteSettingInput[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setNotice('')
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      await api<SiteSetting>('/settings', { method: 'PUT', body: form, auth: true })
+      setNotice('사이트 정보를 저장했습니다.')
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">사이트 정보</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">기본 사이트 정보를 설정합니다.</p>
+
+      <div className="mt-6 space-y-5">
+        <SaveNotice error={error} notice={notice} />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="siteName" className="label">
+              사이트 이름 <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="siteName"
+              required
+              maxLength={100}
+              value={form.siteName}
+              onChange={(e) => set('siteName', e.target.value)}
+              className="input"
+              placeholder="워드앤코드"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="siteUrl" className="label">
+              사이트 URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="siteUrl"
+              required
+              type="url"
+              maxLength={200}
+              value={form.siteUrl}
+              onChange={(e) => set('siteUrl', e.target.value)}
+              className="input"
+              placeholder="https://wnc.co.kr"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="description" className="label">
+            사이트 설명
+          </label>
+          <textarea
+            id="description"
+            rows={4}
+            maxLength={500}
+            value={form.description ?? ''}
+            onChange={(e) => set('description', e.target.value)}
+            className="input resize-y"
+            placeholder="사이트에 대한 간단한 설명을 입력하세요."
+          />
+        </div>
+
+        <div>
+          <label htmlFor="adminEmail" className="label">
+            관리자 이메일 <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="adminEmail"
+            required
+            type="email"
+            maxLength={200}
+            value={form.adminEmail}
+            onChange={(e) => set('adminEmail', e.target.value)}
+            className="input"
+            placeholder="admin@wnc.co.kr"
+          />
+        </div>
+
+        <div>
+          <span className="label">사이트 타이틀 이미지</span>
+          <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
+            헤더에 표시될 로고 이미지입니다.
+          </p>
+          <ImageDropzone value={form.titleImage ?? null} onChange={(url) => set('titleImage', url)} />
+        </div>
+      </div>
+
+      <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+        <button type="submit" disabled={saving} className="btn-primary">
+          {saving ? '저장 중...' : '저장'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+/* -------------------------------- SEO -------------------------------- */
+
+/** 권장 길이를 넘으면 색으로 알려주는 글자 수 표시 */
+function CharCount({ value, max }: { value: string; max: number }) {
+  const over = value.length > max
+  return (
+    <span className={`text-xs ${over ? 'font-medium text-red-600' : 'text-slate-400'}`}>
+      {value.length} / {max}자 권장
+    </span>
+  )
+}
+
+function SeoForm({ setting }: { setting: SiteSetting }) {
+  const [form, setForm] = useState<SeoSettingInput>({
+    metaTitle: setting.metaTitle ?? '',
+    metaDescription: setting.metaDescription ?? '',
+    metaKeywords: setting.metaKeywords ?? '',
+    ogTitle: setting.ogTitle ?? '',
+    ogDescription: setting.ogDescription ?? '',
+    ogImage: setting.ogImage,
+    allowIndexing: setting.allowIndexing,
+    googleVerification: setting.googleVerification ?? '',
+    naverVerification: setting.naverVerification ?? '',
+    gaId: setting.gaId ?? '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  function set<K extends keyof SeoSettingInput>(key: K, value: SeoSettingInput[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setNotice('')
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      await api<SiteSetting>('/settings/seo', { method: 'PUT', body: form, auth: true })
+      setNotice('SEO 설정을 저장했습니다.')
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {(error || notice) && <SaveNotice error={error} notice={notice} />}
+
+      {/* 검색엔진 노출 */}
+      <div className="card p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">검색엔진 노출</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          검색 결과에 보여질 제목과 설명을 설정합니다. 비워 두면 사이트 이름과 사이트 설명을 사용합니다.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="metaTitle" className="label">
+                메타 제목
+              </label>
+              <CharCount value={form.metaTitle ?? ''} max={60} />
+            </div>
+            <input
+              id="metaTitle"
+              maxLength={120}
+              value={form.metaTitle ?? ''}
+              onChange={(e) => set('metaTitle', e.target.value)}
+              className="input"
+              placeholder="워드앤코드 — 웹·모바일 개발 파트너"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="metaDescription" className="label">
+                메타 설명
+              </label>
+              <CharCount value={form.metaDescription ?? ''} max={160} />
+            </div>
+            <textarea
+              id="metaDescription"
+              rows={3}
+              maxLength={400}
+              value={form.metaDescription ?? ''}
+              onChange={(e) => set('metaDescription', e.target.value)}
+              className="input resize-y"
+              placeholder="검색 결과에 표시될 요약문을 입력하세요."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="metaKeywords" className="label">
+              메타 키워드
+            </label>
+            <input
+              id="metaKeywords"
+              maxLength={300}
+              value={form.metaKeywords ?? ''}
+              onChange={(e) => set('metaKeywords', e.target.value)}
+              className="input"
+              placeholder="홈페이지 제작, 업무 자동화, 클라우드"
+            />
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              쉼표(,)로 구분해 입력합니다.
+            </p>
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-900/50">
+            <input
+              type="checkbox"
+              checked={form.allowIndexing}
+              onChange={(e) => set('allowIndexing', e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-300">
+              검색엔진 수집 허용
+              <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+                체크를 해제하면 noindex 로 표시되어 검색 결과에 나오지 않습니다. 준비 중인 사이트에만 사용하세요.
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* SNS 공유 */}
+      <div className="card p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">SNS 공유 (Open Graph)</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          카카오톡·페이스북 등에 링크를 공유할 때 보여지는 정보입니다. 비우면 위의 메타 값을 사용합니다.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <div>
+            <label htmlFor="ogTitle" className="label">
+              공유 제목
+            </label>
+            <input
+              id="ogTitle"
+              maxLength={120}
+              value={form.ogTitle ?? ''}
+              onChange={(e) => set('ogTitle', e.target.value)}
+              className="input"
+              placeholder="워드앤코드"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="ogDescription" className="label">
+              공유 설명
+            </label>
+            <textarea
+              id="ogDescription"
+              rows={3}
+              maxLength={400}
+              value={form.ogDescription ?? ''}
+              onChange={(e) => set('ogDescription', e.target.value)}
+              className="input resize-y"
+              placeholder="공유 카드에 표시될 설명을 입력하세요."
+            />
+          </div>
+
+          <div>
+            <span className="label">공유 이미지</span>
+            <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
+              1200 x 630 픽셀 비율을 권장합니다.
+            </p>
+            <ImageDropzone value={form.ogImage ?? null} onChange={(url) => set('ogImage', url)} />
+          </div>
+        </div>
+      </div>
+
+      {/* 사이트 소유확인 · 분석 */}
+      <div className="card p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">사이트 소유확인 · 분석</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          검색엔진에 사이트를 등록할 때 받은 인증 코드를 입력합니다.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="googleVerification" className="label">
+                구글 서치 콘솔 인증 코드
+              </label>
+              <input
+                id="googleVerification"
+                maxLength={200}
+                value={form.googleVerification ?? ''}
+                onChange={(e) => set('googleVerification', e.target.value)}
+                className="input font-mono"
+                placeholder="google-site-verification 값"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="naverVerification" className="label">
+                네이버 서치어드바이저 인증 코드
+              </label>
+              <input
+                id="naverVerification"
+                maxLength={200}
+                value={form.naverVerification ?? ''}
+                onChange={(e) => set('naverVerification', e.target.value)}
+                className="input font-mono"
+                placeholder="naver-site-verification 값"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="gaId" className="label">
+              Google Analytics 측정 ID
+            </label>
+            <input
+              id="gaId"
+              maxLength={50}
+              value={form.gaId ?? ''}
+              onChange={(e) => set('gaId', e.target.value)}
+              className="input font-mono sm:w-64"
+              placeholder="G-XXXXXXXXXX"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-700">
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}
+
+/* ----------------------------- 이미지 업로드 ----------------------------- */
 
 /** 드래그 앤 드롭과 클릭으로 이미지를 올리는 영역 */
 function ImageDropzone({
@@ -273,7 +521,7 @@ function ImageDropzone({
         }`}
       >
         {value ? (
-          <img src={value} alt="사이트 타이틀 이미지" className="max-h-24 object-contain" />
+          <img src={value} alt="업로드한 이미지" className="max-h-24 object-contain" />
         ) : (
           <>
             <svg className="h-10 w-10 text-slate-300" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">

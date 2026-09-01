@@ -71,7 +71,7 @@ export default function ProductListPage() {
               setCategory(e.target.value ? Number(e.target.value) : '')
               setPage(1)
             }}
-            className="input sm:w-52"
+            className="select sm:w-52"
           >
             <option value="">전체 카테고리</option>
             {flattenCategories(categories).map((c) => (

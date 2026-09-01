@@ -75,7 +75,7 @@ export default function PostEditPage() {
                 id="category"
                 value={form.category}
                 onChange={(e) => set('category', e.target.value as BoardCategory)}
-                className="input"
+                className="select"
               >
                 <option value="NOTICE">공지사항</option>
                 <option value="NEWS">뉴스</option>

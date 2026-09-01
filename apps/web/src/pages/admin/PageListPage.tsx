@@ -149,7 +149,7 @@ export default function PageListPage() {
           <select
             value={field}
             onChange={(e) => reset(setField)(e.target.value as PageSearchField)}
-            className="input sm:w-32"
+            className="select sm:w-32"
             aria-label="검색 범위"
           >
             <option value="all">전체</option>
@@ -178,7 +178,7 @@ export default function PageListPage() {
           <select
             value={status}
             onChange={(e) => reset(setStatus)(e.target.value as PageStatusFilter)}
-            className="input w-auto"
+            className="select w-auto"
             aria-label="발행 상태"
           >
             <option value="all">전체</option>
@@ -188,7 +188,7 @@ export default function PageListPage() {
           <select
             value={sort}
             onChange={(e) => reset(setSort)(e.target.value as PageSort)}
-            className="input w-auto"
+            className="select w-auto"
             aria-label="정렬"
           >
             {(Object.keys(PAGE_SORT_LABEL) as PageSort[]).map((s) => (
@@ -200,7 +200,7 @@ export default function PageListPage() {
           <select
             value={pageSize}
             onChange={(e) => reset(setPageSize)(Number(e.target.value))}
-            className="input w-auto"
+            className="select w-auto"
             aria-label="페이지당 개수"
           >
             {PAGE_SIZES.map((n) => (

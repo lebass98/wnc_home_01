@@ -161,7 +161,7 @@ export default function CategoryPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, parentId: e.target.value ? Number(e.target.value) : null }))
                 }
-                className="input"
+                className="select"
               >
                 <option value="">없음 (대분류로 생성)</option>
                 {parentOptions.map((c) => (

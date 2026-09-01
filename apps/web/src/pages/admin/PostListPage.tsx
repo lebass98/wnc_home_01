@@ -59,7 +59,7 @@ export default function PostListPage() {
               setCategory(e.target.value as BoardCategory | '')
               setPage(1)
             }}
-            className="input sm:w-40"
+            className="select sm:w-40"
           >
             <option value="">전체 분류</option>
             <option value="NOTICE">공지사항</option>

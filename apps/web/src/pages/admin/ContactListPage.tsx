@@ -82,7 +82,7 @@ export default function ContactListPage() {
               setStatus(e.target.value as ContactStatus | '')
               setPage(1)
             }}
-            className="input sm:w-40"
+            className="select sm:w-40"
           >
             <option value="">전체 상태</option>
             {STATUSES.map((s) => (

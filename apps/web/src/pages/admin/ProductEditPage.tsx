@@ -175,7 +175,7 @@ export default function ProductEditPage() {
                   required
                   value={form.categoryId || ''}
                   onChange={(e) => set('categoryId', Number(e.target.value))}
-                  className="input"
+                  className="select"
                 >
                   <option value="">선택하세요</option>
                   {flat.map((c) => (

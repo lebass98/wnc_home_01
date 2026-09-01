@@ -137,7 +137,7 @@ export default function ProductsPage() {
                   <select
                     value={sort}
                     onChange={(e) => update({ sort: e.target.value, page: '' })}
-                    className="input sm:w-32"
+                    className="select sm:w-32"
                     aria-label="정렬"
                   >
                     {SORTS.map((s) => (

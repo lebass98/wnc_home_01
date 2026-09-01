@@ -47,3 +47,51 @@ model Contact {
 
   @@index([status, createdAt])
 }
+
+/// 제품 카테고리 — parentId 로 최대 3차(대/중/소)까지 계층을 구성한다.
+model Category {
+  id        Int    @id @default(autoincrement())
+  name      String
+  slug      String @unique
+  /// 1=대분류, 2=중분류, 3=소분류. 저장 시 부모 depth+1 로 검증한다.
+  depth     Int    @default(1)
+  sortOrder Int    @default(0)
+
+  parentId Int?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+
+  @@index([parentId, sortOrder])
+}
+
+model Product {
+  id        Int     @id @default(autoincrement())
+  name      String
+  model     String?
+  /// 목록 카드에 노출되는 한 줄 요약
+  summary   String?
+  price     Int?
+  /// 썸네일 — 업로드 경로(/uploads/..) 또는 외부 URL
+  thumbnail String?
+  /// 상세 본문 (TipTap 이 생성한 HTML)
+  content   String  @default("")
+  /// 사양 테이블 [{label, value}] 을 JSON 문자열로 저장한다 (SQLite 는 배열 타입이 없음)
+  specs     String  @default("[]")
+  published Boolean @default(true)
+  featured  Boolean @default(false)
+  views     Int     @default(0)
+  sortOrder Int     @default(0)
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, createdAt])
+  @@index([published, featured])
+}

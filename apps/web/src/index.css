@@ -44,3 +44,64 @@
     @apply rounded-xl border border-slate-200 bg-white shadow-sm;
   }
 }
+
+/* 상세 본문(TipTap 입력 및 출력) 공통 타이포그래피 */
+@layer components {
+  .prose-wnc {
+    @apply text-[0.95rem] leading-relaxed text-slate-700;
+  }
+  .prose-wnc > * + * {
+    @apply mt-4;
+  }
+  .prose-wnc h2 {
+    @apply mt-8 text-xl font-bold text-slate-900;
+  }
+  .prose-wnc h3 {
+    @apply mt-6 text-lg font-semibold text-slate-900;
+  }
+  .prose-wnc h4 {
+    @apply mt-5 font-semibold text-slate-900;
+  }
+  .prose-wnc p {
+    @apply leading-relaxed;
+  }
+  .prose-wnc ul {
+    @apply list-disc space-y-1.5 pl-5;
+  }
+  .prose-wnc ol {
+    @apply list-decimal space-y-1.5 pl-5;
+  }
+  .prose-wnc li > p {
+    @apply my-0;
+  }
+  .prose-wnc a {
+    @apply text-brand-600 underline underline-offset-2 hover:text-brand-700;
+  }
+  .prose-wnc blockquote {
+    @apply border-l-4 border-slate-200 pl-4 text-slate-600;
+  }
+  .prose-wnc code {
+    @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.85em] text-slate-800;
+  }
+  .prose-wnc pre {
+    @apply overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100;
+  }
+  .prose-wnc pre code {
+    @apply bg-transparent p-0 text-inherit;
+  }
+  .prose-wnc img {
+    @apply h-auto max-w-full rounded-lg;
+  }
+  .prose-wnc hr {
+    @apply border-slate-200;
+  }
+  .prose-wnc strong {
+    @apply font-semibold text-slate-900;
+  }
+
+  /* 편집기 안내문 (빈 상태) */
+  .prose-wnc p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0 text-slate-400;
+  }
+}

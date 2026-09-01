@@ -83,7 +83,7 @@ export default function DashboardPage() {
     <>
       <PageHeader title="대시보드" description="사이트 운영 현황을 한눈에 확인하세요." />
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="전체 게시글"
           value={formatNumber(stats.totalPosts)}
@@ -97,6 +97,13 @@ export default function DashboardPage() {
           sub="전체 게시글 누적"
           tone="bg-violet-50 text-violet-600"
           icon="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+        />
+        <StatCard
+          label="등록 제품"
+          value={formatNumber(stats.totalProducts)}
+          sub={`공개 ${stats.publishedProducts}건 · 카테고리 ${stats.totalCategories}개`}
+          tone="bg-amber-50 text-amber-600"
+          icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
         />
         <StatCard
           label="전체 문의"

@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 const NAV = [
   { to: '/about', label: '회사소개' },
   { to: '/services', label: '사업분야' },
+  { to: '/products', label: '제품소개' },
   { to: '/board', label: '소식' },
   { to: '/contact', label: '문의하기' },
 ]

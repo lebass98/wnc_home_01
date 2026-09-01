@@ -33,6 +33,9 @@ dashboardRouter.get(
       trendContacts,
       recentPosts,
       recentContacts,
+      totalProducts,
+      publishedProducts,
+      totalCategories,
     ] = await Promise.all([
       prisma.post.count(),
       prisma.post.count({ where: { published: true } }),
@@ -47,6 +50,9 @@ dashboardRouter.get(
         include: { author: { select: { name: true } } },
       }),
       prisma.contact.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
+      prisma.product.count(),
+      prisma.product.count({ where: { published: true } }),
+      prisma.category.count(),
     ])
 
     // 최근 14일을 0으로 채운 뒤 실제 건수를 누적해 빈 날도 그래프에 나오게 한다.
@@ -72,6 +78,9 @@ dashboardRouter.get(
       totalContacts,
       newContacts,
       totalViews: viewsAgg._sum.views ?? 0,
+      totalProducts,
+      publishedProducts,
+      totalCategories,
       trend: [...buckets.values()],
       recentPosts: recentPosts.map((p) => ({
         id: p.id,

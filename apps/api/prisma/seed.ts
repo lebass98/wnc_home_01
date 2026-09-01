@@ -80,6 +80,78 @@ async function main() {
     }
   }
 
+  // --- 제품 카테고리 (3차 계층) 및 제품 ---
+  if ((await prisma.category.count()) === 0) {
+    /** [대분류, [중분류, [소분류...]][]][] */
+    const tree: [string, [string, string[]][]][] = [
+      ['소프트웨어', [
+        ['업무 솔루션', ['그룹웨어', '전자결재', '인사관리']],
+        ['개발 도구', ['API 게이트웨이', 'CI/CD 파이프라인']],
+      ]],
+      ['하드웨어', [
+        ['네트워크 장비', ['스위치', '라우터']],
+        ['서버', ['랙형 서버', '타워형 서버']],
+      ]],
+      ['클라우드', [
+        ['인프라', ['가상 서버', '오브젝트 스토리지']],
+        ['보안', []],
+      ]],
+    ]
+
+    const slug = (s: string, i: number) =>
+      s.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '') || `cat-${i}`
+
+    let order = 0
+    const leaves: { id: number; name: string }[] = []
+
+    for (const [top, mids] of tree) {
+      const parent = await prisma.category.create({
+        data: { name: top, slug: slug(top, order), depth: 1, sortOrder: order++ },
+      })
+      let midOrder = 0
+      for (const [mid, subs] of mids) {
+        const midCat = await prisma.category.create({
+          data: { name: mid, slug: slug(mid, ++order), depth: 2, parentId: parent.id, sortOrder: midOrder++ },
+        })
+        if (subs.length === 0) leaves.push({ id: midCat.id, name: mid })
+        let subOrder = 0
+        for (const sub of subs) {
+          const subCat = await prisma.category.create({
+            data: { name: sub, slug: slug(sub, ++order), depth: 3, parentId: midCat.id, sortOrder: subOrder++ },
+          })
+          leaves.push({ id: subCat.id, name: sub })
+        }
+      }
+    }
+
+    const SPECS = [
+      [{ label: '제품 유형', value: '엔터프라이즈' }, { label: '지원 OS', value: 'Windows / Linux' }, { label: '라이선스', value: '연간 구독' }],
+      [{ label: '폼팩터', value: '1U 랙마운트' }, { label: '포트', value: '48 x 1GbE' }, { label: '전원', value: '이중화 지원' }],
+      [{ label: '제공 방식', value: 'SaaS' }, { label: 'SLA', value: '99.9%' }, { label: '리전', value: '서울 / 도쿄' }],
+    ]
+
+    for (const [i, leaf] of leaves.entries()) {
+      const specs = SPECS[i % SPECS.length]
+      await prisma.product.create({
+        data: {
+          name: `${leaf.name} ${['Pro', 'Enterprise', 'Standard', 'Lite'][i % 4]}`,
+          model: `WNC-${String(1000 + i * 7)}`,
+          summary: `${leaf.name} 업무를 위한 ${['고성능', '안정적인', '경제적인', '확장 가능한'][i % 4]} 솔루션입니다.`,
+          price: i % 3 === 0 ? null : (i + 1) * 250000,
+          thumbnail: null,
+          content: `<h2>${leaf.name} 제품 소개</h2><p>본 제품은 ${leaf.name} 환경에 최적화되어 설계되었습니다. 안정적인 성능과 손쉬운 운영을 동시에 제공합니다.</p><h3>주요 특징</h3><ul><li>검증된 안정성과 높은 가용성</li><li>직관적인 관리 콘솔 제공</li><li>기존 시스템과의 유연한 연동</li></ul><p>자세한 도입 문의는 영업 담당자에게 연락해 주시기 바랍니다.</p>`,
+          specs: JSON.stringify(specs),
+          categoryId: leaf.id,
+          published: true,
+          featured: i < 4,
+          views: Math.floor(Math.random() * 300) + 10,
+          sortOrder: i,
+          createdAt: daysAgo(i % 14),
+        },
+      })
+    }
+  }
+
   console.log('시드 데이터 생성 완료')
   console.log('  관리자: admin@wnc.co.kr / admin1234')
   console.log('  편집자: editor@wnc.co.kr / admin1234')

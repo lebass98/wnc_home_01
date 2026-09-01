@@ -17,6 +17,8 @@ export default defineConfig(() => ({
     port: 5173,
     proxy: {
       '/api': 'http://localhost:4000',
+      // 업로드된 이미지도 API 서버가 서빙하므로 함께 프록시한다.
+      '/uploads': 'http://localhost:4000',
     },
   },
 }))

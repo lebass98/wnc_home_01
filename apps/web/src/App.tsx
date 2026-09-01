@@ -7,6 +7,8 @@ import HomePage from './pages/site/HomePage'
 import AboutPage from './pages/site/AboutPage'
 import ServicesPage from './pages/site/ServicesPage'
 import BoardPage from './pages/site/BoardPage'
+import ProductsPage from './pages/site/ProductsPage'
+import ProductDetailPage from './pages/site/ProductDetailPage'
 import PostDetailPage from './pages/site/PostDetailPage'
 import ContactPage from './pages/site/ContactPage'
 
@@ -16,6 +18,9 @@ import DashboardPage from './pages/admin/DashboardPage'
 import PostListPage from './pages/admin/PostListPage'
 import PostEditPage from './pages/admin/PostEditPage'
 import ContactListPage from './pages/admin/ContactListPage'
+import ProductListPage from './pages/admin/ProductListPage'
+import ProductEditPage from './pages/admin/ProductEditPage'
+import CategoryPage from './pages/admin/CategoryPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -41,6 +46,8 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/services" element={<ServicesPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/board" element={<BoardPage />} />
             <Route path="/board/:id" element={<PostDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
@@ -60,6 +67,10 @@ export default function App() {
             <Route path="posts" element={<PostListPage />} />
             <Route path="posts/new" element={<PostEditPage />} />
             <Route path="posts/:id" element={<PostEditPage />} />
+            <Route path="products" element={<ProductListPage />} />
+            <Route path="products/new" element={<ProductEditPage />} />
+            <Route path="products/:id" element={<ProductEditPage />} />
+            <Route path="categories" element={<CategoryPage />} />
             <Route path="contacts" element={<ContactListPage />} />
           </Route>
 

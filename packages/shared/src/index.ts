@@ -102,6 +102,9 @@ export interface DashboardStats {
   totalContacts: number
   newContacts: number
   totalViews: number
+  totalProducts: number
+  publishedProducts: number
+  totalCategories: number
   /** 최근 14일 일별 추이 */
   trend: { date: string; posts: number; contacts: number }[]
   recentPosts: PostListItem[]
@@ -111,3 +114,86 @@ export interface DashboardStats {
 export interface ApiError {
   message: string
 }
+
+/* ------------------------------------------------------------------ *
+ *  제품 카테고리 / 제품
+ * ------------------------------------------------------------------ */
+
+/** 카테고리 최대 깊이 — 대분류(1) / 중분류(2) / 소분류(3) */
+export const MAX_CATEGORY_DEPTH = 3
+
+export const CATEGORY_DEPTH_LABEL: Record<number, string> = {
+  1: '대분류',
+  2: '중분류',
+  3: '소분류',
+}
+
+export interface Category {
+  id: number
+  name: string
+  slug: string
+  depth: number
+  sortOrder: number
+  parentId: number | null
+  /** 해당 카테고리에 직접 속한 제품 수 */
+  productCount: number
+}
+
+/** 자식을 품은 트리 형태 — 사이드 메뉴/셀렉트 박스에 사용한다. */
+export interface CategoryNode extends Category {
+  children: CategoryNode[]
+}
+
+export interface CategoryInput {
+  name: string
+  slug?: string
+  parentId?: number | null
+  sortOrder?: number
+}
+
+/** 제품 사양 테이블의 한 행 */
+export interface ProductSpec {
+  label: string
+  value: string
+}
+
+export interface ProductListItem {
+  id: number
+  name: string
+  model: string | null
+  summary: string | null
+  price: number | null
+  thumbnail: string | null
+  published: boolean
+  featured: boolean
+  views: number
+  categoryId: number
+  categoryName: string
+  createdAt: string
+}
+
+export interface Product extends ProductListItem {
+  /** TipTap 이 생성한 상세 본문 HTML */
+  content: string
+  specs: ProductSpec[]
+  sortOrder: number
+  /** 대분류 → 소분류 순의 카테고리 경로 (빵부스러기용) */
+  categoryPath: { id: number; name: string; slug: string }[]
+  updatedAt: string
+}
+
+export interface ProductInput {
+  name: string
+  model?: string | null
+  summary?: string | null
+  price?: number | null
+  thumbnail?: string | null
+  content: string
+  specs: ProductSpec[]
+  categoryId: number
+  published: boolean
+  featured: boolean
+  sortOrder?: number
+}
+
+export type ProductSort = 'latest' | 'name' | 'views'

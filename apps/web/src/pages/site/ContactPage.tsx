@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { ContactInput } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
@@ -30,10 +31,19 @@ const INFO = [
 ]
 
 export default function ContactPage() {
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState<ContactInput>(EMPTY)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+
+  // 제품 상세에서 넘어온 경우 문의 내용을 미리 채워 준다.
+  useEffect(() => {
+    const product = searchParams.get('product')
+    if (product) {
+      setForm((prev) => ({ ...prev, message: `[제품 문의] ${product}\n\n` }))
+    }
+  }, [searchParams])
 
   function set<K extends keyof ContactInput>(key: K, value: ContactInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))

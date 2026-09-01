@@ -15,6 +15,12 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
     })
   }
+  // status 를 가진 에러는 의도적으로 던진 것이므로 그대로 전달한다.
+  const known = err as { status?: number; message?: string }
+  if (typeof known?.status === 'number' && known.status >= 400 && known.status < 500) {
+    return res.status(known.status).json({ message: known.message ?? '요청을 처리할 수 없습니다.' })
+  }
+
   console.error(err)
   res.status(500).json({ message: '서버 오류가 발생했습니다.' })
 }

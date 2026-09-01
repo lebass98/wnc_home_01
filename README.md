@@ -80,6 +80,8 @@ npm run dev
 - `/` 메인 — 히어로, 통계, 서비스 소개, 최근 소식, CTA
 - `/about` 회사소개 — 개요, 핵심 가치, 연혁
 - `/services` 사업분야 — 서비스 4종, 진행 프로세스
+- `/products` 제품 소개 — 3차 카테고리 트리, 검색, 정렬, 썸네일 4열 그리드
+- `/products/:id` 제품 상세 — 좌측 이미지 / 우측 정보·사양·문의 CTA, 하단 상세 내용
 - `/board` 소식 — 분류 탭, 검색, 페이지네이션
 - `/board/:id` 상세 — 조회수 자동 증가
 - `/contact` 문의하기 — 문의 폼 (DB 저장)
@@ -88,6 +90,9 @@ npm run dev
 - `/admin` 대시보드 — 통계 카드 4종, 14일 등록 추이 차트, 문의 처리 현황, 최근 활동
 - `/admin/posts` 게시판 관리 — 목록, 분류 필터, 검색, 삭제
 - `/admin/posts/new`, `/admin/posts/:id` — 작성 및 수정 (공개/비공개 전환)
+- `/admin/products` 제품 관리 — 목록, 카테고리 필터, 검색, 삭제
+- `/admin/products/new`, `/admin/products/:id` — 등록·수정 (썸네일 업로드/URL, 사양 표, TipTap 편집기)
+- `/admin/categories` 제품 카테고리 — 3차까지 트리 구성, 추가·수정·삭제
 - `/admin/contacts` 문의 관리 — 목록, 상태 필터, 상세 드로어(상태 변경·내부 메모)
 
 ## API 엔드포인트
@@ -106,8 +111,32 @@ npm run dev
 | PATCH | `/api/contacts/:id` | 필요 | 상태·메모 수정 |
 | DELETE | `/api/contacts/:id` | 필요 | 문의 삭제 |
 | GET | `/api/dashboard/stats` | 필요 | 대시보드 통계 |
+| GET | `/api/categories` | - | 카테고리 트리 (3차) |
+| POST | `/api/categories` | 필요 | 카테고리 추가 |
+| PUT | `/api/categories/:id` | 필요 | 카테고리 수정 |
+| DELETE | `/api/categories/:id` | 필요 | 카테고리 삭제 |
+| GET | `/api/products` | - | 제품 목록 (카테고리·검색·정렬) |
+| GET | `/api/products/:id` | - | 제품 상세 |
+| POST | `/api/products` | 필요 | 제품 등록 |
+| PUT | `/api/products/:id` | 필요 | 제품 수정 |
+| DELETE | `/api/products/:id` | 필요 | 제품 삭제 |
+| POST | `/api/uploads` | 필요 | 이미지 업로드 (최대 5MB) |
 
-비공개(임시저장) 게시글은 공개 목록·상세에서 제외되며, 관리자 목록에서만 `includeDrafts=1` 로 조회됩니다.
+비공개(임시저장) 게시글·제품은 공개 목록·상세에서 제외되며, 관리자 목록에서만 `includeDrafts=1` 로 조회됩니다.
+
+### 제품 카테고리 규칙
+
+- 대분류(1차) → 중분류(2차) → 소분류(3차) 까지만 생성할 수 있습니다.
+- 3차 카테고리는 하위를 가질 수 없어 상위 선택 목록에 나타나지 않습니다.
+- 하위 카테고리나 제품이 남아 있는 카테고리는 삭제되지 않습니다.
+- 상위 카테고리를 선택하면 그 아래 모든 하위 제품이 함께 조회됩니다.
+
+### 상세 내용 편집기
+
+TipTap 기반 WYSIWYG 편집기로 제목·목록·인용·링크·이미지를 사용할 수 있습니다.
+편집기 번들(약 400KB)은 제품 등록/수정 화면에서만 지연 로딩되어 공개 페이지 속도에 영향을 주지 않습니다.
+저장된 HTML 은 표시 직전 [RichText.tsx](apps/web/src/components/RichText.tsx) 에서 허용 태그만 남기고
+정리되므로 `script`·`iframe`·`onerror`·`javascript:` 등은 렌더링되지 않습니다.
 
 ## GitHub Pages 배포 (데모 모드)
 
@@ -146,4 +175,5 @@ npx serve apps/web/dist   # 또는 임의의 정적 서버
 - [ ] SQLite → PostgreSQL/MySQL 전환 (`apps/api/prisma/schema.prisma` 의 `provider` 및 `DATABASE_URL` 수정)
 - [ ] `CORS_ORIGIN` 을 실제 도메인으로 지정
 - [ ] 로그인 시도 횟수 제한(rate limit) 추가
+- [ ] 업로드 파일을 로컬 디스크 대신 S3 등 외부 스토리지로 전환 (`apps/api/uploads/`)
 - [ ] 회사 정보(주소·연락처·연혁 등) 실제 내용으로 교체

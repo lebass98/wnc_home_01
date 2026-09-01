@@ -270,3 +270,25 @@ export interface PageVersionDetail extends PageVersionItem {
   content: string
   showInNav: boolean
 }
+
+/* ------------------------------------------------------------------ *
+ *  환경설정
+ * ------------------------------------------------------------------ */
+
+export interface SiteSetting {
+  siteName: string
+  siteUrl: string
+  description: string | null
+  adminEmail: string
+  /** 헤더에 표시될 로고 이미지 */
+  titleImage: string | null
+  updatedAt: string
+}
+
+export interface SiteSettingInput {
+  siteName: string
+  siteUrl: string
+  description?: string | null
+  adminEmail: string
+  titleImage?: string | null
+}

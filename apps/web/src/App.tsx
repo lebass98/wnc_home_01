@@ -26,6 +26,7 @@ import CategoryPage from './pages/admin/CategoryPage'
 import PageListPage from './pages/admin/PageListPage'
 import PageEditPage from './pages/admin/PageEditPage'
 import PageDetailPage from './pages/admin/PageDetailPage'
+import SettingsPage from './pages/admin/SettingsPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="pages/:id" element={<PageEditPage />} />
             <Route path="pages/:id/detail" element={<PageDetailPage />} />
             <Route path="contacts" element={<ContactListPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,6 +9,7 @@ import { dashboardRouter } from './routes/dashboard.js'
 import { categoriesRouter } from './routes/categories.js'
 import { productsRouter } from './routes/products.js'
 import { pagesRouter } from './routes/pages.js'
+import { settingsRouter } from './routes/settings.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
 
 const app = express()
@@ -28,6 +29,7 @@ app.use('/api/dashboard', dashboardRouter)
 app.use('/api/categories', categoriesRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/pages', pagesRouter)
+app.use('/api/settings', settingsRouter)
 app.use('/api/uploads', uploadsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))

@@ -263,3 +263,25 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
 
   return { pages, versions }
 }
+
+/* ------------------------------ 환경설정 ------------------------------ */
+
+export interface DemoSetting {
+  siteName: string
+  siteUrl: string
+  description: string | null
+  adminEmail: string
+  titleImage: string | null
+  updatedAt: string
+}
+
+export function createDemoSetting(): DemoSetting {
+  return {
+    siteName: '워드앤코드',
+    siteUrl: 'https://wnc.co.kr',
+    description: '웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.',
+    adminEmail: 'admin@wnc.co.kr',
+    titleImage: null,
+    updatedAt: isoDaysAgo(0),
+  }
+}

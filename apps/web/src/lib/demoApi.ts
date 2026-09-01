@@ -14,12 +14,14 @@ import {
   createDemoPages,
   createDemoPosts,
   createDemoProducts,
+  createDemoSetting,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
   type DemoPage,
   type DemoPageVersion,
   type DemoProduct,
+  type DemoSetting,
 } from './demoData'
 
 /**
@@ -37,6 +39,7 @@ interface DemoDb {
   products: DemoProduct[]
   pages: DemoPage[]
   pageVersions: DemoPageVersion[]
+  setting: DemoSetting
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -58,6 +61,7 @@ function seed(): DemoDb {
     products,
     pages,
     pageVersions: versions,
+    setting: createDemoSetting(),
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -76,7 +80,8 @@ function load(): DemoDb {
       if (
         Array.isArray(parsed.products) &&
         Array.isArray(parsed.categories) &&
-        Array.isArray(parsed.pages)
+        Array.isArray(parsed.pages) &&
+        parsed.setting
       ) {
         return parsed
       }
@@ -694,6 +699,25 @@ export function handleDemoRequest(
       save(db)
       return undefined
     }
+  }
+
+  // --- 환경설정 ---
+  if (rawPath === '/settings' && method === 'GET') {
+    return db.setting
+  }
+
+  if (rawPath === '/settings' && method === 'PUT') {
+    db.setting = {
+      ...db.setting,
+      siteName: body.siteName,
+      siteUrl: body.siteUrl,
+      description: body.description || null,
+      adminEmail: body.adminEmail,
+      titleImage: body.titleImage ?? null,
+      updatedAt: new Date().toISOString(),
+    }
+    save(db)
+    return db.setting
   }
 
   // --- 업로드 (데모: 파일을 base64 로 그대로 돌려준다) ---

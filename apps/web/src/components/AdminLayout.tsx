@@ -154,10 +154,10 @@ export default function AdminLayout() {
               {openGroup === item.label && (
                 /* 부모 아이콘 가운데에서 내려오는 트리 선 — 항목마다 둥근 ㄴ자로 갈라진다. */
                 <div className="relative ml-[1.375rem] mt-0.5">
-                  {/* 마지막 항목 가운데까지 끊기지 않고 이어지는 세로선 */}
+                  {/* 마지막 항목의 곡선이 시작되는 지점(중앙에서 모서리 반지름만큼 위)에서 멈춘다. */}
                   <span
                     aria-hidden
-                    className="absolute bottom-5 left-0 top-0 border-l border-slate-300 dark:border-slate-600"
+                    className="absolute bottom-[1.875rem] left-0 top-0 border-l border-slate-300 dark:border-slate-600"
                   />
                   {item.children.map((child) => (
                     <div key={child.to} className="relative pl-5">

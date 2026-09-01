@@ -26,13 +26,14 @@ export default function PageEditPage() {
   const [current, setCurrent] = useState<Page | null>(null)
   const [versions, setVersions] = useState<PageVersionItem[]>([])
   const [preview, setPreview] = useState<PageVersionDetail | null>(null)
+  const [openContent, setOpenContent] = useState(true)
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  /** 페이지 본문과 버전 목록을 함께 다시 읽는다. */
+  /** 페이지 내용과 버전 이력을 함께 다시 읽는다. */
   const load = useCallback(() => {
     if (!id) return
     setLoading(true)
@@ -72,12 +73,12 @@ export default function PageEditPage() {
     try {
       if (isNew) {
         const created = await api<Page>('/pages', { method: 'POST', body: form, auth: true })
-        // 만들자마자 버전 기록을 볼 수 있도록 수정 화면으로 넘어간다.
+        // 만들자마자 버전 이력을 볼 수 있도록 수정 화면으로 넘어간다.
         navigate(`/admin/pages/${created.id}`, { replace: true })
       } else {
         await api<Page>(`/pages/${id}`, { method: 'PUT', body: form, auth: true })
         load()
-        setNotice('저장했습니다. 변경된 내용은 새 버전으로 보관됩니다.')
+        setNotice('저장했습니다. 바뀐 내용은 새 버전으로 보관됩니다.')
       }
     } catch (err) {
       setError((err as Error).message)
@@ -86,7 +87,7 @@ export default function PageEditPage() {
     }
   }
 
-  async function openPreview(version: number) {
+  async function openVersion(version: number) {
     try {
       setPreview(await api<PageVersionDetail>(`/pages/${id}/versions/${version}`, { auth: true }))
     } catch (e) {
@@ -94,14 +95,14 @@ export default function PageEditPage() {
     }
   }
 
-  /** 이전 버전으로 되돌린다. 되돌리기 역시 새 버전으로 쌓이므로 다시 취소할 수 있다. */
+  /** 이전 버전으로 되돌린다. 지금 내용도 버전으로 남아 다시 되돌릴 수 있다. */
   async function handleRestore(version: number) {
-    if (!confirm(`v${version} 내용으로 되돌릴까요?\n지금 내용은 버전 기록에 그대로 남습니다.`)) return
+    if (!confirm(`v${version} 내용으로 복원할까요?\n지금 내용은 버전 이력에 그대로 남습니다.`)) return
     try {
       await api(`/pages/${id}/versions/${version}/restore`, { method: 'POST', auth: true })
       setPreview(null)
       load()
-      setNotice(`v${version} 내용으로 되돌렸습니다.`)
+      setNotice(`v${version} 내용으로 복원했습니다.`)
     } catch (e) {
       alert((e as Error).message)
     }
@@ -109,27 +110,20 @@ export default function PageEditPage() {
 
   if (loading) return <Loading />
 
+  // 작성자는 가장 오래된 버전을 남긴 사람이다.
+  const author = versions.length > 0 ? versions[versions.length - 1].authorName : '-'
+
   return (
     <>
       <PageHeader
         title={isNew ? '페이지 추가' : '페이지 수정'}
         description={
           isNew
-            ? '발행으로 저장하면 /page/슬러그 주소로 홈페이지에 바로 노출됩니다.'
-            : '저장할 때마다 이전 내용이 버전으로 보관되어 언제든 되돌릴 수 있습니다.'
+            ? '발행 상태로 저장하면 /page/슬러그 주소로 홈페이지에 바로 노출됩니다.'
+            : '저장할 때마다 이전 내용이 버전으로 보관되어 언제든 복원할 수 있습니다.'
         }
         action={
           <div className="flex items-center gap-2">
-            {current?.published && (
-              <a
-                href={`${import.meta.env.BASE_URL}page/${current.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-              >
-                페이지 열기
-              </a>
-            )}
             {!isNew && (
               <button
                 type="button"
@@ -146,184 +140,260 @@ export default function PageEditPage() {
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
-        <form onSubmit={handleSubmit} className="card p-6 sm:p-8">
-          <div className="space-y-5">
-            {error && <ErrorMessage message={error} />}
-            {notice && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                {notice}
-              </div>
-            )}
+      {error && <div className="mb-4"><ErrorMessage message={error} /></div>}
+      {notice && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {notice}
+        </div>
+      )}
 
-            <div className="grid gap-5 sm:grid-cols-[1fr_16rem]">
-              <div>
-                <label htmlFor="title" className="label">
-                  제목 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="title"
-                  required
-                  maxLength={200}
-                  value={form.title}
-                  onChange={(e) => set('title', e.target.value)}
-                  className="input"
-                  placeholder="예) 회사소개"
-                />
-              </div>
+      <form onSubmit={handleSubmit}>
+        {/* 기본 정보 */}
+        <div className="card mb-6 p-6">
+          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-600">
+            {([true, false] as const).map((state) => (
+              <button
+                key={String(state)}
+                type="button"
+                onClick={() => set('published', state)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+                  form.published === state
+                    ? state
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-100'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                {state ? '발행' : '미발행'}
+              </button>
+            ))}
+          </div>
 
-              <div>
-                <label htmlFor="slug" className="label">
-                  슬러그
-                </label>
-                <input
-                  id="slug"
-                  maxLength={80}
-                  value={form.slug ?? ''}
-                  onChange={(e) => set('slug', e.target.value)}
-                  className="input font-mono"
-                  placeholder="비우면 제목에서 자동 생성"
-                />
-                <p className="mt-1.5 text-xs text-slate-500">
-                  주소: /page/{form.slug?.trim() || '자동생성'}
-                </p>
-              </div>
-            </div>
+          <div className="mt-4">
+            <label htmlFor="title" className="label">
+              제목 <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="title"
+              required
+              maxLength={200}
+              value={form.title}
+              onChange={(e) => set('title', e.target.value)}
+              className="input text-lg font-semibold"
+              placeholder="예) 문의하기"
+            />
+          </div>
 
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
             <div>
-              <label htmlFor="description" className="label">
-                한 줄 설명
+              <label htmlFor="slug" className="label">
+                슬러그
               </label>
               <input
-                id="description"
-                maxLength={300}
-                value={form.description ?? ''}
-                onChange={(e) => set('description', e.target.value)}
-                className="input"
-                placeholder="페이지 상단에 제목과 함께 보여집니다."
+                id="slug"
+                maxLength={80}
+                value={form.slug ?? ''}
+                onChange={(e) => set('slug', e.target.value)}
+                className="input font-mono"
+                placeholder="비우면 제목에서 자동 생성"
               />
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                주소: /page/{form.slug?.trim() || '자동생성'}
+              </p>
             </div>
+
+            {current && (
+              <div className="flex items-center gap-3 sm:mt-7 sm:self-start">
+                <Badge tone="blue">v{current.version}</Badge>
+                {current.published && (
+                  <a
+                    href={`${import.meta.env.BASE_URL}page/${current.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    페이지 보기
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="description" className="label">
+              한 줄 설명
+            </label>
+            <input
+              id="description"
+              maxLength={300}
+              value={form.description ?? ''}
+              onChange={(e) => set('description', e.target.value)}
+              className="input"
+              placeholder="페이지 상단에 제목과 함께 보여집니다."
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_10rem]">
+            <label className="flex cursor-pointer items-center gap-2.5 sm:mt-8">
+              <input
+                type="checkbox"
+                checked={form.showInNav}
+                onChange={(e) => set('showInNav', e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                상단 메뉴에 표시 — 발행 상태일 때만 메뉴에 나타납니다.
+              </span>
+            </label>
 
             <div>
-              <label className="label">본문</label>
+              <label htmlFor="sortOrder" className="label">
+                정렬 순서
+              </label>
+              <input
+                id="sortOrder"
+                type="number"
+                value={form.sortOrder ?? 0}
+                onChange={(e) => set('sortOrder', Number(e.target.value))}
+                className="input"
+              />
+            </div>
+          </div>
+
+          {current && (
+            <dl className="mt-5 grid gap-x-10 gap-y-3 border-t border-slate-200 pt-5 text-sm dark:border-slate-700 sm:grid-cols-2">
+              {[
+                ['작성자', author],
+                ['발행일시', formatStamp(current.publishedAt)],
+                ['생성일', formatStamp(current.createdAt)],
+                ['수정일', formatStamp(current.updatedAt)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex gap-6">
+                  <dt className="w-20 shrink-0 text-slate-500 dark:text-slate-400">{label}</dt>
+                  <dd className="text-slate-800 dark:text-slate-200">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+
+        {/* 내용 */}
+        <div className="card mb-6">
+          <button
+            type="button"
+            onClick={() => setOpenContent((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left"
+            aria-expanded={openContent}
+          >
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">내용</h2>
+            <svg
+              className={`h-5 w-5 text-slate-400 transition ${openContent ? '' : 'rotate-180'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          {openContent && (
+            <div className="px-6 pb-6 pt-1">
               <RichEditor value={form.content} onChange={(html) => set('content', html)} />
             </div>
+          )}
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-              <div className="space-y-3">
-                <label className="flex cursor-pointer items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    checked={form.published}
-                    onChange={(e) => set('published', e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
-                    발행 — 체크를 해제하면 홈페이지에서 보이지 않습니다.
-                  </span>
-                </label>
-
-                <label className="flex cursor-pointer items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    checked={form.showInNav}
-                    onChange={(e) => set('showInNav', e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span className="text-sm text-slate-700 dark:text-slate-300">
-                    상단 메뉴에 표시 — 발행 상태일 때만 메뉴에 나타납니다.
-                  </span>
-                </label>
-              </div>
-
-              <div>
-                <label htmlFor="sortOrder" className="label">
-                  정렬 순서
-                </label>
-                <input
-                  id="sortOrder"
-                  type="number"
-                  value={form.sortOrder ?? 0}
-                  onChange={(e) => set('sortOrder', Number(e.target.value))}
-                  className="input"
-                />
-              </div>
-            </div>
+        {/* 버전 이력 */}
+        <div className="card">
+          <div className="px-6 py-4">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">버전 이력</h2>
           </div>
 
-          <div className="mt-8 flex gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? '저장 중...' : isNew ? '만들기' : '저장'}
-            </button>
-            <button type="button" onClick={() => navigate('/admin/pages')} className="btn-secondary">
-              취소
-            </button>
-          </div>
-        </form>
-
-        {/* 버전 기록 — 새 페이지에는 아직 기록이 없다. */}
-        <aside className="card h-fit">
-          <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">버전 기록</h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              저장할 때마다 자동으로 백업됩니다. 최근 50개까지 보관합니다.
+          <div className="px-6">
+            <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+              <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              보기 버튼을 누르면 그 시점의 내용을 확인하고 복원할 수 있습니다. 저장할 때마다 최근 50개까지 보관됩니다.
             </p>
           </div>
 
           {isNew ? (
-            <p className="px-5 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
               페이지를 만들면 이곳에 버전이 쌓입니다.
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-700">
-              {versions.map((v) => (
-                <li key={v.id} className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      v{v.version}
-                    </span>
-                    {v.current && <Badge tone="blue">현재</Badge>}
-                    {v.published ? <Badge tone="green">발행</Badge> : <Badge tone="slate">미발행</Badge>}
-                  </div>
-                  <p className="mt-1.5 truncate text-sm text-slate-700 dark:text-slate-300">{v.title}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    {v.note} · {v.authorName} · {formatStamp(v.createdAt)}
-                  </p>
-                  <div className="mt-2 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => openPreview(v.version)}
-                      className="text-xs font-medium text-brand-600 hover:text-brand-700"
-                    >
-                      미리보기
-                    </button>
-                    {!v.current && (
-                      <button
-                        type="button"
-                        onClick={() => handleRestore(v.version)}
-                        className="text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-                      >
-                        이 버전으로 되돌리기
-                      </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[42rem] text-sm">
+                <thead>
+                  <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
+                    <th className="px-6 py-3">버전</th>
+                    <th className="px-4 py-3">저장자</th>
+                    <th className="px-4 py-3">저장일시</th>
+                    <th className="px-4 py-3">변경내역</th>
+                    <th className="px-6 py-3 text-right">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {versions.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span className="mr-2 font-semibold text-slate-900 dark:text-slate-100">v{v.version}</span>
+                        {v.current && <Badge tone="green">현재</Badge>}
+                      </td>
+                      <td className="px-4 py-4 text-slate-700 dark:text-slate-300">{v.authorName}</td>
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-400">
+                        {formatStamp(v.createdAt)}
+                      </td>
+                      <td className="px-4 py-4 italic text-slate-500 dark:text-slate-400">{v.note}</td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => openVersion(v.version)}
+                          className="rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+                        >
+                          보기
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </aside>
-      </div>
+        </div>
+
+        {/* 저장 */}
+        <div className="card mt-6 flex flex-wrap gap-3 p-4">
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? '저장 중...' : isNew ? '만들기' : '저장'}
+          </button>
+          <button type="button" onClick={() => navigate('/admin/pages')} className="btn-secondary">
+            취소
+          </button>
+          <p className="ml-auto self-center text-xs text-slate-500 dark:text-slate-400">
+            내용이 바뀐 저장만 새 버전으로 기록됩니다.
+          </p>
+        </div>
+      </form>
 
       {preview && (
         <Modal
-          title={`v${preview.version} 미리보기`}
+          title={`v${preview.version} 내용 보기`}
           onClose={() => setPreview(null)}
           wide
           footer={
             <>
               {!preview.current && (
                 <button type="button" onClick={() => handleRestore(preview.version)} className="btn-primary">
-                  이 버전으로 되돌리기
+                  이 버전으로 복원
                 </button>
               )}
               <button type="button" onClick={() => setPreview(null)} className="btn-secondary">

@@ -152,19 +152,42 @@ export default function AdminLayout() {
               </button>
 
               {openGroup === item.label && (
-                <div className="ml-5 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3 dark:border-slate-700">
-                  {item.children.map((child) => (
-                    <NavLink
-                      key={child.to}
-                      to={child.to}
-                      end={child.end}
-                      className={({ isActive }) => `${NAV_ITEM} ${isActive ? NAV_ACTIVE : NAV_IDLE}`}
-                    >
-                      <svg className="h-[1.125rem] w-[1.125rem] shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d={child.icon} />
-                      </svg>
-                      {child.label}
-                    </NavLink>
+                /* 부모 아이콘 가운데에서 내려오는 트리 선 — 항목마다 둥근 ㄴ자로 이어진다. */
+                <div className="ml-[1.375rem] mt-0.5">
+                  {item.children.map((child, i) => (
+                    <div key={child.to} className="relative pl-5">
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-0 h-5 w-3.5 rounded-bl-[0.625rem] border-b border-l border-slate-300 dark:border-slate-600"
+                      />
+                      {/* 마지막 항목 아래로는 선을 잇지 않는다. */}
+                      {i < item.children.length - 1 && (
+                        <span
+                          aria-hidden
+                          className="absolute bottom-0 left-0 top-5 border-l border-slate-300 dark:border-slate-600"
+                        />
+                      )}
+                      <NavLink
+                        to={child.to}
+                        end={child.end}
+                        className={({ isActive }) =>
+                          `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition ${
+                            isActive ? NAV_ACTIVE : NAV_IDLE
+                          }`
+                        }
+                      >
+                        <svg
+                          className="h-[1.125rem] w-[1.125rem] shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d={child.icon} />
+                        </svg>
+                        {child.label}
+                      </NavLink>
+                    </div>
                   ))}
                 </div>
               )}

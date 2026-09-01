@@ -6,6 +6,7 @@ import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import PageHero from '../../components/PageHero'
 import { Badge, EmptyState, Loading, Pagination } from '../../components/ui'
+import { usePageTitle } from '../../lib/seo'
 
 const TABS: { value: BoardCategory | ''; label: string }[] = [
   { value: '', label: '전체' },
@@ -15,6 +16,7 @@ const TABS: { value: BoardCategory | ''; label: string }[] = [
 ]
 
 export default function BoardPage() {
+  usePageTitle('소식')
   const [searchParams, setSearchParams] = useSearchParams()
   const category = (searchParams.get('category') ?? '') as BoardCategory | ''
   const page = Number(searchParams.get('page') ?? 1)

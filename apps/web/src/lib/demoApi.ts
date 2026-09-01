@@ -724,6 +724,7 @@ export function handleDemoRequest(
     db.setting = {
       ...db.setting,
       metaTitle: body.metaTitle || null,
+      titleSuffix: body.titleSuffix || null,
       metaDescription: body.metaDescription || null,
       metaKeywords: body.metaKeywords || null,
       ogEnabled: body.ogEnabled ?? db.setting.ogEnabled,
@@ -738,6 +739,8 @@ export function handleDemoRequest(
       googleVerification: body.googleVerification || null,
       naverVerification: body.naverVerification || null,
       gaId: body.gaId || null,
+      generatorEnabled: body.generatorEnabled ?? db.setting.generatorEnabled,
+      generatorContent: body.generatorContent || null,
       updatedAt: new Date().toISOString(),
     }
     save(db)

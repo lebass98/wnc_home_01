@@ -7,12 +7,14 @@ import { formatPrice } from '../../lib/category'
 import RichText from '../../components/RichText'
 import ProductCard from '../../components/ProductCard'
 import { ErrorMessage, Loading } from '../../components/ui'
+import { usePageTitle } from '../../lib/seo'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [related, setRelated] = useState<ProductListItem[]>([])
   const [loading, setLoading] = useState(true)
+  usePageTitle(product?.name)
   const [error, setError] = useState('')
 
   useEffect(() => {

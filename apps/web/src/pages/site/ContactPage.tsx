@@ -4,6 +4,7 @@ import type { ContactInput } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
 import { ErrorMessage } from '../../components/ui'
+import { usePageTitle } from '../../lib/seo'
 
 const EMPTY: ContactInput = { name: '', email: '', phone: '', company: '', message: '' }
 
@@ -31,6 +32,7 @@ const INFO = [
 ]
 
 export default function ContactPage() {
+  usePageTitle('문의하기')
   const [searchParams] = useSearchParams()
   const [form, setForm] = useState<ContactInput>(EMPTY)
   const [submitting, setSubmitting] = useState(false)

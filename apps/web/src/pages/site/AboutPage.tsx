@@ -1,4 +1,5 @@
 import PageHero from '../../components/PageHero'
+import { usePageTitle } from '../../lib/seo'
 
 const HISTORY = [
   { year: '2026', items: ['클라우드 협업 솔루션 정식 출시', '해외 파트너십 체결'] },
@@ -14,6 +15,7 @@ const VALUES = [
 ]
 
 export default function AboutPage() {
+  usePageTitle('회사소개')
   return (
     <>
       <PageHero

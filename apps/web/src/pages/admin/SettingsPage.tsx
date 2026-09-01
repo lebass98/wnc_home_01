@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { OgType, SeoSettingInput, SiteSetting, SiteSettingInput } from '@wnc/shared'
+import { DEFAULT_GENERATOR } from '@wnc/shared'
 import { api, IS_DEMO } from '../../lib/api'
 import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
@@ -215,6 +216,7 @@ function CharCount({ value, max }: { value: string; max: number }) {
 function SeoForm({ setting }: { setting: SiteSetting }) {
   const [form, setForm] = useState<SeoSettingInput>({
     metaTitle: setting.metaTitle ?? '',
+    titleSuffix: setting.titleSuffix ?? '',
     metaDescription: setting.metaDescription ?? '',
     metaKeywords: setting.metaKeywords ?? '',
     ogEnabled: setting.ogEnabled,
@@ -229,6 +231,8 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
     googleVerification: setting.googleVerification ?? '',
     naverVerification: setting.naverVerification ?? '',
     gaId: setting.gaId ?? '',
+    generatorEnabled: setting.generatorEnabled,
+    generatorContent: setting.generatorContent ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -260,9 +264,9 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
 
       {/* 검색엔진 노출 */}
       <div className="card p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">검색엔진 노출</h2>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">메타 태그 설정</h2>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          검색 결과에 보여질 제목과 설명을 설정합니다. 비워 두면 사이트 이름과 사이트 설명을 사용합니다.
+          검색엔진 최적화를 위한 메타 태그를 설정합니다. 비워 두면 사이트 이름과 사이트 설명을 사용합니다.
         </p>
 
         <div className="mt-6 space-y-5">
@@ -284,9 +288,26 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
           </div>
 
           <div>
+            <label htmlFor="titleSuffix" className="label">
+              타이틀 접미사
+            </label>
+            <input
+              id="titleSuffix"
+              maxLength={60}
+              value={form.titleSuffix ?? ''}
+              onChange={(e) => set('titleSuffix', e.target.value)}
+              className="input"
+              placeholder=" | 워드앤코드"
+            />
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              모든 페이지 타이틀 뒤에 붙는 문구입니다. (예: ' | 워드앤코드')
+            </p>
+          </div>
+
+          <div>
             <div className="flex items-baseline justify-between">
               <label htmlFor="metaDescription" className="label">
-                메타 설명
+                기본 메타 설명
               </label>
               <CharCount value={form.metaDescription ?? ''} max={160} />
             </div>
@@ -297,8 +318,11 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
               value={form.metaDescription ?? ''}
               onChange={(e) => set('metaDescription', e.target.value)}
               className="input resize-y"
-              placeholder="검색 결과에 표시될 요약문을 입력하세요."
+              placeholder="사이트의 기본 메타 설명을 입력하세요."
             />
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              검색 결과에 표시되는 설명입니다. 최대 160자를 권장합니다.
+            </p>
           </div>
 
           <div>
@@ -314,7 +338,7 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
               placeholder="홈페이지 제작, 업무 자동화, 클라우드"
             />
             <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-              쉼표(,)로 구분해 입력합니다.
+              쉼표로 구분하여 입력하세요.
             </p>
           </div>
 
@@ -448,6 +472,43 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
               </div>
             </div>
           </fieldset>
+        </div>
+      </div>
+
+      {/* Generator 메타 태그 */}
+      <div className="card p-6 sm:p-8">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Generator 메타 태그</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          어떤 도구로 만든 사이트인지 알리는 generator 메타 태그입니다. W3Techs 등 통계 도구가 이 값으로
+          사이트를 분류합니다.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <SettingToggle
+            title="Generator 태그 표시"
+            description="끄면 메타 태그 자체를 출력하지 않습니다."
+            checked={form.generatorEnabled ?? true}
+            onChange={(v) => set('generatorEnabled', v)}
+          />
+
+          <div>
+            <label htmlFor="generatorContent" className="label">
+              Generator 내용
+            </label>
+            <input
+              id="generatorContent"
+              maxLength={100}
+              disabled={!form.generatorEnabled}
+              value={form.generatorContent ?? ''}
+              onChange={(e) => set('generatorContent', e.target.value)}
+              className="input disabled:opacity-50"
+              placeholder={DEFAULT_GENERATOR}
+            />
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+              비워두면 "{DEFAULT_GENERATOR}" 가 자동 적용됩니다. 버전 노출을 원하지 않으면 "WNC CMS" 만
+              입력하세요.
+            </p>
+          </div>
         </div>
       </div>
 

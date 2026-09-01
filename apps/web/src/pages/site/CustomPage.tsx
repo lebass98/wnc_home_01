@@ -5,12 +5,14 @@ import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
 import RichText from '../../components/RichText'
 import { ErrorMessage, Loading } from '../../components/ui'
+import { usePageTitle } from '../../lib/seo'
 
 /** 관리자가 만든 일반 페이지 — /page/:slug */
 export default function CustomPage() {
   const { slug } = useParams<{ slug: string }>()
   const [page, setPage] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
+  usePageTitle(page?.title)
   const [error, setError] = useState('')
 
   useEffect(() => {

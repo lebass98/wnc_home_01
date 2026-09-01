@@ -273,6 +273,7 @@ export interface DemoSetting {
   adminEmail: string
   titleImage: string | null
   metaTitle: string | null
+  titleSuffix: string | null
   metaDescription: string | null
   metaKeywords: string | null
   ogEnabled: boolean
@@ -287,6 +288,8 @@ export interface DemoSetting {
   googleVerification: string | null
   naverVerification: string | null
   gaId: string | null
+  generatorEnabled: boolean
+  generatorContent: string | null
   updatedAt: string
 }
 
@@ -298,6 +301,7 @@ export function createDemoSetting(): DemoSetting {
     adminEmail: 'admin@wnc.co.kr',
     titleImage: null,
     metaTitle: '워드앤코드 — 웹·모바일 개발 파트너',
+    titleSuffix: ' | 워드앤코드',
     metaDescription: '기업 홈페이지와 관리자 시스템, 업무 자동화 솔루션을 만듭니다.',
     metaKeywords: '홈페이지 제작, 업무 자동화, 클라우드',
     ogEnabled: true,
@@ -312,6 +316,8 @@ export function createDemoSetting(): DemoSetting {
     googleVerification: null,
     naverVerification: null,
     gaId: null,
+    generatorEnabled: true,
+    generatorContent: null,
     updatedAt: isoDaysAgo(0),
   }
 }

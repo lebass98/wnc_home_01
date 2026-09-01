@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import PageHero from '../../components/PageHero'
+import { usePageTitle } from '../../lib/seo'
 
 const SERVICES = [
   {
@@ -33,6 +34,7 @@ const PROCESS = [
 ]
 
 export default function ServicesPage() {
+  usePageTitle('사업분야')
   return (
     <>
       <PageHero

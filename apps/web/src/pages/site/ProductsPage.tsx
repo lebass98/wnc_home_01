@@ -7,6 +7,7 @@ import PageHero from '../../components/PageHero'
 import CategoryTree from '../../components/CategoryTree'
 import ProductCard from '../../components/ProductCard'
 import { EmptyState, ErrorMessage, Loading, Pagination } from '../../components/ui'
+import { usePageTitle } from '../../lib/seo'
 
 const SORTS: { value: ProductSort; label: string }[] = [
   { value: 'latest', label: '최신순' },
@@ -17,6 +18,7 @@ const SORTS: { value: ProductSort; label: string }[] = [
 const PAGE_SIZE = 12
 
 export default function ProductsPage() {
+  usePageTitle('제품소개')
   const [searchParams, setSearchParams] = useSearchParams()
   const categoryId = searchParams.get('category') ? Number(searchParams.get('category')) : null
   const page = Number(searchParams.get('page') ?? 1)

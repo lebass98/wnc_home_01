@@ -285,6 +285,8 @@ export interface SiteSetting {
 
   /* SEO */
   metaTitle: string | null
+  /** 모든 페이지 제목 뒤에 붙는 문구 */
+  titleSuffix: string | null
   metaDescription: string | null
   /** 쉼표로 구분한 키워드 */
   metaKeywords: string | null
@@ -303,6 +305,10 @@ export interface SiteSetting {
   naverVerification: string | null
   /** Google Analytics 측정 ID */
   gaId: string | null
+  /** generator 메타 태그 출력 여부 */
+  generatorEnabled: boolean
+  /** 비우면 DEFAULT_GENERATOR 를 쓴다 */
+  generatorContent: string | null
 
   updatedAt: string
 }
@@ -319,8 +325,12 @@ export interface SiteSettingInput {
 export const OG_TYPES = ['website', 'article'] as const
 export type OgType = (typeof OG_TYPES)[number]
 
+/** generator 메타 태그 기본값 — 내용을 비웠을 때 쓴다. */
+export const DEFAULT_GENERATOR = 'WNC CMS 0.1.0'
+
 export interface SeoSettingInput {
   metaTitle?: string | null
+  titleSuffix?: string | null
   metaDescription?: string | null
   metaKeywords?: string | null
   ogEnabled?: boolean
@@ -335,4 +345,6 @@ export interface SeoSettingInput {
   googleVerification?: string | null
   naverVerification?: string | null
   gaId?: string | null
+  generatorEnabled?: boolean
+  generatorContent?: string | null
 }

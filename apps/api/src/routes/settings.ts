@@ -27,6 +27,13 @@ type SettingRow = Record<string, any>
 
 const seoInputSchema = z.object({
   metaTitle: optionalText(120),
+  // 접미사는 앞뒤 공백이 의미가 있으므로(' | 워드앤코드') 다듬지 않는다.
+  titleSuffix: z
+    .string()
+    .max(60)
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v && v.trim() ? v : null)),
   metaDescription: optionalText(400),
   metaKeywords: optionalText(300),
   ogEnabled: z.boolean().optional(),
@@ -45,6 +52,8 @@ const seoInputSchema = z.object({
   googleVerification: optionalText(200),
   naverVerification: optionalText(200),
   gaId: optionalText(50),
+  generatorEnabled: z.boolean().optional(),
+  generatorContent: optionalText(100),
 })
 
 function toResponse(row: SettingRow) {
@@ -55,6 +64,7 @@ function toResponse(row: SettingRow) {
     adminEmail: row.adminEmail,
     titleImage: row.titleImage,
     metaTitle: row.metaTitle,
+    titleSuffix: row.titleSuffix,
     metaDescription: row.metaDescription,
     metaKeywords: row.metaKeywords,
     ogEnabled: row.ogEnabled,
@@ -69,6 +79,8 @@ function toResponse(row: SettingRow) {
     googleVerification: row.googleVerification,
     naverVerification: row.naverVerification,
     gaId: row.gaId,
+    generatorEnabled: row.generatorEnabled,
+    generatorContent: row.generatorContent,
     updatedAt: row.updatedAt.toISOString(),
   }
 }

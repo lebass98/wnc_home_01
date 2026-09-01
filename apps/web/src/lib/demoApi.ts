@@ -16,6 +16,7 @@ import {
   createDemoProducts,
   createDemoSetting,
   createDemoBoardSetting,
+  createDemoBoards,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -24,6 +25,7 @@ import {
   type DemoProduct,
   type DemoSetting,
   type DemoBoardSetting,
+  type DemoBoard,
 } from './demoData'
 
 /**
@@ -43,6 +45,8 @@ interface DemoDb {
   pageVersions: DemoPageVersion[]
   setting: DemoSetting
   boardSetting: DemoBoardSetting
+  boards: DemoBoard[]
+  nextBoardId: number
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -66,6 +70,8 @@ function seed(): DemoDb {
     pageVersions: versions,
     setting: createDemoSetting(),
     boardSetting: createDemoBoardSetting(),
+    boards: createDemoBoards(),
+    nextBoardId: 4,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -86,7 +92,8 @@ function load(): DemoDb {
         Array.isArray(parsed.categories) &&
         Array.isArray(parsed.pages) &&
         parsed.setting &&
-        parsed.boardSetting
+        parsed.boardSetting &&
+        Array.isArray(parsed.boards)
       ) {
         return parsed
       }
@@ -128,6 +135,23 @@ function dateKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+/** 게시판 slug — 페이지와 같은 규칙으로 만들고 중복을 피한다. */
+function demoBoardSlug(db: DemoDb, source: string, excludeId?: number): string {
+  const base =
+    `${source}`
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-|-$/g, '') || `board-${Date.now().toString(36)}`
+  let slug = base
+  for (let i = 2; ; i++) {
+    const found = db.boards.find((b) => b.slug === slug)
+    if (!found || found.id === excludeId) return slug
+    slug = `${base}-${i}`
+  }
 }
 
 /** 데모용 slug 생성 — 실제 API 와 같은 규칙을 쓴다. */
@@ -214,6 +238,73 @@ export function handleDemoRequest(
 
   if (rawPath === '/auth/me' && method === 'GET') {
     return DEMO_USER
+  }
+
+  // --- 게시판 ---
+  if (rawPath === '/boards' && method === 'GET') {
+    const includeHidden = params.get('includeHidden') === '1'
+    return db.boards
+      .filter((b) => includeHidden || b.published)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      .map((b) => ({ ...b, postCount: db.posts.filter((p) => p.category === b.slug).length }))
+  }
+
+  if (rawPath === '/boards' && method === 'POST') {
+    const slug = demoBoardSlug(db, body.slug?.trim() ? body.slug : body.name)
+    const now = new Date().toISOString()
+    const board: DemoBoard = {
+      id: db.nextBoardId++,
+      name: body.name,
+      slug,
+      description: body.description || null,
+      published: Boolean(body.published),
+      sortOrder: body.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.boards.push(board)
+    save(db)
+    return { ...board, postCount: 0 }
+  }
+
+  const boardMatch = rawPath.match(/^\/boards\/(\d+)$/)
+  if (boardMatch) {
+    const id = Number(boardMatch[1])
+    const idx = db.boards.findIndex((b) => b.id === id)
+    if (idx === -1) throw new DemoError('게시판을 찾을 수 없습니다.', 404)
+    const board = db.boards[idx]
+
+    if (method === 'PUT') {
+      const slug = demoBoardSlug(db, body.slug?.trim() ? body.slug : body.name, id)
+      // slug 가 바뀌면 이 게시판 글의 category 도 함께 옮긴다.
+      if (slug !== board.slug) {
+        for (const post of db.posts) if (post.category === board.slug) post.category = slug
+      }
+      db.boards[idx] = {
+        ...board,
+        name: body.name,
+        slug,
+        description: body.description || null,
+        published: Boolean(body.published),
+        sortOrder: body.sortOrder ?? board.sortOrder,
+        updatedAt: new Date().toISOString(),
+      }
+      save(db)
+      return { ...db.boards[idx], postCount: db.posts.filter((p) => p.category === slug).length }
+    }
+
+    if (method === 'DELETE') {
+      const count = db.posts.filter((p) => p.category === board.slug).length
+      if (count > 0) {
+        throw new DemoError(
+          `이 게시판에 글이 ${count}개 있어 삭제할 수 없습니다. 글을 먼저 옮기거나 지우세요.`,
+          400,
+        )
+      }
+      db.boards.splice(idx, 1)
+      save(db)
+      return undefined
+    }
   }
 
   // --- 게시글 ---

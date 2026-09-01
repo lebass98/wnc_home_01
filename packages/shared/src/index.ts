@@ -20,13 +20,36 @@ export interface LoginResponse {
   user: AdminUser
 }
 
-/** 게시판 종류 */
-export type BoardCategory = 'NOTICE' | 'NEWS' | 'PRESS'
+/** 글이 속한 게시판의 slug. 게시판은 관리자가 추가·삭제할 수 있다. */
+export type BoardCategory = string
 
-export const BOARD_CATEGORY_LABEL: Record<BoardCategory, string> = {
-  NOTICE: '공지사항',
-  NEWS: '뉴스',
-  PRESS: '보도자료',
+/** 기본 게시판 이름 — 게시판 목록을 아직 못 받았을 때 임시로 쓴다. */
+export const BOARD_CATEGORY_LABEL: Record<string, string> = {
+  notice: '공지사항',
+  news: '뉴스',
+  press: '보도자료',
+}
+
+export interface Board {
+  id: number
+  name: string
+  /** 글의 category 값 */
+  slug: string
+  description: string | null
+  /** 끄면 홈페이지에서 감춘다 */
+  published: boolean
+  sortOrder: number
+  postCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BoardInput {
+  name: string
+  slug?: string
+  description?: string | null
+  published: boolean
+  sortOrder?: number
 }
 
 export interface Post {
@@ -352,13 +375,6 @@ export interface SeoSettingInput {
 /* ------------------------------------------------------------------ *
  *  게시판 환경설정
  * ------------------------------------------------------------------ */
-
-/** 게시판 소개문 — 메타 템플릿의 {board_description} 에 쓰인다. */
-export const BOARD_CATEGORY_DESCRIPTION: Record<BoardCategory, string> = {
-  NOTICE: '워드앤코드의 공지사항과 안내를 전해 드립니다.',
-  NEWS: '워드앤코드의 새로운 소식과 활동을 소개합니다.',
-  PRESS: '언론에 보도된 워드앤코드 소식을 모았습니다.',
-}
 
 /** 메타 템플릿에서 쓸 수 있는 변수 — 페이지 유형별로 다르다. */
 export const BOARD_SEO_VARIABLES = {

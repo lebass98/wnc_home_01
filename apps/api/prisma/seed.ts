@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
-const CATEGORIES = ['NOTICE', 'NEWS', 'PRESS'] as const
+const CATEGORIES = ['notice', 'news', 'press'] as const
 const STATUSES = ['NEW', 'IN_PROGRESS', 'DONE'] as const
 
 /** 최근 n일 이내의 임의 시각 */
@@ -29,16 +29,27 @@ async function main() {
     create: { email: 'editor@wnc.co.kr', password, name: '김편집', role: 'EDITOR' },
   })
 
+  if ((await prisma.board.count()) === 0) {
+    const boards: [string, string, string][] = [
+      ['notice', '공지사항', '워드앤코드의 공지사항과 안내를 전해 드립니다.'],
+      ['news', '뉴스', '워드앤코드의 새로운 소식과 활동을 소개합니다.'],
+      ['press', '보도자료', '언론에 보도된 워드앤코드 소식을 모았습니다.'],
+    ]
+    for (const [i, [slug, name, description]] of boards.entries()) {
+      await prisma.board.create({ data: { slug, name, description, sortOrder: i } })
+    }
+  }
+
   if ((await prisma.post.count()) === 0) {
     const samples = [
-      ['NOTICE', '워드앤코드 홈페이지가 새롭게 오픈했습니다', '고객 여러분께 더 나은 정보를 전달하기 위해 홈페이지를 새롭게 단장했습니다.'],
-      ['NOTICE', '2026년 설 연휴 고객센터 운영 안내', '설 연휴 기간 고객센터 운영 일정을 안내드립니다.'],
-      ['NEWS', '신규 클라우드 솔루션 출시', '자체 개발한 클라우드 기반 협업 솔루션을 정식 출시했습니다.'],
-      ['NEWS', '상반기 실적 발표', '올해 상반기 매출이 전년 동기 대비 32% 성장했습니다.'],
-      ['NEWS', '개발자 채용 설명회 개최', '신입 및 경력 개발자를 대상으로 채용 설명회를 진행합니다.'],
-      ['PRESS', '\'올해의 IT 혁신기업\' 선정', '한국소프트웨어산업협회가 주관한 시상식에서 혁신기업으로 선정되었습니다.'],
-      ['PRESS', '글로벌 파트너십 체결', '해외 진출을 위한 전략적 파트너십을 체결했습니다.'],
-      ['NOTICE', '개인정보처리방침 개정 안내', '관련 법령 개정에 따라 개인정보처리방침이 일부 변경되었습니다.'],
+      ['notice', '워드앤코드 홈페이지가 새롭게 오픈했습니다', '고객 여러분께 더 나은 정보를 전달하기 위해 홈페이지를 새롭게 단장했습니다.'],
+      ['notice', '2026년 설 연휴 고객센터 운영 안내', '설 연휴 기간 고객센터 운영 일정을 안내드립니다.'],
+      ['news', '신규 클라우드 솔루션 출시', '자체 개발한 클라우드 기반 협업 솔루션을 정식 출시했습니다.'],
+      ['news', '상반기 실적 발표', '올해 상반기 매출이 전년 동기 대비 32% 성장했습니다.'],
+      ['news', '개발자 채용 설명회 개최', '신입 및 경력 개발자를 대상으로 채용 설명회를 진행합니다.'],
+      ['press', '\'올해의 IT 혁신기업\' 선정', '한국소프트웨어산업협회가 주관한 시상식에서 혁신기업으로 선정되었습니다.'],
+      ['press', '글로벌 파트너십 체결', '해외 진출을 위한 전략적 파트너십을 체결했습니다.'],
+      ['notice', '개인정보처리방침 개정 안내', '관련 법령 개정에 따라 개인정보처리방침이 일부 변경되었습니다.'],
     ] as const
 
     for (const [i, [category, title, content]] of samples.entries()) {

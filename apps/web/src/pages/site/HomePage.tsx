@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Paginated, PostListItem } from '@wnc/shared'
-import { BOARD_CATEGORY_LABEL } from '@wnc/shared'
+import { boardName, useBoards } from '../../lib/boards'
 import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import { Badge } from '../../components/ui'
@@ -37,6 +37,7 @@ const STATS = [
 ]
 
 export default function HomePage() {
+  const boards = useBoards()
   const [posts, setPosts] = useState<PostListItem[]>([])
 
   useEffect(() => {
@@ -138,7 +139,7 @@ export default function HomePage() {
             <div className="mt-8 grid gap-5 md:grid-cols-3">
               {posts.map((p) => (
                 <Link key={p.id} to={`/board/${p.id}`} className="card p-6 transition hover:shadow-md">
-                  <Badge tone="blue">{BOARD_CATEGORY_LABEL[p.category]}</Badge>
+                  <Badge tone="blue">{boardName(boards, p.category)}</Badge>
                   <h3 className="mt-3 line-clamp-2 font-semibold leading-snug text-slate-900">
                     {p.title}
                   </h3>

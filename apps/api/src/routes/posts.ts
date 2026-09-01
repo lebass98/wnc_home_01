@@ -6,10 +6,9 @@ import { requireAuth } from '../lib/auth.js'
 
 export const postsRouter = Router()
 
-const CATEGORIES = ['NOTICE', 'NEWS', 'PRESS'] as const
-
 const postInputSchema = z.object({
-  category: z.enum(CATEGORIES),
+  /** 게시판 slug — 저장 전에 실제로 있는 게시판인지 확인한다. */
+  category: z.string().trim().min(1, '게시판을 선택하세요.').max(40),
   title: z.string().min(1, '제목을 입력하세요.').max(200),
   content: z.string().min(1, '내용을 입력하세요.'),
   published: z.boolean(),
@@ -18,9 +17,15 @@ const postInputSchema = z.object({
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
-  category: z.enum(CATEGORIES).optional(),
+  category: z.string().trim().min(1).max(40).optional(),
   q: z.string().trim().min(1).optional(),
 })
+
+/** 없는 게시판으로 글을 저장하지 못하게 막는다. */
+async function assertBoardExists(slug: string) {
+  const board = await prisma.board.findUnique({ where: { slug } })
+  if (!board) throw Object.assign(new Error('없는 게시판입니다.'), { status: 400 })
+}
 
 type PostWithAuthor = { author: { name: string } } & Record<string, any>
 
@@ -107,6 +112,8 @@ postsRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const data = postInputSchema.parse(req.body)
+    await assertBoardExists(data.category)
+
     const post = await prisma.post.create({
       data: { ...data, authorId: req.user!.sub },
       include: { author: { select: { name: true } } },
@@ -123,6 +130,8 @@ postsRouter.put(
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
 
     const data = postInputSchema.parse(req.body)
+    await assertBoardExists(data.category)
+
     const existing = await prisma.post.findUnique({ where: { id } })
     if (!existing) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
 

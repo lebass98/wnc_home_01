@@ -10,6 +10,8 @@ interface NavLeaf {
   label: string
   end: boolean
   icon: string
+  /** 이 경로들로 시작할 때는 활성 처리하지 않는다 (형제 메뉴가 담당하는 화면). */
+  notWhen?: string[]
 }
 
 /** 하위 메뉴를 품은 항목 */
@@ -52,8 +54,9 @@ const NAV: NavItem[] = [
       {
         to: '/admin/posts',
         label: '게시판 목록',
-        // 하위 경로(작성·수정)까지 강조되지 않도록 정확히 일치할 때만 활성 처리한다.
-        end: true,
+        // 글 목록·작성·수정 화면까지 이 메뉴로 묶는다. (환경설정·신고현황은 제외)
+        end: false,
+        notWhen: ['/admin/posts/settings', '/admin/posts/reports'],
         icon: 'M4 6h16M4 12h16M4 18h16',
       },
       {
@@ -159,7 +162,14 @@ export default function AdminLayout() {
                     aria-hidden
                     className="absolute bottom-[1.875rem] left-0 top-0 border-l border-slate-300 dark:border-slate-600"
                   />
-                  {item.children.map((child) => (
+                  {item.children.map((child) => {
+                    const active = child.notWhen
+                      ? pathname.startsWith(child.to) && !child.notWhen.some((x) => pathname.startsWith(x))
+                      : child.end
+                        ? pathname === child.to
+                        : pathname.startsWith(child.to)
+
+                    return (
                     <div key={child.to} className="relative pl-5">
                       <span
                         aria-hidden
@@ -168,11 +178,9 @@ export default function AdminLayout() {
                       <NavLink
                         to={child.to}
                         end={child.end}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition ${
-                            isActive ? NAV_ACTIVE : NAV_IDLE
-                          }`
-                        }
+                        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm font-semibold transition ${
+                          active ? NAV_ACTIVE : NAV_IDLE
+                        }`}
                       >
                         <svg
                           className="h-[1.125rem] w-[1.125rem] shrink-0"
@@ -186,7 +194,8 @@ export default function AdminLayout() {
                         {child.label}
                       </NavLink>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

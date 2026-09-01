@@ -222,3 +222,20 @@ model BoardSetting {
 
   updatedAt DateTime @updatedAt
 }
+
+/// 게시판 — 글이 속하는 묶음. Post.category 가 이 slug 를 가리킨다.
+model Board {
+  id          Int     @id @default(autoincrement())
+  name        String
+  /// 글의 category 값으로 쓰인다.
+  slug        String  @unique
+  description String?
+  /// 끄면 홈페이지 소식 화면에서 감춘다.
+  published   Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+}

@@ -4,6 +4,7 @@ import { env } from './lib/env.js'
 import { errorHandler } from './lib/handler.js'
 import { authRouter } from './routes/auth.js'
 import { postsRouter } from './routes/posts.js'
+import { boardsRouter } from './routes/boards.js'
 import { contactsRouter } from './routes/contacts.js'
 import { dashboardRouter } from './routes/dashboard.js'
 import { categoriesRouter } from './routes/categories.js'
@@ -24,6 +25,7 @@ app.use('/uploads', express.static(UPLOAD_DIR))
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRouter)
+app.use('/api/boards', boardsRouter)
 app.use('/api/posts', postsRouter)
 app.use('/api/contacts', contactsRouter)
 app.use('/api/dashboard', dashboardRouter)

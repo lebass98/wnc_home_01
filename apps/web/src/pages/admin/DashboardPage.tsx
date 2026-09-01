@@ -14,7 +14,8 @@ import {
   YAxis,
 } from 'recharts'
 import type { DashboardStats } from '@wnc/shared'
-import { BOARD_CATEGORY_LABEL, CONTACT_STATUS_LABEL } from '@wnc/shared'
+import { CONTACT_STATUS_LABEL } from '@wnc/shared'
+import { boardName, useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import { useTheme } from '../../lib/theme'
 import { formatDate, formatNumber } from '../../lib/format'
@@ -54,6 +55,7 @@ function StatCard({
 }
 
 export default function DashboardPage() {
+  const boards = useBoards()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -214,7 +216,7 @@ export default function DashboardPage() {
               {stats.recentPosts.map((p) => (
                 <li key={p.id}>
                   <Link to={`/admin/posts/${p.id}`} className="flex items-center gap-3 px-6 py-3.5 hover:bg-slate-50">
-                    <Badge tone="blue">{BOARD_CATEGORY_LABEL[p.category]}</Badge>
+                    <Badge tone="blue">{boardName(boards, p.category)}</Badge>
                     <span className="flex-1 truncate text-sm text-slate-900 dark:text-slate-100">{p.title}</span>
                     {!p.published && <Badge tone="slate">비공개</Badge>}
                     <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{formatDate(p.createdAt)}</span>

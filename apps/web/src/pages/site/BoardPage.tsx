@@ -1,28 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { BoardCategory, Paginated, PostListItem } from '@wnc/shared'
-import { BOARD_CATEGORY_DESCRIPTION, BOARD_CATEGORY_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
+import { boardName, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
 import PageHero from '../../components/PageHero'
 import { Badge, EmptyState, Loading, Pagination } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
 
-const TABS: { value: BoardCategory | ''; label: string }[] = [
-  { value: '', label: '전체' },
-  { value: 'NOTICE', label: '공지사항' },
-  { value: 'NEWS', label: '뉴스' },
-  { value: 'PRESS', label: '보도자료' },
-]
-
 export default function BoardPage() {
+  const boards = useBoards()
   const [searchParams, setSearchParams] = useSearchParams()
   const category = (searchParams.get('category') ?? '') as BoardCategory | ''
 
-  // 분류를 고르지 않았으면 '게시판 목록', 골랐으면 '게시판 글 목록' 템플릿을 쓴다.
+  // 노출 중인 게시판을 탭으로 보여 준다.
+  const tabs = [{ value: '', label: '전체' }, ...boards.map((b) => ({ value: b.slug, label: b.name }))]
+  const current = boards.find((b) => b.slug === category)
+
+  // 게시판을 고르지 않았으면 '게시판 목록', 골랐으면 '게시판 글 목록' 템플릿을 쓴다.
   useBoardSeo(category ? 'board' : 'list', {
-    board_name: category ? BOARD_CATEGORY_LABEL[category] : undefined,
-    board_description: category ? BOARD_CATEGORY_DESCRIPTION[category] : undefined,
+    board_name: current?.name,
+    board_description: current?.description ?? undefined,
   })
   const page = Number(searchParams.get('page') ?? 1)
   const q = searchParams.get('q') ?? ''
@@ -57,7 +55,7 @@ export default function BoardPage() {
         <div className="container-wnc">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
-              {TABS.map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
@@ -106,7 +104,7 @@ export default function BoardPage() {
                       to={`/board/${post.id}`}
                       className="flex flex-col gap-2 py-5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:gap-5 sm:px-2"
                     >
-                      <Badge tone="blue">{BOARD_CATEGORY_LABEL[post.category]}</Badge>
+                      <Badge tone="blue">{boardName(boards, post.category)}</Badge>
                       <h2 className="flex-1 font-medium text-slate-900">{post.title}</h2>
                       <div className="flex shrink-0 gap-4 text-xs text-slate-500">
                         <span>조회 {post.views}</span>

@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { BoardCategory, Post, PostInput } from '@wnc/shared'
+import { useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
-const EMPTY: PostInput = { category: 'NOTICE', title: '', content: '', published: true }
+const EMPTY: PostInput = { category: '', title: '', content: '', published: true }
 
 export default function PostEditPage() {
+  const boards = useBoards(true)
   const { id } = useParams<{ id: string }>()
   const isNew = !id
   const navigate = useNavigate()
@@ -69,17 +71,21 @@ export default function PostEditPage() {
           <div className="grid gap-5 sm:grid-cols-[12rem_1fr]">
             <div>
               <label htmlFor="category" className="label">
-                분류
+                게시판 <span className="text-red-500">*</span>
               </label>
               <select
                 id="category"
+                required
                 value={form.category}
                 onChange={(e) => set('category', e.target.value as BoardCategory)}
                 className="select"
               >
-                <option value="NOTICE">공지사항</option>
-                <option value="NEWS">뉴스</option>
-                <option value="PRESS">보도자료</option>
+                <option value="">게시판 선택</option>
+                {boards.map((b) => (
+                  <option key={b.id} value={b.slug}>
+                    {b.name}
+                  </option>
+                ))}
               </select>
             </div>
 

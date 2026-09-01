@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { Post } from '@wnc/shared'
-import { BOARD_CATEGORY_LABEL } from '@wnc/shared'
+import { boardName, useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import { Badge, ErrorMessage, Loading } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
 
 export default function PostDetailPage() {
+  const boards = useBoards()
   const { id } = useParams<{ id: string }>()
   const [post, setPost] = useState<Post | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   useBoardSeo('post', {
-    board_name: post ? BOARD_CATEGORY_LABEL[post.category] : undefined,
+    board_name: post ? boardName(boards, post.category) : undefined,
     post_title: post?.title,
   })
 
@@ -35,7 +36,7 @@ export default function PostDetailPage() {
         {post && (
           <article>
             <header className="border-b border-slate-200 pb-6">
-              <Badge tone="blue">{BOARD_CATEGORY_LABEL[post.category]}</Badge>
+              <Badge tone="blue">{boardName(boards, post.category)}</Badge>
               <h1 className="mt-4 text-3xl font-bold leading-snug tracking-tight text-slate-900">
                 {post.title}
               </h1>

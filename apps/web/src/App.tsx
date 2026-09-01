@@ -27,6 +27,7 @@ import PageListPage from './pages/admin/PageListPage'
 import PageEditPage from './pages/admin/PageEditPage'
 import PageDetailPage from './pages/admin/PageDetailPage'
 import SettingsPage from './pages/admin/SettingsPage'
+import BoardListPage from './pages/admin/BoardListPage'
 import BoardSettingsPage from './pages/admin/BoardSettingsPage'
 import BoardReportsPage from './pages/admin/BoardReportsPage'
 
@@ -75,7 +76,8 @@ export default function App() {
             }
           >
             <Route index element={<DashboardPage />} />
-            <Route path="posts" element={<PostListPage />} />
+            <Route path="posts" element={<BoardListPage />} />
+            <Route path="posts/list" element={<PostListPage />} />
             <Route path="posts/settings" element={<BoardSettingsPage />} />
             <Route path="posts/reports" element={<BoardReportsPage />} />
             <Route path="posts/new" element={<PostEditPage />} />

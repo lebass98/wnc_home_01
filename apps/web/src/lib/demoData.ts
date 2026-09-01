@@ -275,9 +275,14 @@ export interface DemoSetting {
   metaTitle: string | null
   metaDescription: string | null
   metaKeywords: string | null
+  ogEnabled: boolean
   ogTitle: string | null
   ogDescription: string | null
   ogImage: string | null
+  ogImageAlt: string | null
+  ogSiteName: string | null
+  ogType: string
+  ogLocale: string
   allowIndexing: boolean
   googleVerification: string | null
   naverVerification: string | null
@@ -295,9 +300,14 @@ export function createDemoSetting(): DemoSetting {
     metaTitle: '워드앤코드 — 웹·모바일 개발 파트너',
     metaDescription: '기업 홈페이지와 관리자 시스템, 업무 자동화 솔루션을 만듭니다.',
     metaKeywords: '홈페이지 제작, 업무 자동화, 클라우드',
+    ogEnabled: true,
     ogTitle: null,
     ogDescription: null,
     ogImage: null,
+    ogImageAlt: null,
+    ogSiteName: null,
+    ogType: 'website',
+    ogLocale: 'ko_KR',
     allowIndexing: true,
     googleVerification: null,
     naverVerification: null,

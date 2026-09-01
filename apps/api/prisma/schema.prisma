@@ -167,10 +167,20 @@ model SiteSetting {
   metaDescription String?
   /// 쉼표로 구분한 키워드
   metaKeywords    String?
+  /// SNS 공유(Open Graph) 태그 출력 여부. 끄면 og:* 를 내보내지 않는다.
+  ogEnabled     Boolean @default(true)
   /// SNS 공유 카드에 쓰이는 제목·설명·이미지. 비우면 메타 값을 따른다.
   ogTitle       String?
   ogDescription String?
   ogImage       String?
+  /// 공유 이미지 대체 텍스트
+  ogImageAlt    String?
+  /// og:site_name — 비우면 사이트 이름을 쓴다.
+  ogSiteName    String?
+  /// og:type (website | article)
+  ogType        String  @default("website")
+  /// og:locale (예: ko_KR)
+  ogLocale      String  @default("ko_KR")
   /// 검색엔진 수집 허용 여부 (끄면 noindex)
   allowIndexing      Boolean @default(true)
   /// 구글 서치 콘솔 / 네이버 서치어드바이저 소유확인 코드

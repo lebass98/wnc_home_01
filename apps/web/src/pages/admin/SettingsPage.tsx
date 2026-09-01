@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import type { SeoSettingInput, SiteSetting, SiteSettingInput } from '@wnc/shared'
+import type { OgType, SeoSettingInput, SiteSetting, SiteSettingInput } from '@wnc/shared'
 import { api, IS_DEMO } from '../../lib/api'
-import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
+import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
 const TABS = [
   { key: 'general', label: '일반' },
@@ -217,9 +217,14 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
     metaTitle: setting.metaTitle ?? '',
     metaDescription: setting.metaDescription ?? '',
     metaKeywords: setting.metaKeywords ?? '',
+    ogEnabled: setting.ogEnabled,
     ogTitle: setting.ogTitle ?? '',
     ogDescription: setting.ogDescription ?? '',
     ogImage: setting.ogImage,
+    ogImageAlt: setting.ogImageAlt ?? '',
+    ogSiteName: setting.ogSiteName ?? '',
+    ogType: setting.ogType as OgType,
+    ogLocale: setting.ogLocale,
     allowIndexing: setting.allowIndexing,
     googleVerification: setting.googleVerification ?? '',
     naverVerification: setting.naverVerification ?? '',
@@ -313,20 +318,12 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
             </p>
           </div>
 
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-900/50">
-            <input
-              type="checkbox"
-              checked={form.allowIndexing}
-              onChange={(e) => set('allowIndexing', e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300">
-              검색엔진 수집 허용
-              <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-                체크를 해제하면 noindex 로 표시되어 검색 결과에 나오지 않습니다. 준비 중인 사이트에만 사용하세요.
-              </span>
-            </span>
-          </label>
+          <SettingToggle
+            title="검색엔진 수집 허용"
+            description="끄면 noindex 로 표시되어 검색 결과에 나오지 않습니다. 준비 중인 사이트에만 사용하세요."
+            checked={form.allowIndexing}
+            onChange={(v) => set('allowIndexing', v)}
+          />
         </div>
       </div>
 
@@ -338,42 +335,119 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
         </p>
 
         <div className="mt-6 space-y-5">
-          <div>
-            <label htmlFor="ogTitle" className="label">
-              공유 제목
-            </label>
-            <input
-              id="ogTitle"
-              maxLength={120}
-              value={form.ogTitle ?? ''}
-              onChange={(e) => set('ogTitle', e.target.value)}
-              className="input"
-              placeholder="워드앤코드"
-            />
-          </div>
+          <SettingToggle
+            title="OG 태그 사용"
+            description="끄면 og:* 메타 태그를 아예 출력하지 않습니다."
+            checked={form.ogEnabled ?? true}
+            onChange={(v) => set('ogEnabled', v)}
+          />
 
-          <div>
-            <label htmlFor="ogDescription" className="label">
-              공유 설명
-            </label>
-            <textarea
-              id="ogDescription"
-              rows={3}
-              maxLength={400}
-              value={form.ogDescription ?? ''}
-              onChange={(e) => set('ogDescription', e.target.value)}
-              className="input resize-y"
-              placeholder="공유 카드에 표시될 설명을 입력하세요."
-            />
-          </div>
+          <fieldset disabled={!form.ogEnabled} className="space-y-5 disabled:opacity-50">
+            <div>
+              <label htmlFor="ogTitle" className="label">
+                공유 제목 (og:title)
+              </label>
+              <input
+                id="ogTitle"
+                maxLength={120}
+                value={form.ogTitle ?? ''}
+                onChange={(e) => set('ogTitle', e.target.value)}
+                className="input"
+                placeholder="워드앤코드"
+              />
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                비우면 메타 제목을 사용합니다.
+              </p>
+            </div>
 
-          <div>
-            <span className="label">공유 이미지</span>
-            <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
-              1200 x 630 픽셀 비율을 권장합니다.
-            </p>
-            <ImageDropzone value={form.ogImage ?? null} onChange={(url) => set('ogImage', url)} />
-          </div>
+            <div>
+              <label htmlFor="ogDescription" className="label">
+                공유 설명 (og:description)
+              </label>
+              <textarea
+                id="ogDescription"
+                rows={3}
+                maxLength={400}
+                value={form.ogDescription ?? ''}
+                onChange={(e) => set('ogDescription', e.target.value)}
+                className="input resize-y"
+                placeholder="공유 카드에 표시될 설명을 입력하세요."
+              />
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                비우면 메타 설명을 사용합니다.
+              </p>
+            </div>
+
+            <div>
+              <span className="label">공유 이미지 (og:image)</span>
+              <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
+                1200 x 630 픽셀 비율을 권장합니다.
+              </p>
+              <ImageDropzone value={form.ogImage ?? null} onChange={(url) => set('ogImage', url)} />
+            </div>
+
+            <div>
+              <label htmlFor="ogImageAlt" className="label">
+                공유 이미지 대체 텍스트 (og:image:alt)
+              </label>
+              <input
+                id="ogImageAlt"
+                maxLength={200}
+                value={form.ogImageAlt ?? ''}
+                onChange={(e) => set('ogImageAlt', e.target.value)}
+                className="input"
+                placeholder="워드앤코드 로고"
+              />
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                이미지를 읽어 주는 화면낭독기에 전달되는 설명입니다.
+              </p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-3">
+              <div>
+                <label htmlFor="ogSiteName" className="label">
+                  사이트 이름 (og:site_name)
+                </label>
+                <input
+                  id="ogSiteName"
+                  maxLength={100}
+                  value={form.ogSiteName ?? ''}
+                  onChange={(e) => set('ogSiteName', e.target.value)}
+                  className="input"
+                  placeholder="비우면 사이트 이름 사용"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ogType" className="label">
+                  콘텐츠 유형 (og:type)
+                </label>
+                <select
+                  id="ogType"
+                  value={form.ogType ?? 'website'}
+                  onChange={(e) => set('ogType', e.target.value as OgType)}
+                  className="select"
+                >
+                  <option value="website">website — 일반 사이트</option>
+                  <option value="article">article — 글·기사</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="ogLocale" className="label">
+                  언어 (og:locale)
+                </label>
+                <input
+                  id="ogLocale"
+                  maxLength={20}
+                  value={form.ogLocale ?? ''}
+                  onChange={(e) => set('ogLocale', e.target.value)}
+                  className="input font-mono"
+                  placeholder="ko_KR"
+                />
+              </div>
+            </div>
+          </fieldset>
         </div>
       </div>
 
@@ -437,6 +511,29 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
         </div>
       </div>
     </form>
+  )
+}
+
+/** 제목·설명 왼쪽, 스위치 오른쪽으로 놓이는 설정 한 줄 */
+function SettingToggle({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string
+  description: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-900/50">
+      <div>
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{title}</p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>
+      </div>
+      <ToggleSwitch checked={checked} onChange={onChange} label={title} />
+    </div>
   )
 }
 

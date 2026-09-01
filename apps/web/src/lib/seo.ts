@@ -52,11 +52,16 @@ export function useSiteSeo() {
         upsertMeta('name', 'keywords', s.metaKeywords)
         upsertMeta('name', 'robots', s.allowIndexing ? 'index, follow' : 'noindex, nofollow')
 
-        upsertMeta('property', 'og:type', 'website')
-        upsertMeta('property', 'og:title', s.ogTitle?.trim() || title)
-        upsertMeta('property', 'og:description', s.ogDescription?.trim() || description)
-        upsertMeta('property', 'og:image', s.ogImage)
-        upsertMeta('property', 'og:url', s.siteUrl)
+        // OG 태그를 끄면 아예 내보내지 않는다.
+        const og = s.ogEnabled
+        upsertMeta('property', 'og:type', og ? s.ogType || 'website' : null)
+        upsertMeta('property', 'og:site_name', og ? s.ogSiteName?.trim() || s.siteName : null)
+        upsertMeta('property', 'og:locale', og ? s.ogLocale || 'ko_KR' : null)
+        upsertMeta('property', 'og:title', og ? s.ogTitle?.trim() || title : null)
+        upsertMeta('property', 'og:description', og ? s.ogDescription?.trim() || description : null)
+        upsertMeta('property', 'og:image', og ? s.ogImage : null)
+        upsertMeta('property', 'og:image:alt', og ? s.ogImageAlt : null)
+        upsertMeta('property', 'og:url', og ? s.siteUrl : null)
 
         upsertMeta('name', 'google-site-verification', s.googleVerification)
         upsertMeta('name', 'naver-site-verification', s.naverVerification)

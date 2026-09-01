@@ -257,3 +257,34 @@ export function RowMenu({ items }: { items: RowMenuItem[] }) {
     </div>
   )
 }
+
+/** on/off 스위치 — 설정 화면에서 켬·끔을 한눈에 보여준다. */
+export function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  /** 화면에 글자가 따로 있을 때 스크린리더용으로 쓴다. */
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+        checked ? 'bg-brand-600' : 'bg-slate-300 dark:bg-slate-600'
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+          checked ? 'left-[1.375rem]' : 'left-0.5'
+        }`}
+      />
+    </button>
+  )
+}

@@ -288,9 +288,15 @@ export interface SiteSetting {
   metaDescription: string | null
   /** 쉼표로 구분한 키워드 */
   metaKeywords: string | null
+  /** SNS 공유 태그 출력 여부 */
+  ogEnabled: boolean
   ogTitle: string | null
   ogDescription: string | null
   ogImage: string | null
+  ogImageAlt: string | null
+  ogSiteName: string | null
+  ogType: string
+  ogLocale: string
   /** 끄면 검색엔진 수집을 막는다 (noindex) */
   allowIndexing: boolean
   googleVerification: string | null
@@ -309,13 +315,22 @@ export interface SiteSettingInput {
   titleImage?: string | null
 }
 
+/** og:type 선택지 */
+export const OG_TYPES = ['website', 'article'] as const
+export type OgType = (typeof OG_TYPES)[number]
+
 export interface SeoSettingInput {
   metaTitle?: string | null
   metaDescription?: string | null
   metaKeywords?: string | null
+  ogEnabled?: boolean
   ogTitle?: string | null
   ogDescription?: string | null
   ogImage?: string | null
+  ogImageAlt?: string | null
+  ogSiteName?: string | null
+  ogType?: string
+  ogLocale?: string
   allowIndexing: boolean
   googleVerification?: string | null
   naverVerification?: string | null

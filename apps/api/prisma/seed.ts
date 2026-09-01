@@ -152,6 +152,51 @@ async function main() {
     }
   }
 
+  if ((await prisma.page.count()) === 0) {
+    const pages: [string, string, string, string, boolean][] = [
+      ['about', '워드앤코드 소개', '회사의 비전과 걸어온 길을 소개합니다.', '<h2>회사 소개</h2><p>워드앤코드는 웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.</p><h3>우리가 하는 일</h3><ul><li>기업 홈페이지와 관리자 시스템 구축</li><li>업무 자동화 솔루션 개발</li><li>클라우드 인프라 설계와 운영</li></ul>', true],
+      ['terms', '이용약관', '서비스 이용에 관한 기본 약관입니다.', '<h2>제1조 (목적)</h2><p>본 약관은 회사가 제공하는 서비스의 이용 조건과 절차를 정함을 목적으로 합니다.</p><h2>제2조 (정의)</h2><p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>', true],
+      ['privacy', '개인정보처리방침', '수집하는 개인정보 항목과 이용 목적을 안내합니다.', '<h2>1. 수집하는 개인정보 항목</h2><p>회사는 문의 접수를 위해 이름, 이메일, 연락처를 수집합니다.</p><h2>2. 보유 및 이용 기간</h2><p>수집한 정보는 문의 처리 완료 후 3년간 보관 뒤 파기합니다.</p>', true],
+      ['refund', '취소·환불 정책', '계약 해지와 환불 기준을 안내합니다.', '<h2>환불 기준</h2><p>착수 전 해지 시 전액 환불되며, 착수 후에는 진행 단계에 따라 정산합니다.</p>', true],
+      ['faq', '자주 묻는 질문', '고객님들이 자주 문의하시는 내용을 모았습니다.', '<h3>개발 기간은 얼마나 걸리나요?</h3><p>요구사항 규모에 따라 다르지만 일반적으로 6~12주가 소요됩니다.</p><h3>유지보수도 해주시나요?</h3><p>납품 후 1년간 무상 유지보수를 제공합니다.</p>', true],
+      ['partners', '파트너 안내', '함께할 협력사를 찾습니다.', '<h2>파트너십 안내</h2><p>기술 제휴와 리셀러 파트너를 상시 모집하고 있습니다.</p>', false],
+    ]
+
+    for (const [i, [slug, title, description, content, published]] of pages.entries()) {
+      const created = await prisma.page.create({
+        data: {
+          slug,
+          title,
+          description,
+          content,
+          published,
+          publishedAt: published ? daysAgo(10 - i) : null,
+          showInNav: ['about', 'faq'].includes(slug),
+          sortOrder: i,
+          version: 1,
+          views: published ? (i + 1) * 37 : 0,
+          createdAt: daysAgo(10 - i),
+        },
+      })
+      // 첫 버전 스냅샷 — 이후 수정본과 비교/복원의 기준이 된다.
+      await prisma.pageVersion.create({
+        data: {
+          pageId: created.id,
+          version: 1,
+          title,
+          description,
+          content,
+          published,
+          showInNav: created.showInNav,
+          note: '최초 작성',
+          authorId: admin.id,
+          authorName: admin.name,
+          createdAt: created.createdAt,
+        },
+      })
+    }
+  }
+
   console.log('시드 데이터 생성 완료')
   console.log('  관리자: admin@wnc.co.kr / admin1234')
   console.log('  편집자: editor@wnc.co.kr / admin1234')

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import type { PageListItem } from '@wnc/shared'
+import { api } from '../lib/api'
 
 const NAV = [
   { to: '/about', label: '회사소개' },
@@ -12,7 +14,17 @@ const NAV = [
 
 export default function SiteLayout() {
   const [open, setOpen] = useState(false)
+  const [navPages, setNavPages] = useState<PageListItem[]>([])
   const { pathname } = useLocation()
+
+  // 관리자가 '상단 메뉴에 표시'로 발행한 페이지를 메뉴 뒤에 덧붙인다.
+  useEffect(() => {
+    api<PageListItem[]>('/pages/nav')
+      .then(setNavPages)
+      .catch(() => setNavPages([]))
+  }, [])
+
+  const menu = [...NAV, ...navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title }))]
 
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
@@ -34,7 +46,7 @@ export default function SiteLayout() {
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {NAV.map((item) => (
+            {menu.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -72,7 +84,7 @@ export default function SiteLayout() {
         {open && (
           <nav className="border-t border-slate-200 bg-white md:hidden">
             <div className="container-wnc flex flex-col py-2">
-              {NAV.map((item) => (
+              {menu.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -111,7 +123,7 @@ export default function SiteLayout() {
           <div>
             <h3 className="text-sm font-semibold text-slate-900">바로가기</h3>
             <ul className="mt-4 space-y-2.5">
-              {NAV.map((item) => (
+              {menu.map((item) => (
                 <li key={item.to}>
                   <Link to={item.to} className="text-sm text-slate-600 hover:text-brand-700">
                     {item.label}

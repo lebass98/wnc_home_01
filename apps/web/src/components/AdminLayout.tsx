@@ -30,6 +30,12 @@ const NAV = [
     icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
   },
   {
+    to: '/admin/pages',
+    label: '페이지 관리',
+    end: false,
+    icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
+  },
+  {
     to: '/admin/contacts',
     label: '문의 관리',
     end: false,

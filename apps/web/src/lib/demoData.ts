@@ -183,3 +183,83 @@ export function createDemoProducts(leaves: { id: number; name: string }[]): Demo
     updatedAt: isoDaysAgo(i % 14),
   }))
 }
+
+/* ------------------------------- 페이지 ------------------------------- */
+
+export interface DemoPage {
+  id: number
+  slug: string
+  title: string
+  description: string | null
+  content: string
+  published: boolean
+  publishedAt: string | null
+  showInNav: boolean
+  sortOrder: number
+  views: number
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DemoPageVersion {
+  id: number
+  pageId: number
+  version: number
+  title: string
+  description: string | null
+  content: string
+  published: boolean
+  showInNav: boolean
+  note: string
+  authorName: string
+  createdAt: string
+}
+
+const PAGE_SEED: [string, string, string, string, boolean][] = [
+  ['about', '워드앤코드 소개', '회사의 비전과 걸어온 길을 소개합니다.', '<h2>회사 소개</h2><p>워드앤코드는 웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.</p><h3>우리가 하는 일</h3><ul><li>기업 홈페이지와 관리자 시스템 구축</li><li>업무 자동화 솔루션 개발</li><li>클라우드 인프라 설계와 운영</li></ul>', true],
+  ['terms', '이용약관', '서비스 이용에 관한 기본 약관입니다.', '<h2>제1조 (목적)</h2><p>본 약관은 회사가 제공하는 서비스의 이용 조건과 절차를 정함을 목적으로 합니다.</p><h2>제2조 (정의)</h2><p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>', true],
+  ['privacy', '개인정보처리방침', '수집하는 개인정보 항목과 이용 목적을 안내합니다.', '<h2>1. 수집하는 개인정보 항목</h2><p>회사는 문의 접수를 위해 이름, 이메일, 연락처를 수집합니다.</p><h2>2. 보유 및 이용 기간</h2><p>수집한 정보는 문의 처리 완료 후 3년간 보관 뒤 파기합니다.</p>', true],
+  ['refund', '취소·환불 정책', '계약 해지와 환불 기준을 안내합니다.', '<h2>환불 기준</h2><p>착수 전 해지 시 전액 환불되며, 착수 후에는 진행 단계에 따라 정산합니다.</p>', true],
+  ['faq', '자주 묻는 질문', '고객님들이 자주 문의하시는 내용을 모았습니다.', '<h3>개발 기간은 얼마나 걸리나요?</h3><p>요구사항 규모에 따라 다르지만 일반적으로 6~12주가 소요됩니다.</p><h3>유지보수도 해주시나요?</h3><p>납품 후 1년간 무상 유지보수를 제공합니다.</p>', true],
+  ['partners', '파트너 안내', '함께할 협력사를 찾습니다.', '<h2>파트너십 안내</h2><p>기술 제휴와 리셀러 파트너를 상시 모집하고 있습니다.</p>', false],
+]
+
+export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersion[] } {
+  const pages: DemoPage[] = []
+  const versions: DemoPageVersion[] = []
+
+  PAGE_SEED.forEach(([slug, title, description, content, published], i) => {
+    const createdAt = isoDaysAgo(10 - i)
+    pages.push({
+      id: i + 1,
+      slug,
+      title,
+      description,
+      content,
+      published,
+      publishedAt: published ? createdAt : null,
+      showInNav: slug === 'about' || slug === 'faq',
+      sortOrder: i,
+      views: published ? (i + 1) * 37 : 0,
+      version: 1,
+      createdAt,
+      updatedAt: createdAt,
+    })
+    versions.push({
+      id: i + 1,
+      pageId: i + 1,
+      version: 1,
+      title,
+      description,
+      content,
+      published,
+      showInNav: slug === 'about' || slug === 'faq',
+      note: '최초 작성',
+      authorName: DEMO_USER.name,
+      createdAt,
+    })
+  })
+
+  return { pages, versions }
+}

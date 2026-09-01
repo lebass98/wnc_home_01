@@ -21,3 +21,11 @@ export function formatDateTime(iso: string): string {
 export function formatNumber(n: number): string {
   return n.toLocaleString('ko-KR')
 }
+
+/** 2026-03-31 23:41:05 형식 — 관리자 표에서 정확한 시각을 보여줄 때 쓴다. */
+export function formatStamp(iso: string | null): string {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}

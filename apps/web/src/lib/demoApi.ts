@@ -2,6 +2,7 @@ import type {
   Contact,
   ContactStatus,
   DashboardStats,
+  PageInput,
   Paginated,
   Post,
   PostInput,
@@ -10,11 +11,14 @@ import type {
 import {
   createDemoCategories,
   createDemoContacts,
+  createDemoPages,
   createDemoPosts,
   createDemoProducts,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
+  type DemoPage,
+  type DemoPageVersion,
   type DemoProduct,
 } from './demoData'
 
@@ -31,10 +35,14 @@ interface DemoDb {
   contacts: Contact[]
   categories: DemoCategory[]
   products: DemoProduct[]
+  pages: DemoPage[]
+  pageVersions: DemoPageVersion[]
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
   nextProductId: number
+  nextPageId: number
+  nextPageVersionId: number
 }
 
 function seed(): DemoDb {
@@ -42,15 +50,20 @@ function seed(): DemoDb {
   const contacts = createDemoContacts()
   const { categories, leaves } = createDemoCategories()
   const products = createDemoProducts(leaves)
+  const { pages, versions } = createDemoPages()
   return {
     posts,
     contacts,
     categories,
     products,
+    pages,
+    pageVersions: versions,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
     nextProductId: products.length + 1,
+    nextPageId: pages.length + 1,
+    nextPageVersionId: versions.length + 1,
   }
 }
 
@@ -59,8 +72,14 @@ function load(): DemoDb {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as DemoDb
-      // 이전 버전 저장본(제품 데이터 없음)은 버리고 새로 시드한다.
-      if (Array.isArray(parsed.products) && Array.isArray(parsed.categories)) return parsed
+      // 이전 버전 저장본(제품·페이지 데이터 없음)은 버리고 새로 시드한다.
+      if (
+        Array.isArray(parsed.products) &&
+        Array.isArray(parsed.categories) &&
+        Array.isArray(parsed.pages)
+      ) {
+        return parsed
+      }
     }
   } catch {
     // 저장소를 못 읽는 환경(프라이빗 모드 등)에서는 매번 초기 데이터로 동작한다.
@@ -99,6 +118,56 @@ function dateKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+/** 데모용 slug 생성 — 실제 API 와 같은 규칙을 쓴다. */
+function toPageSlug(title: string): string {
+  const base = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/^-|-$/g, '')
+  return base || `page-${Date.now().toString(36)}`
+}
+
+function uniquePageSlug(db: DemoDb, desired: string, excludeId?: number): string {
+  let slug = desired
+  for (let i = 2; ; i++) {
+    const found = db.pages.find((p) => p.slug === slug)
+    if (!found || found.id === excludeId) return slug
+    slug = `${desired}-${i}`
+  }
+}
+
+/** 현재 내용을 버전으로 남긴다. */
+function snapshotPage(db: DemoDb, page: DemoPage, note: string) {
+  db.pageVersions.push({
+    id: db.nextPageVersionId++,
+    pageId: page.id,
+    version: page.version,
+    title: page.title,
+    description: page.description,
+    content: page.content,
+    published: page.published,
+    showInNav: page.showInNav,
+    note,
+    authorName: DEMO_USER.name,
+    createdAt: new Date().toISOString(),
+  })
+}
+
+function toPageVersionItem(v: DemoPageVersion, currentVersion: number) {
+  return {
+    id: v.id,
+    version: v.version,
+    title: v.title,
+    published: v.published,
+    note: v.note,
+    authorName: v.authorName,
+    createdAt: v.createdAt,
+    current: v.version === currentVersion,
+  }
 }
 
 class DemoError extends Error {
@@ -442,6 +511,185 @@ export function handleDemoRequest(
 
     if (method === 'DELETE') {
       db.products.splice(idx, 1)
+      save(db)
+      return undefined
+    }
+  }
+
+  // --- 페이지 ---
+  if (rawPath === '/pages' && method === 'GET') {
+    const includeDrafts = params.get('includeDrafts') === '1'
+    const status = params.get('status') ?? 'all'
+    const sort = params.get('sort') ?? 'latest'
+    const field = params.get('field') ?? 'all'
+    const q = params.get('q')?.toLowerCase()
+
+    let items = db.pages.filter((p) => includeDrafts || p.published)
+    if (includeDrafts && status === 'published') items = items.filter((p) => p.published)
+    if (includeDrafts && status === 'draft') items = items.filter((p) => !p.published)
+    if (q) {
+      items = items.filter((p) =>
+        field === 'title'
+          ? p.title.toLowerCase().includes(q)
+          : field === 'slug'
+            ? p.slug.toLowerCase().includes(q)
+            : p.title.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q),
+      )
+    }
+
+    if (sort === 'oldest') items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    else if (sort === 'updated') items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    else if (sort === 'title') items.sort((a, b) => a.title.localeCompare(b.title, 'ko'))
+    else items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+    return paginate(items, num('page', 1), num('pageSize', 20))
+  }
+
+  if (rawPath === '/pages/nav' && method === 'GET') {
+    return db.pages
+      .filter((p) => p.published && p.showInNav)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+  }
+
+  const pageSlugMatch = rawPath.match(/^\/pages\/slug\/(.+)$/)
+  if (pageSlugMatch && method === 'GET') {
+    const slug = decodeURIComponent(pageSlugMatch[1])
+    const page = db.pages.find((p) => p.slug === slug)
+    if (!page || !page.published) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+    page.views += 1
+    save(db)
+    return page
+  }
+
+  if (rawPath === '/pages/bulk' && method === 'PATCH') {
+    const ids: number[] = body?.ids ?? []
+    const published: boolean = Boolean(body?.published)
+    let count = 0
+    for (const page of db.pages) {
+      if (!ids.includes(page.id)) continue
+      page.published = published
+      page.publishedAt = published ? (page.publishedAt ?? new Date().toISOString()) : null
+      page.updatedAt = new Date().toISOString()
+      count += 1
+    }
+    save(db)
+    return { count }
+  }
+
+  if (rawPath === '/pages' && method === 'POST') {
+    const input = body as PageInput
+    const now = new Date().toISOString()
+    const page: DemoPage = {
+      id: db.nextPageId++,
+      slug: uniquePageSlug(db, toPageSlug(input.slug?.trim() ? input.slug : input.title)),
+      title: input.title,
+      description: input.description || null,
+      content: input.content ?? '',
+      published: input.published,
+      publishedAt: input.published ? now : null,
+      showInNav: input.showInNav,
+      sortOrder: input.sortOrder ?? 0,
+      views: 0,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.pages.unshift(page)
+    snapshotPage(db, page, '최초 작성')
+    save(db)
+    return page
+  }
+
+  // 버전 복원 — /pages/:id/versions/:version/restore
+  const restoreMatch = rawPath.match(/^\/pages\/(\d+)\/versions\/(\d+)\/restore$/)
+  if (restoreMatch && method === 'POST') {
+    const id = Number(restoreMatch[1])
+    const version = Number(restoreMatch[2])
+    const page = db.pages.find((p) => p.id === id)
+    if (!page) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+
+    const target = db.pageVersions.find((v) => v.pageId === id && v.version === version)
+    if (!target) throw new DemoError('해당 버전을 찾을 수 없습니다.', 404)
+    if (target.version === page.version) throw new DemoError('이미 현재 내용과 같은 버전입니다.', 400)
+
+    page.title = target.title
+    page.description = target.description
+    page.content = target.content
+    page.published = target.published
+    page.publishedAt = target.published ? (page.publishedAt ?? new Date().toISOString()) : null
+    page.showInNav = target.showInNav
+    page.version += 1
+    page.updatedAt = new Date().toISOString()
+    snapshotPage(db, page, `v${target.version} 복원`)
+    save(db)
+    return page
+  }
+
+  // 버전 목록 / 상세
+  const versionsMatch = rawPath.match(/^\/pages\/(\d+)\/versions(?:\/(\d+))?$/)
+  if (versionsMatch && method === 'GET') {
+    const id = Number(versionsMatch[1])
+    const page = db.pages.find((p) => p.id === id)
+    if (!page) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+
+    if (versionsMatch[2] === undefined) {
+      return db.pageVersions
+        .filter((v) => v.pageId === id)
+        .sort((a, b) => b.version - a.version)
+        .map((v) => toPageVersionItem(v, page.version))
+    }
+
+    const v = db.pageVersions.find((x) => x.pageId === id && x.version === Number(versionsMatch[2]))
+    if (!v) throw new DemoError('해당 버전을 찾을 수 없습니다.', 404)
+    return {
+      ...toPageVersionItem(v, page.version),
+      description: v.description,
+      content: v.content,
+      showInNav: v.showInNav,
+    }
+  }
+
+  const pageMatch = rawPath.match(/^\/pages\/(\d+)$/)
+  if (pageMatch) {
+    const id = Number(pageMatch[1])
+    const idx = db.pages.findIndex((p) => p.id === id)
+    if (idx === -1) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+    const page = db.pages[idx]
+
+    if (method === 'GET') return page
+
+    if (method === 'PUT') {
+      const input = body as PageInput
+      const slug = uniquePageSlug(db, toPageSlug(input.slug?.trim() ? input.slug : input.title), id)
+      // 내용이 실제로 바뀐 저장만 새 버전으로 남긴다.
+      const changed =
+        page.title !== input.title ||
+        page.content !== input.content ||
+        (page.description ?? null) !== (input.description || null) ||
+        page.slug !== slug ||
+        page.published !== input.published ||
+        page.showInNav !== input.showInNav
+
+      page.slug = slug
+      page.title = input.title
+      page.description = input.description || null
+      page.content = input.content ?? ''
+      page.published = input.published
+      page.publishedAt = input.published ? (page.publishedAt ?? new Date().toISOString()) : null
+      page.showInNav = input.showInNav
+      page.sortOrder = input.sortOrder ?? page.sortOrder
+      page.updatedAt = new Date().toISOString()
+      if (changed) {
+        page.version += 1
+        snapshotPage(db, page, '수정')
+      }
+      save(db)
+      return page
+    }
+
+    if (method === 'DELETE') {
+      db.pages.splice(idx, 1)
+      db.pageVersions = db.pageVersions.filter((v) => v.pageId !== id)
       save(db)
       return undefined
     }

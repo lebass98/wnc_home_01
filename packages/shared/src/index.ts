@@ -197,3 +197,76 @@ export interface ProductInput {
 }
 
 export type ProductSort = 'latest' | 'name' | 'views'
+
+/* ------------------------------------------------------------------ *
+ *  페이지 / 페이지 버전
+ * ------------------------------------------------------------------ */
+
+/** 목록에서 고를 수 있는 발행 상태 필터 */
+export type PageStatusFilter = 'all' | 'published' | 'draft'
+
+/** 목록 정렬 기준 */
+export type PageSort = 'latest' | 'oldest' | 'updated' | 'title'
+
+export const PAGE_SORT_LABEL: Record<PageSort, string> = {
+  latest: '최근 생성순',
+  oldest: '오래된 생성순',
+  updated: '최근 수정순',
+  title: '제목순',
+}
+
+/** 검색어를 어느 항목에 적용할지 */
+export type PageSearchField = 'all' | 'title' | 'slug'
+
+export interface PageListItem {
+  id: number
+  slug: string
+  title: string
+  description: string | null
+  published: boolean
+  /** 상단 메뉴 노출 여부 */
+  showInNav: boolean
+  sortOrder: number
+  views: number
+  /** 현재 내용의 버전 번호 */
+  version: number
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Page extends PageListItem {
+  /** TipTap 이 생성한 본문 HTML */
+  content: string
+}
+
+export interface PageInput {
+  slug?: string
+  title: string
+  description?: string | null
+  content: string
+  published: boolean
+  showInNav: boolean
+  sortOrder?: number
+}
+
+/** 버전 목록 항목 — 본문은 담지 않는다. */
+export interface PageVersionItem {
+  id: number
+  version: number
+  title: string
+  published: boolean
+  /** 이 버전이 만들어진 이유 (최초 작성 / 수정 / n번 버전 복원) */
+  note: string | null
+  authorName: string
+  createdAt: string
+  /** 페이지의 현재 내용과 같은 버전인지 */
+  current: boolean
+}
+
+/** 버전 상세 — 되돌리기 전에 내용을 확인할 때 쓴다. */
+export interface PageVersionDetail extends PageVersionItem {
+  description: string | null
+  content: string
+  showInNav: boolean
+}

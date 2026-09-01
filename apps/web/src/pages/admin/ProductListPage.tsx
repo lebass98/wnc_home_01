@@ -64,7 +64,7 @@ export default function ProductListPage() {
       />
 
       <div className="card">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center">
           <select
             value={category}
             onChange={(e) => {
@@ -117,7 +117,7 @@ export default function ProductListPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[52rem] text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                   <th className="px-4 py-3">이미지</th>
                   <th className="px-4 py-3">제품명</th>
                   <th className="px-4 py-3">카테고리</th>
@@ -128,11 +128,11 @@ export default function ProductListPage() {
                   <th className="px-4 py-3 text-right">관리</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {data.items.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50">
+                  <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-2.5">
-                      <div className="h-12 w-12 overflow-hidden rounded-lg bg-slate-100">
+                      <div className="h-12 w-12 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-700">
                         {p.thumbnail ? (
                           <img src={p.thumbnail} alt="" className="h-full w-full object-cover" />
                         ) : (
@@ -155,18 +155,18 @@ export default function ProductListPage() {
                       >
                         {p.name}
                       </Link>
-                      {p.model && <p className="truncate text-xs text-slate-500">{p.model}</p>}
+                      {p.model && <p className="truncate text-xs text-slate-500 dark:text-slate-400">{p.model}</p>}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600">{p.categoryName}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-600">{formatPrice(p.price)}</td>
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{p.categoryName}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-400">{formatPrice(p.price)}</td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-1">
                         {p.published ? <Badge tone="green">공개</Badge> : <Badge tone="slate">비공개</Badge>}
                         {p.featured && <Badge tone="blue">추천</Badge>}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right text-slate-600">{p.views}</td>
-                    <td className="px-4 py-2.5 text-slate-600">{formatDate(p.createdAt)}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-600 dark:text-slate-400">{p.views}</td>
+                    <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{formatDate(p.createdAt)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <button
                         type="button"

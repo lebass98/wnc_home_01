@@ -58,7 +58,7 @@ export default function ThumbnailInput({
 
       <div className="flex gap-4">
         {/* 미리보기 */}
-        <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-slate-300 bg-slate-50">
+        <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-900/50">
           {value ? (
             <img src={value} alt="썸네일 미리보기" className="h-full w-full object-cover" />
           ) : (
@@ -82,7 +82,7 @@ export default function ThumbnailInput({
                 type="button"
                 onClick={() => setMode(m)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  mode === m ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  mode === m ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                 }`}
               >
                 {m === 'upload' ? '파일 업로드' : 'URL 입력'}
@@ -111,7 +111,7 @@ export default function ThumbnailInput({
               >
                 {uploading ? '업로드 중...' : '이미지 선택'}
               </button>
-              <p className="mt-1.5 text-xs text-slate-500">
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                 JPG, PNG, WEBP, GIF · 최대 5MB
               </p>
             </div>

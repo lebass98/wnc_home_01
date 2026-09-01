@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import ThemeToggle from './ThemeToggle'
+import { useEnableDarkMode } from '../lib/theme'
 
 const NAV = [
   {
@@ -36,6 +38,7 @@ const NAV = [
 ]
 
 export default function AdminLayout() {
+  useEnableDarkMode()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -96,7 +99,7 @@ export default function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
       {/* 데스크톱 고정 사이드바 */}
       <aside
         className="fixed bottom-0 left-0 hidden w-64 lg:block"
@@ -118,11 +121,11 @@ export default function AdminLayout() {
       <div className="lg:pl-64">
         <header
           style={{ top: 'var(--demo-banner-h)' }}
-          className="sticky z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+          className="sticky z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-700 dark:bg-slate-800 sm:px-6">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 lg:hidden"
             aria-label="메뉴 열기"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -131,9 +134,10 @@ export default function AdminLayout() {
           </button>
 
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <div className="text-right">
-              <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user?.name}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {user?.role === 'ADMIN' ? '최고관리자' : '편집자'}
               </p>
             </div>

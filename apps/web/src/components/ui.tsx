@@ -12,8 +12,8 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{title}</h1>
+        {description && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>}
       </div>
       {action}
     </div>
@@ -42,13 +42,13 @@ export function Badge({
 }
 
 export function Loading({ label = '불러오는 중...' }: { label?: string }) {
-  return <div className="py-16 text-center text-sm text-slate-500">{label}</div>
+  return <div className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">{label}</div>
 }
 
 export function EmptyState({ label }: { label: string }) {
   return (
     <div className="py-16 text-center">
-      <p className="text-sm text-slate-500">{label}</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
     </div>
   )
 }

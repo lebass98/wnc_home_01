@@ -75,7 +75,7 @@ export default function ContactListPage() {
       <PageHeader title="문의 관리" description="홈페이지를 통해 접수된 문의를 확인하고 처리합니다." />
 
       <div className="card">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center">
           <select
             value={status}
             onChange={(e) => {
@@ -123,7 +123,7 @@ export default function ContactListPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[46rem] text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                   <th className="px-4 py-3">상태</th>
                   <th className="px-4 py-3">이름</th>
                   <th className="px-4 py-3">회사</th>
@@ -131,20 +131,20 @@ export default function ContactListPage() {
                   <th className="px-4 py-3">접수일시</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {data.items.map((c) => (
                   <tr
                     key={c.id}
                     onClick={() => openDetail(c)}
-                    className="cursor-pointer hover:bg-slate-50"
+                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   >
                     <td className="px-4 py-3">
                       <Badge tone={STATUS_TONE[c.status]}>{CONTACT_STATUS_LABEL[c.status]}</Badge>
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{c.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{c.company ?? '-'}</td>
-                    <td className="max-w-xs truncate px-4 py-3 text-slate-600">{c.message}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDateTime(c.createdAt)}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{c.name}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{c.company ?? '-'}</td>
+                    <td className="max-w-xs truncate px-4 py-3 text-slate-600 dark:text-slate-400">{c.message}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDateTime(c.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -159,13 +159,13 @@ export default function ContactListPage() {
       {selected && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-slate-900/40" onClick={() => setSelected(null)} aria-hidden />
-          <aside className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
-            <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-              <h2 className="font-semibold text-slate-900">문의 상세</h2>
+          <aside className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl dark:bg-slate-800">
+            <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">문의 상세</h2>
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
                 aria-label="닫기"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -184,21 +184,21 @@ export default function ContactListPage() {
                   ['접수일시', formatDateTime(selected.createdAt)],
                 ].map(([k, v]) => (
                   <div key={k} className="flex gap-4">
-                    <dt className="w-20 shrink-0 text-sm text-slate-500">{k}</dt>
-                    <dd className="break-all text-sm text-slate-900">{v}</dd>
+                    <dt className="w-20 shrink-0 text-sm text-slate-500 dark:text-slate-400">{k}</dt>
+                    <dd className="break-all text-sm text-slate-900 dark:text-slate-100">{v}</dd>
                   </div>
                 ))}
               </dl>
 
               <div>
-                <h3 className="text-sm font-medium text-slate-500">문의 내용</h3>
-                <p className="mt-2 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">문의 내용</h3>
+                <p className="mt-2 whitespace-pre-wrap rounded-lg bg-slate-50 dark:bg-slate-900/50 p-4 text-sm leading-relaxed text-slate-800">
                   {selected.message}
                 </p>
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-slate-500">처리 상태</h3>
+                <h3 className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">처리 상태</h3>
                 <div className="flex gap-2">
                   {STATUSES.map((s) => (
                     <button
@@ -209,7 +209,7 @@ export default function ContactListPage() {
                       className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
                         selected.status === s
                           ? 'bg-brand-600 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                       }`}
                     >
                       {CONTACT_STATUS_LABEL[s]}
@@ -241,7 +241,7 @@ export default function ContactListPage() {
               </div>
             </div>
 
-            <footer className="border-t border-slate-200 p-6">
+            <footer className="border-t border-slate-200 p-6 dark:border-slate-700">
               <div className="flex gap-3">
                 <a href={`mailto:${selected.email}`} className="btn-secondary flex-1">
                   이메일 답장

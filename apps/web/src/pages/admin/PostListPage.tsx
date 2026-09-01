@@ -52,7 +52,7 @@ export default function PostListPage() {
       />
 
       <div className="card">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-slate-700 sm:flex-row sm:items-center">
           <select
             value={category}
             onChange={(e) => {
@@ -98,7 +98,7 @@ export default function PostListPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[46rem] text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                   <th className="px-4 py-3">분류</th>
                   <th className="px-4 py-3">제목</th>
                   <th className="px-4 py-3">작성자</th>
@@ -108,9 +108,9 @@ export default function PostListPage() {
                   <th className="px-4 py-3 text-right">관리</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {data.items.map((post) => (
-                  <tr key={post.id} className="hover:bg-slate-50">
+                  <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3">
                       <Badge tone="blue">{BOARD_CATEGORY_LABEL[post.category]}</Badge>
                     </td>
@@ -122,7 +122,7 @@ export default function PostListPage() {
                         {post.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{post.authorName}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{post.authorName}</td>
                     <td className="px-4 py-3">
                       {post.published ? (
                         <Badge tone="green">공개</Badge>
@@ -130,8 +130,8 @@ export default function PostListPage() {
                         <Badge tone="slate">비공개</Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-600">{post.views}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(post.createdAt)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">{post.views}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(post.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"

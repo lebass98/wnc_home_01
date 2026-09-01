@@ -84,16 +84,16 @@ export default function CategoryPage() {
     list.map((node) => (
       <div key={node.id}>
         <div
-          className={`flex items-center gap-3 border-b border-slate-100 py-2.5 pr-2 ${
-            form.id === node.id ? 'bg-brand-50' : 'hover:bg-slate-50'
+          className={`flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 py-2.5 pr-2 ${
+            form.id === node.id ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
           }`}
           style={{ paddingLeft: `${(node.depth - 1) * 1.5 + 0.5}rem` }}
         >
           <Badge tone={node.depth === 1 ? 'blue' : node.depth === 2 ? 'green' : 'slate'}>
             {CATEGORY_DEPTH_LABEL[node.depth]}
           </Badge>
-          <span className="flex-1 truncate text-sm font-medium text-slate-900">{node.name}</span>
-          <span className="shrink-0 text-xs text-slate-500">
+          <span className="flex-1 truncate text-sm font-medium text-slate-900 dark:text-slate-100">{node.name}</span>
+          <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
             제품 {node.productCount}
             {node.children.length > 0 && ` (하위 포함 ${totalProductCount(node)})`}
           </span>
@@ -129,13 +129,13 @@ export default function CategoryPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="card">
-          <div className="border-b border-slate-200 px-5 py-3.5">
-            <h2 className="font-semibold text-slate-900">카테고리 목록</h2>
+          <div className="border-b border-slate-200 px-5 py-3.5 dark:border-slate-700">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100">카테고리 목록</h2>
           </div>
           {loading ? (
             <Loading />
           ) : nodes.length === 0 ? (
-            <p className="px-5 py-12 text-center text-sm text-slate-500">
+            <p className="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
               등록된 카테고리가 없습니다. 우측에서 추가하세요.
             </p>
           ) : (
@@ -144,7 +144,7 @@ export default function CategoryPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="card h-fit p-5">
-          <h2 className="font-semibold text-slate-900">
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100">
             {form.id === null ? '카테고리 추가' : '카테고리 수정'}
           </h2>
 
@@ -171,7 +171,7 @@ export default function CategoryPage() {
                   </option>
                 ))}
               </select>
-              <p className="mt-1.5 text-xs text-slate-500">
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                 {MAX_CATEGORY_DEPTH}차 카테고리는 하위를 가질 수 없어 목록에 표시되지 않습니다.
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function CategoryPage() {
                 onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
                 className="input"
               />
-              <p className="mt-1.5 text-xs text-slate-500">숫자가 작을수록 먼저 표시됩니다.</p>
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">숫자가 작을수록 먼저 표시됩니다.</p>
             </div>
           </div>
 

@@ -121,13 +121,13 @@ export default function PostEditPage() {
               onChange={(e) => set('published', e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            <span className="text-sm text-slate-700">
+            <span className="text-sm text-slate-700 dark:text-slate-300">
               공개 — 체크를 해제하면 임시저장 상태로 홈페이지에 노출되지 않습니다.
             </span>
           </label>
         </div>
 
-        <div className="mt-8 flex gap-3 border-t border-slate-200 pt-6">
+        <div className="mt-8 flex gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">
           <button type="submit" disabled={saving} className="btn-primary">
             {saving ? '저장 중...' : '저장'}
           </button>

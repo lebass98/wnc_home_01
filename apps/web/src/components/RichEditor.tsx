@@ -27,7 +27,7 @@ function ToolButton({
       title={title}
       disabled={disabled}
       className={`grid h-8 min-w-[2rem] place-items-center rounded px-2 text-sm font-medium transition disabled:opacity-40 ${
-        active ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-200'
+        active ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700'
       }`}
     >
       {children}
@@ -82,7 +82,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-300 bg-slate-50 p-2">
+    <div className="flex flex-wrap items-center gap-0.5 border-b border-slate-300 bg-slate-50 p-2 dark:border-slate-600 dark:bg-slate-900/50">
       <ToolButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="굵게">
         <span className="font-bold">B</span>
       </ToolButton>
@@ -96,7 +96,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         {'</>'}
       </ToolButton>
 
-      <span className="mx-1 h-5 w-px bg-slate-300" />
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
 
       {([2, 3, 4] as const).map((level) => (
         <ToolButton
@@ -112,7 +112,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         본문
       </ToolButton>
 
-      <span className="mx-1 h-5 w-px bg-slate-300" />
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
 
       <ToolButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="글머리 목록">
         • 목록
@@ -127,7 +127,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         —
       </ToolButton>
 
-      <span className="mx-1 h-5 w-px bg-slate-300" />
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
 
       <ToolButton onClick={handleLink} active={editor.isActive('link')} title="링크">
         링크
@@ -147,7 +147,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         }}
       />
 
-      <span className="mx-1 h-5 w-px bg-slate-300" />
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
 
       <ToolButton onClick={() => editor.chain().focus().undo().run()} title="실행 취소" disabled={!editor.can().undo()}>
         ↶
@@ -183,11 +183,11 @@ export default function RichEditor({
   })
 
   if (!editor) {
-    return <div className="rounded-lg border border-slate-300 p-4 text-sm text-slate-500">편집기 불러오는 중...</div>
+    return <div className="rounded-lg border border-slate-300 p-4 text-sm text-slate-500 dark:text-slate-400">편집기 불러오는 중...</div>
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
+    <div className="overflow-hidden rounded-lg border border-slate-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 dark:border-slate-600">
       <Toolbar editor={editor} />
       <EditorContent editor={editor} />
     </div>

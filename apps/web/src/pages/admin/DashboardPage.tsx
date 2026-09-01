@@ -16,6 +16,7 @@ import {
 import type { DashboardStats } from '@wnc/shared'
 import { BOARD_CATEGORY_LABEL, CONTACT_STATUS_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
+import { useTheme } from '../../lib/theme'
 import { formatDate, formatNumber } from '../../lib/format'
 import { Badge, ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
@@ -38,9 +39,9 @@ function StatCard({
     <div className="card p-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
-          {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
+          {sub && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{sub}</p>}
         </div>
         <div className={`grid h-11 w-11 place-items-center rounded-lg ${tone}`}>
           <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -53,6 +54,8 @@ function StatCard({
 }
 
 export default function DashboardPage() {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -73,6 +76,17 @@ export default function DashboardPage() {
     { name: '신규', value: stats.newContacts, color: '#ef4444' },
     { name: '처리 완료 외', value: Math.max(0, stats.totalContacts - stats.newContacts), color: '#22c55e' },
   ].filter((d) => d.value > 0)
+
+  // Recharts 는 CSS 클래스가 아닌 인라인 스타일을 쓰므로 색상을 직접 지정한다.
+  const axisColor = isDark ? '#94a3b8' : '#64748b'
+  const gridColor = isDark ? '#334155' : '#e2e8f0'
+  const tooltipStyle = {
+    borderRadius: 8,
+    border: `1px solid ${isDark ? '#475569' : '#e2e8f0'}`,
+    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+    fontSize: 13,
+  }
+  const tooltipLabelStyle = { color: isDark ? '#f1f5f9' : '#0f172a', fontWeight: 600 }
 
   const chartData = stats.trend.map((t) => ({
     ...t,
@@ -123,7 +137,7 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="card p-6 lg:col-span-2">
-          <h2 className="font-semibold text-slate-900">최근 14일 등록 추이</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100">최근 14일 등록 추이</h2>
           <div className="mt-6 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
@@ -137,13 +151,10 @@ export default function DashboardPage() {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13 }}
-                  labelStyle={{ color: '#0f172a', fontWeight: 600 }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: axisColor }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: axisColor }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} />
                 <Legend wrapperStyle={{ fontSize: 13 }} />
                 <Area
                   type="monotone"
@@ -167,9 +178,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="card p-6">
-          <h2 className="font-semibold text-slate-900">문의 처리 현황</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100">문의 처리 현황</h2>
           {contactPie.length === 0 ? (
-            <p className="py-20 text-center text-sm text-slate-500">접수된 문의가 없습니다.</p>
+            <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">접수된 문의가 없습니다.</p>
           ) : (
             <div className="mt-6 h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -179,7 +190,7 @@ export default function DashboardPage() {
                       <Cell key={d.name} fill={d.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13 }} />
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={{ color: isDark ? '#e2e8f0' : '#334155' }} />
                   <Legend wrapperStyle={{ fontSize: 13 }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -190,23 +201,23 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="card">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-            <h2 className="font-semibold text-slate-900">최근 게시글</h2>
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100">최근 게시글</h2>
             <Link to="/admin/posts" className="text-sm font-medium text-brand-600 hover:text-brand-700">
               전체 보기
             </Link>
           </div>
           {stats.recentPosts.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">게시글이 없습니다.</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">게시글이 없습니다.</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-700">
               {stats.recentPosts.map((p) => (
                 <li key={p.id}>
                   <Link to={`/admin/posts/${p.id}`} className="flex items-center gap-3 px-6 py-3.5 hover:bg-slate-50">
                     <Badge tone="blue">{BOARD_CATEGORY_LABEL[p.category]}</Badge>
-                    <span className="flex-1 truncate text-sm text-slate-900">{p.title}</span>
+                    <span className="flex-1 truncate text-sm text-slate-900 dark:text-slate-100">{p.title}</span>
                     {!p.published && <Badge tone="slate">비공개</Badge>}
-                    <span className="shrink-0 text-xs text-slate-500">{formatDate(p.createdAt)}</span>
+                    <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{formatDate(p.createdAt)}</span>
                   </Link>
                 </li>
               ))}
@@ -215,27 +226,27 @@ export default function DashboardPage() {
         </div>
 
         <div className="card">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-            <h2 className="font-semibold text-slate-900">최근 문의</h2>
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100">최근 문의</h2>
             <Link to="/admin/contacts" className="text-sm font-medium text-brand-600 hover:text-brand-700">
               전체 보기
             </Link>
           </div>
           {stats.recentContacts.length === 0 ? (
-            <p className="px-6 py-12 text-center text-sm text-slate-500">문의가 없습니다.</p>
+            <p className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">문의가 없습니다.</p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-700">
               {stats.recentContacts.map((c) => (
                 <li key={c.id} className="flex items-center gap-3 px-6 py-3.5">
                   <Badge tone={STATUS_TONE[c.status]}>{CONTACT_STATUS_LABEL[c.status]}</Badge>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">
+                    <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                       {c.name}
-                      {c.company && <span className="ml-1.5 text-slate-500">· {c.company}</span>}
+                      {c.company && <span className="ml-1.5 text-slate-500 dark:text-slate-400">· {c.company}</span>}
                     </p>
-                    <p className="truncate text-xs text-slate-500">{c.message}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{c.message}</p>
                   </div>
-                  <span className="shrink-0 text-xs text-slate-500">{formatDate(c.createdAt)}</span>
+                  <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{formatDate(c.createdAt)}</span>
                 </li>
               ))}
             </ul>

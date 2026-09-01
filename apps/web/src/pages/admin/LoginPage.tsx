@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
+import { DEMO_CREDENTIALS } from '../../lib/demoData'
+import { useEnableDarkMode } from '../../lib/theme'
 import { ErrorMessage } from '../../components/ui'
 
 export default function LoginPage() {
+  useEnableDarkMode()
   const { user, loading, login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -13,6 +16,13 @@ export default function LoginPage() {
 
   // 이미 로그인된 상태로 접근하면 대시보드로 보낸다.
   if (!loading && user) return <Navigate to="/admin" replace />
+
+  /** 데모 계정을 입력란에 채워 넣는다. 로그인은 사용자가 직접 누르도록 둔다. */
+  function fillDemoAccount() {
+    setEmail(DEMO_CREDENTIALS.email)
+    setPassword(DEMO_CREDENTIALS.password)
+    setError('')
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -78,9 +88,27 @@ export default function LoginPage() {
             {submitting ? '로그인 중...' : '로그인'}
           </button>
 
-          <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-center text-xs leading-relaxed text-slate-500">
-            테스트 계정 — admin@wnc.co.kr / admin1234
-          </p>
+          {/* 데모 계정 안내 — 버튼 한 번으로 입력란을 채운다. */}
+          <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">데모 계정</p>
+            <dl className="mt-2.5 space-y-1 text-sm text-brand-700">
+              <div className="flex gap-2">
+                <dt className="text-slate-600 dark:text-slate-400">아이디:</dt>
+                <dd className="font-medium">{DEMO_CREDENTIALS.email}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="text-slate-600 dark:text-slate-400">비밀번호:</dt>
+                <dd className="font-medium">{DEMO_CREDENTIALS.password}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              onClick={fillDemoAccount}
+              className="mt-3 w-full rounded-lg bg-brand-100 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+            >
+              자동 입력
+            </button>
+          </div>
         </form>
       </div>
     </div>

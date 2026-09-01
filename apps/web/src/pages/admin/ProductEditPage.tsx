@@ -133,7 +133,7 @@ export default function ProductEditPage() {
 
         {/* 기본 정보 */}
         <div className="card p-6">
-          <h2 className="font-semibold text-slate-900">기본 정보</h2>
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100">기본 정보</h2>
 
           <div className="mt-5 space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
@@ -227,7 +227,7 @@ export default function ProductEditPage() {
                   onChange={(e) => set('published', e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
-                <span className="text-sm text-slate-700">공개 (체크 해제 시 사이트에 노출되지 않음)</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">공개 (체크 해제 시 사이트에 노출되지 않음)</span>
               </label>
               <label className="flex cursor-pointer items-center gap-2.5">
                 <input
@@ -236,7 +236,7 @@ export default function ProductEditPage() {
                   onChange={(e) => set('featured', e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
-                <span className="text-sm text-slate-700">추천 제품으로 표시</span>
+                <span className="text-sm text-slate-700 dark:text-slate-300">추천 제품으로 표시</span>
               </label>
             </div>
           </div>
@@ -246,8 +246,8 @@ export default function ProductEditPage() {
         <div className="card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-slate-900">제품 사양</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">제품 사양</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 상세 페이지 우측에 표 형태로 표시됩니다.
               </p>
             </div>
@@ -261,7 +261,7 @@ export default function ProductEditPage() {
           </div>
 
           {form.specs.length === 0 ? (
-            <p className="mt-6 rounded-lg bg-slate-50 py-8 text-center text-sm text-slate-500">
+            <p className="mt-6 rounded-lg bg-slate-50 dark:bg-slate-900/50 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
               등록된 사양이 없습니다. &lsquo;항목 추가&rsquo;를 눌러 입력하세요.
             </p>
           ) : (
@@ -297,13 +297,13 @@ export default function ProductEditPage() {
 
         {/* 상세 내용 */}
         <div className="card p-6">
-          <h2 className="font-semibold text-slate-900">상세 내용</h2>
-          <p className="mb-4 mt-1 text-sm text-slate-500">
+          <h2 className="font-semibold text-slate-900 dark:text-slate-100">상세 내용</h2>
+          <p className="mb-4 mt-1 text-sm text-slate-500 dark:text-slate-400">
             제품 상세 페이지 하단에 표시됩니다. 서식·목록·이미지·링크를 사용할 수 있습니다.
           </p>
           <Suspense
             fallback={
-              <div className="rounded-lg border border-slate-300 p-6 text-sm text-slate-500">
+              <div className="rounded-lg border border-slate-300 p-6 text-sm text-slate-500 dark:text-slate-400">
                 편집기 불러오는 중...
               </div>
             }

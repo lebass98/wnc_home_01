@@ -5,6 +5,7 @@ import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import RichEditor from '../../components/RichEditor'
 import RichText from '../../components/RichText'
+import PageVersionHistory from '../../components/PageVersionHistory'
 import { Badge, ErrorMessage, Loading, Modal, PageHeader } from '../../components/ui'
 
 const EMPTY: PageInput = {
@@ -310,65 +311,11 @@ export default function PageEditPage() {
           )}
         </div>
 
-        {/* 버전 이력 */}
-        <div className="card">
-          <div className="px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">버전 이력</h2>
-          </div>
-
-          <div className="px-6">
-            <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-              <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              보기 버튼을 누르면 그 시점의 내용을 확인하고 복원할 수 있습니다. 저장할 때마다 최근 50개까지 보관됩니다.
-            </p>
-          </div>
-
-          {isNew ? (
-            <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-              페이지를 만들면 이곳에 버전이 쌓입니다.
-            </p>
-          ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[42rem] text-sm">
-                <thead>
-                  <tr className="border-y border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
-                    <th className="px-6 py-3">버전</th>
-                    <th className="px-4 py-3">저장자</th>
-                    <th className="px-4 py-3">저장일시</th>
-                    <th className="px-4 py-3">변경내역</th>
-                    <th className="px-6 py-3 text-right">작업</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {versions.map((v) => (
-                    <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span className="mr-2 font-semibold text-slate-900 dark:text-slate-100">v{v.version}</span>
-                        {v.current && <Badge tone="green">현재</Badge>}
-                      </td>
-                      <td className="px-4 py-4 text-slate-700 dark:text-slate-300">{v.authorName}</td>
-                      <td className="whitespace-nowrap px-4 py-4 text-slate-600 dark:text-slate-400">
-                        {formatStamp(v.createdAt)}
-                      </td>
-                      <td className="px-4 py-4 italic text-slate-500 dark:text-slate-400">{v.note}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openVersion(v.version)}
-                          className="rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
-                        >
-                          보기
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <PageVersionHistory
+          versions={versions}
+          onView={openVersion}
+          emptyLabel={isNew ? '페이지를 만들면 이곳에 버전이 쌓입니다.' : undefined}
+        />
 
         {/* 저장 */}
         <div className="card mt-6 flex flex-wrap gap-3 p-4">

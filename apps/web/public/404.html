@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>워드앤코드</title>
+    <script>
+      // GitHub Pages 는 하위 경로 직접 접근 시 404 를 반환한다.
+      // 원래 경로를 쿼리스트링에 담아 index.html 로 보내고, 그곳에서 복원한다.
+      (function () {
+        var seg = location.pathname.split('/');
+        // 프로젝트 페이지(/<repo>/...)는 첫 세그먼트를 base 로 유지한다.
+        var base = seg.length > 1 && seg[1] ? '/' + seg[1] + '/' : '/';
+        var rest = location.pathname.slice(base.length);
+        location.replace(base + '?redirect=' + encodeURIComponent(rest + location.search + location.hash));
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

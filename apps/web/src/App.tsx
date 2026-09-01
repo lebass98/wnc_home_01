@@ -1,0 +1,71 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider, useAuth } from './lib/auth'
+import DemoBanner from './components/DemoBanner'
+
+import SiteLayout from './components/SiteLayout'
+import HomePage from './pages/site/HomePage'
+import AboutPage from './pages/site/AboutPage'
+import ServicesPage from './pages/site/ServicesPage'
+import BoardPage from './pages/site/BoardPage'
+import PostDetailPage from './pages/site/PostDetailPage'
+import ContactPage from './pages/site/ContactPage'
+
+import AdminLayout from './components/AdminLayout'
+import LoginPage from './pages/admin/LoginPage'
+import DashboardPage from './pages/admin/DashboardPage'
+import PostListPage from './pages/admin/PostListPage'
+import PostEditPage from './pages/admin/PostEditPage'
+import ContactListPage from './pages/admin/ContactListPage'
+
+/** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
+function RequireAuth({ children }: { children: JSX.Element }) {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        불러오는 중...
+      </div>
+    )
+  }
+  return user ? children : <Navigate to="/admin/login" replace />
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <DemoBanner />
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <Routes>
+          {/* 공개 회사소개 사이트 */}
+          <Route element={<SiteLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/board" element={<BoardPage />} />
+            <Route path="/board/:id" element={<PostDetailPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+          </Route>
+
+          {/* 어드민 */}
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth>
+                <AdminLayout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<DashboardPage />} />
+            <Route path="posts" element={<PostListPage />} />
+            <Route path="posts/new" element={<PostEditPage />} />
+            <Route path="posts/:id" element={<PostEditPage />} />
+            <Route path="contacts" element={<ContactListPage />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}

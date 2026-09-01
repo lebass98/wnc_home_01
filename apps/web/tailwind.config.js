@@ -17,6 +17,10 @@ export default {
           900: '#1e3a8a',
         },
       },
+      maxWidth: {
+        /* 사이트 전체 콘텐츠 최대 폭 */
+        site: '1440px',
+      },
       fontFamily: {
         sans: ['Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
       },

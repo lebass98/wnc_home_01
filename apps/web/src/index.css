@@ -18,7 +18,7 @@
 @layer components {
   /* 사이트 섹션 공통 좌우 여백 */
   .container-wnc {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full max-w-site px-5 sm:px-8 lg:px-10;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition

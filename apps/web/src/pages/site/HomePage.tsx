@@ -58,7 +58,7 @@ export default function HomePage() {
           aria-hidden
         />
         <div className="container-wnc relative py-24 sm:py-32">
-          <div className="max-w-2xl">
+          <div className="max-w-3xl">
             <span className="inline-flex rounded-full bg-brand-600/20 px-3 py-1 text-xs font-semibold text-brand-300 ring-1 ring-inset ring-brand-500/30">
               Word &amp; Code
             </span>

@@ -152,21 +152,19 @@ export default function AdminLayout() {
               </button>
 
               {openGroup === item.label && (
-                /* 부모 아이콘 가운데에서 내려오는 트리 선 — 항목마다 둥근 ㄴ자로 이어진다. */
-                <div className="ml-[1.375rem] mt-0.5">
-                  {item.children.map((child, i) => (
+                /* 부모 아이콘 가운데에서 내려오는 트리 선 — 항목마다 둥근 ㄴ자로 갈라진다. */
+                <div className="relative ml-[1.375rem] mt-0.5">
+                  {/* 마지막 항목 가운데까지 끊기지 않고 이어지는 세로선 */}
+                  <span
+                    aria-hidden
+                    className="absolute bottom-5 left-0 top-0 border-l border-slate-300 dark:border-slate-600"
+                  />
+                  {item.children.map((child) => (
                     <div key={child.to} className="relative pl-5">
                       <span
                         aria-hidden
                         className="absolute left-0 top-0 h-5 w-3.5 rounded-bl-[0.625rem] border-b border-l border-slate-300 dark:border-slate-600"
                       />
-                      {/* 마지막 항목 아래로는 선을 잇지 않는다. */}
-                      {i < item.children.length - 1 && (
-                        <span
-                          aria-hidden
-                          className="absolute bottom-0 left-0 top-5 border-l border-slate-300 dark:border-slate-600"
-                        />
-                      )}
                       <NavLink
                         to={child.to}
                         end={child.end}

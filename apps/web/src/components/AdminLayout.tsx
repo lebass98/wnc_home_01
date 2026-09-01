@@ -58,27 +58,28 @@ export default function AdminLayout() {
   }
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-slate-900">
-      <div className="flex h-16 items-center gap-2 px-6">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-          W
+    <div className="flex h-full flex-col border-r border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex h-16 items-center border-b border-slate-200 px-6 dark:border-slate-700">
+        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          워드앤코드 관리자
         </span>
-        <span className="font-bold text-white">워드앤코드 관리</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-0.5 px-4 py-5">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              `flex items-center gap-3 rounded-lg px-3 py-3 text-[0.95rem] font-semibold transition ${
+                isActive
+                  ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
               }`
             }
           >
-            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
             </svg>
             {item.label}
@@ -86,12 +87,12 @@ export default function AdminLayout() {
         ))}
       </nav>
 
-      <div className="border-t border-slate-800 p-3">
+      <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
         <Link
           to="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+          className="flex items-center gap-3 rounded-lg px-3 py-3 text-[0.95rem] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -105,7 +106,7 @@ export default function AdminLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* 데스크톱 고정 사이드바 */}
       <aside
         className="fixed bottom-0 left-0 hidden w-64 lg:block"

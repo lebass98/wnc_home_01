@@ -5,6 +5,11 @@ build/
 .env.local
 *.log
 .DS_Store
+# macOS AppleDouble 잔여 파일
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 apps/api/uploads/

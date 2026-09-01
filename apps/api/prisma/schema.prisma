@@ -196,3 +196,29 @@ model SiteSetting {
 
   updatedAt DateTime @updatedAt
 }
+
+/// 게시판 환경설정 — 항상 한 행만 사용한다.
+model BoardSetting {
+  id Int @id @default(autoincrement())
+
+  // --- SEO: 페이지 유형별 메타 템플릿 ({site_name} 같은 변수를 쓸 수 있다) ---
+  /// 게시판 목록 페이지 (/board)
+  seoListTitle       String @default("{site_name}")
+  seoListDescription String @default("")
+  /// 분류를 고른 글 목록 페이지
+  seoBoardTitle       String @default("{board_name}")
+  seoBoardDescription String @default("{board_description}")
+  /// 게시글 상세 페이지
+  seoPostTitle       String @default("{board_name} - {post_title}")
+  seoPostDescription String @default("")
+
+  /// 검색 봇에게 메타 정보를 제공할 페이지
+  seoServeList  Boolean @default(true)
+  seoServeBoard Boolean @default(true)
+  seoServePost  Boolean @default(true)
+
+  /// 캐시를 마지막으로 비운 시각
+  seoCacheResetAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}

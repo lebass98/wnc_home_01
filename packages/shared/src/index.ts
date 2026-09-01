@@ -348,3 +348,55 @@ export interface SeoSettingInput {
   generatorEnabled?: boolean
   generatorContent?: string | null
 }
+
+/* ------------------------------------------------------------------ *
+ *  게시판 환경설정
+ * ------------------------------------------------------------------ */
+
+/** 게시판 소개문 — 메타 템플릿의 {board_description} 에 쓰인다. */
+export const BOARD_CATEGORY_DESCRIPTION: Record<BoardCategory, string> = {
+  NOTICE: '워드앤코드의 공지사항과 안내를 전해 드립니다.',
+  NEWS: '워드앤코드의 새로운 소식과 활동을 소개합니다.',
+  PRESS: '언론에 보도된 워드앤코드 소식을 모았습니다.',
+}
+
+/** 메타 템플릿에서 쓸 수 있는 변수 — 페이지 유형별로 다르다. */
+export const BOARD_SEO_VARIABLES = {
+  list: ['{site_name}'],
+  board: ['{site_name}', '{board_name}', '{board_description}'],
+  post: ['{site_name}', '{board_name}', '{post_title}'],
+} as const
+
+export interface BoardSetting {
+  seoListTitle: string
+  seoListDescription: string
+  seoBoardTitle: string
+  seoBoardDescription: string
+  seoPostTitle: string
+  seoPostDescription: string
+  seoServeList: boolean
+  seoServeBoard: boolean
+  seoServePost: boolean
+  seoCacheResetAt: string
+  updatedAt: string
+}
+
+export interface BoardSeoInput {
+  seoListTitle: string
+  seoListDescription: string
+  seoBoardTitle: string
+  seoBoardDescription: string
+  seoPostTitle: string
+  seoPostDescription: string
+  seoServeList: boolean
+  seoServeBoard: boolean
+  seoServePost: boolean
+}
+
+/** 템플릿의 {변수} 를 실제 값으로 바꾼다. 값이 없는 변수는 지운다. */
+export function fillTemplate(template: string, vars: Record<string, string | undefined>): string {
+  return template
+    .replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}

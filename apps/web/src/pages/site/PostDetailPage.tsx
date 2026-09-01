@@ -5,14 +5,17 @@ import { BOARD_CATEGORY_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import { Badge, ErrorMessage, Loading } from '../../components/ui'
-import { usePageTitle } from '../../lib/seo'
+import { useBoardSeo } from '../../lib/seo'
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [post, setPost] = useState<Post | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  usePageTitle(post?.title)
+  useBoardSeo('post', {
+    board_name: post ? BOARD_CATEGORY_LABEL[post.category] : undefined,
+    post_title: post?.title,
+  })
 
   useEffect(() => {
     setLoading(true)

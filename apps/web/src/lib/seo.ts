@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import type { SiteSetting } from '@wnc/shared'
-import { DEFAULT_GENERATOR } from '@wnc/shared'
+import type { BoardSetting, SiteSetting } from '@wnc/shared'
+import { DEFAULT_GENERATOR, fillTemplate } from '@wnc/shared'
 import { api } from './api'
 
 /**
@@ -28,6 +28,14 @@ export function usePageTitle(title: string | null | undefined) {
       pageTitle = null
     }
   }, [title])
+}
+
+/** 사이트 설정은 화면마다 다시 받지 않도록 한 번만 불러 온다. */
+let sitePromise: Promise<SiteSetting> | null = null
+
+function loadSiteSetting(): Promise<SiteSetting> {
+  sitePromise ??= api<SiteSetting>('/settings')
+  return sitePromise
 }
 
 /** 같은 이름의 메타 태그가 있으면 내용만 바꾸고, 없으면 새로 넣는다. */
@@ -68,7 +76,7 @@ export function useSiteSeo() {
   useEffect(() => {
     let alive = true
 
-    api<SiteSetting>('/settings')
+    loadSiteSetting()
       .then((s) => {
         if (!alive) return
 
@@ -106,4 +114,59 @@ export function useSiteSeo() {
       alive = false
     }
   }, [])
+}
+
+/* --------------------------- 게시판 메타 템플릿 --------------------------- */
+
+/** 게시판 설정은 화면마다 다시 받지 않도록 한 번만 불러 온다. */
+let boardSettingPromise: Promise<BoardSetting> | null = null
+
+function loadBoardSetting(): Promise<BoardSetting> {
+  boardSettingPromise ??= api<BoardSetting>('/board-settings')
+  return boardSettingPromise
+}
+
+type BoardPageKind = 'list' | 'board' | 'post'
+
+/**
+ * 게시판 화면의 제목·설명을 환경설정의 템플릿으로 채운다.
+ * 'SEO 를 제공할 페이지' 에서 꺼 둔 유형은 아무것도 건드리지 않는다.
+ */
+export function useBoardSeo(kind: BoardPageKind, vars: Record<string, string | undefined>) {
+  // 객체를 그대로 의존성에 쓰면 매 렌더마다 바뀌므로 값만 비교한다.
+  const key = JSON.stringify(vars)
+
+  useEffect(() => {
+    let alive = true
+
+    Promise.all([loadBoardSetting(), loadSiteSetting()])
+      .then(([s, site]) => {
+        if (!alive) return
+        const serve = { list: s.seoServeList, board: s.seoServeBoard, post: s.seoServePost }[kind]
+        if (!serve) return
+
+        const titleTemplate = { list: s.seoListTitle, board: s.seoBoardTitle, post: s.seoPostTitle }[kind]
+        const descTemplate = {
+          list: s.seoListDescription,
+          board: s.seoBoardDescription,
+          post: s.seoPostDescription,
+        }[kind]
+
+        // {site_name} 은 사이트 설정에서 채운다.
+        const parsed = { site_name: site.siteName, ...(JSON.parse(key) as Record<string, string | undefined>) }
+        const title = fillTemplate(titleTemplate, parsed)
+        const description = fillTemplate(descTemplate, parsed)
+
+        pageTitle = title || null
+        renderTitle()
+        if (description) upsertMeta('name', 'description', description)
+      })
+      .catch(() => {
+        // 설정을 못 읽어도 화면은 그대로 보여 준다.
+      })
+
+    return () => {
+      alive = false
+    }
+  }, [kind, key])
 }

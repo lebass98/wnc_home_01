@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { BoardCategory, Paginated, PostListItem } from '@wnc/shared'
-import { BOARD_CATEGORY_LABEL } from '@wnc/shared'
+import { BOARD_CATEGORY_DESCRIPTION, BOARD_CATEGORY_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import PageHero from '../../components/PageHero'
 import { Badge, EmptyState, Loading, Pagination } from '../../components/ui'
-import { usePageTitle } from '../../lib/seo'
+import { useBoardSeo } from '../../lib/seo'
 
 const TABS: { value: BoardCategory | ''; label: string }[] = [
   { value: '', label: '전체' },
@@ -16,9 +16,14 @@ const TABS: { value: BoardCategory | ''; label: string }[] = [
 ]
 
 export default function BoardPage() {
-  usePageTitle('소식')
   const [searchParams, setSearchParams] = useSearchParams()
   const category = (searchParams.get('category') ?? '') as BoardCategory | ''
+
+  // 분류를 고르지 않았으면 '게시판 목록', 골랐으면 '게시판 글 목록' 템플릿을 쓴다.
+  useBoardSeo(category ? 'board' : 'list', {
+    board_name: category ? BOARD_CATEGORY_LABEL[category] : undefined,
+    board_description: category ? BOARD_CATEGORY_DESCRIPTION[category] : undefined,
+  })
   const page = Number(searchParams.get('page') ?? 1)
   const q = searchParams.get('q') ?? ''
 

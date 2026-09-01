@@ -15,6 +15,7 @@ import {
   createDemoPosts,
   createDemoProducts,
   createDemoSetting,
+  createDemoBoardSetting,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -22,6 +23,7 @@ import {
   type DemoPageVersion,
   type DemoProduct,
   type DemoSetting,
+  type DemoBoardSetting,
 } from './demoData'
 
 /**
@@ -40,6 +42,7 @@ interface DemoDb {
   pages: DemoPage[]
   pageVersions: DemoPageVersion[]
   setting: DemoSetting
+  boardSetting: DemoBoardSetting
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -62,6 +65,7 @@ function seed(): DemoDb {
     pages,
     pageVersions: versions,
     setting: createDemoSetting(),
+    boardSetting: createDemoBoardSetting(),
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -81,7 +85,8 @@ function load(): DemoDb {
         Array.isArray(parsed.products) &&
         Array.isArray(parsed.categories) &&
         Array.isArray(parsed.pages) &&
-        parsed.setting
+        parsed.setting &&
+        parsed.boardSetting
       ) {
         return parsed
       }
@@ -745,6 +750,28 @@ export function handleDemoRequest(
     }
     save(db)
     return db.setting
+  }
+
+  // --- 게시판 환경설정 ---
+  if (rawPath === '/board-settings' && method === 'GET') {
+    return db.boardSetting
+  }
+
+  if (rawPath === '/board-settings/seo' && method === 'PUT') {
+    db.boardSetting = {
+      ...db.boardSetting,
+      ...body,
+      seoCacheResetAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    save(db)
+    return db.boardSetting
+  }
+
+  if (rawPath === '/board-settings/seo/cache-reset' && method === 'POST') {
+    db.boardSetting = { ...db.boardSetting, seoCacheResetAt: new Date().toISOString() }
+    save(db)
+    return db.boardSetting
   }
 
   // --- 업로드 (데모: 파일을 base64 로 그대로 돌려준다) ---

@@ -321,3 +321,36 @@ export function createDemoSetting(): DemoSetting {
     updatedAt: isoDaysAgo(0),
   }
 }
+
+/* --------------------------- 게시판 환경설정 --------------------------- */
+
+export interface DemoBoardSetting {
+  seoListTitle: string
+  seoListDescription: string
+  seoBoardTitle: string
+  seoBoardDescription: string
+  seoPostTitle: string
+  seoPostDescription: string
+  seoServeList: boolean
+  seoServeBoard: boolean
+  seoServePost: boolean
+  seoCacheResetAt: string
+  updatedAt: string
+}
+
+export function createDemoBoardSetting(): DemoBoardSetting {
+  const now = isoDaysAgo(0)
+  return {
+    seoListTitle: '{site_name}',
+    seoListDescription: '',
+    seoBoardTitle: '{board_name}',
+    seoBoardDescription: '{board_description}',
+    seoPostTitle: '{board_name} - {post_title}',
+    seoPostDescription: '',
+    seoServeList: true,
+    seoServeBoard: true,
+    seoServePost: true,
+    seoCacheResetAt: now,
+    updatedAt: now,
+  }
+}

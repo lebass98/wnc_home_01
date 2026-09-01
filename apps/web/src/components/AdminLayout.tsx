@@ -4,7 +4,28 @@ import { useAuth } from '../lib/auth'
 import ThemeToggle from './ThemeToggle'
 import { useEnableDarkMode } from '../lib/theme'
 
-const NAV = [
+/** 하위 메뉴가 없는 항목 */
+interface NavLeaf {
+  to: string
+  label: string
+  end: boolean
+  icon: string
+}
+
+/** 하위 메뉴를 품은 항목 */
+interface NavGroup {
+  label: string
+  /** 이 경로로 시작하면 하위 메뉴를 펼친다. */
+  match: string
+  icon: string
+  children: NavLeaf[]
+}
+
+type NavItem = NavLeaf | NavGroup
+
+const isGroup = (item: NavItem): item is NavGroup => 'children' in item
+
+const NAV: NavItem[] = [
   {
     to: '/admin',
     label: '대시보드',
@@ -18,10 +39,30 @@ const NAV = [
     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
   },
   {
-    to: '/admin/posts',
     label: '게시판 관리',
-    end: false,
+    match: '/admin/posts',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    children: [
+      {
+        to: '/admin/posts/settings',
+        label: '환경설정',
+        end: false,
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      },
+      {
+        to: '/admin/posts',
+        label: '게시판 목록',
+        // 하위 경로(작성·수정)까지 강조되지 않도록 정확히 일치할 때만 활성 처리한다.
+        end: true,
+        icon: 'M4 6h16M4 12h16M4 18h16',
+      },
+      {
+        to: '/admin/posts/reports',
+        label: '게시판 신고현황',
+        end: false,
+        icon: 'M3 21V5a2 2 0 012-2h9l-1 3h5a1 1 0 011 1v7a1 1 0 01-1 1h-6l1-3H5',
+      },
+    ],
   },
   {
     to: '/admin/products',
@@ -49,12 +90,22 @@ const NAV = [
   },
 ]
 
+const NAV_ITEM =
+  'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition'
+const NAV_ACTIVE = 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
+const NAV_IDLE =
+  'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+
 export default function AdminLayout() {
   useEnableDarkMode()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // 지금 보고 있는 화면이 속한 그룹은 펼쳐 둔다.
+  const [openGroup, setOpenGroup] = useState<string | null>(
+    () => NAV.find((item) => isGroup(item) && pathname.startsWith(item.match))?.label ?? null,
+  )
 
   useEffect(() => setSidebarOpen(false), [pathname])
 
@@ -72,25 +123,66 @@ export default function AdminLayout() {
       </div>
 
       <nav className="flex-1 space-y-0.5 px-4 py-5">
-        {NAV.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition ${
-                isActive
-                  ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
-              }`
-            }
-          >
-            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-            </svg>
-            {item.label}
-          </NavLink>
-        ))}
+        {NAV.map((item) =>
+          isGroup(item) ? (
+            <div key={item.label}>
+              <button
+                type="button"
+                onClick={() => setOpenGroup((prev) => (prev === item.label ? null : item.label))}
+                aria-expanded={openGroup === item.label}
+                className={`${NAV_ITEM} ${
+                  pathname.startsWith(item.match)
+                    ? 'text-slate-900 dark:text-slate-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+                }`}
+              >
+                <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                </svg>
+                {item.label}
+                <svg
+                  className={`ml-auto h-4 w-4 transition ${openGroup === item.label ? '' : '-rotate-90'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {openGroup === item.label && (
+                <div className="ml-5 mt-0.5 space-y-0.5 border-l border-slate-200 pl-3 dark:border-slate-700">
+                  {item.children.map((child) => (
+                    <NavLink
+                      key={child.to}
+                      to={child.to}
+                      end={child.end}
+                      className={({ isActive }) => `${NAV_ITEM} ${isActive ? NAV_ACTIVE : NAV_IDLE}`}
+                    >
+                      <svg className="h-[1.125rem] w-[1.125rem] shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={child.icon} />
+                      </svg>
+                      {child.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `${NAV_ITEM} ${isActive ? NAV_ACTIVE : NAV_IDLE}`}
+            >
+              <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+              </svg>
+              {item.label}
+            </NavLink>
+          ),
+        )}
       </nav>
 
       <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">

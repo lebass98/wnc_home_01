@@ -130,6 +130,15 @@ export default function PageEditPage() {
                 페이지 열기
               </a>
             )}
+            {!isNew && (
+              <button
+                type="button"
+                onClick={() => navigate(`/admin/pages/${id}/detail`)}
+                className="btn-secondary"
+              >
+                상세
+              </button>
+            )}
             <button type="button" onClick={() => navigate('/admin/pages')} className="btn-secondary">
               목록
             </button>

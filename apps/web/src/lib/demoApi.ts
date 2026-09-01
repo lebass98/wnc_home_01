@@ -595,7 +595,7 @@ export function handleDemoRequest(
       updatedAt: now,
     }
     db.pages.unshift(page)
-    snapshotPage(db, page, '최초 작성')
+    snapshotPage(db, page, '최초 생성')
     save(db)
     return page
   }
@@ -661,14 +661,15 @@ export function handleDemoRequest(
     if (method === 'PUT') {
       const input = body as PageInput
       const slug = uniquePageSlug(db, toPageSlug(input.slug?.trim() ? input.slug : input.title), id)
-      // 내용이 실제로 바뀐 저장만 새 버전으로 남긴다.
-      const changed =
-        page.title !== input.title ||
-        page.content !== input.content ||
-        (page.description ?? null) !== (input.description || null) ||
-        page.slug !== slug ||
-        page.published !== input.published ||
-        page.showInNav !== input.showInNav
+      // 어떤 항목이 바뀌었는지 모아 둔다. 하나도 없으면 새 버전을 만들지 않는다.
+      const changes: string[] = []
+      if (page.title !== input.title) changes.push('제목')
+      if (page.slug !== slug) changes.push('슬러그')
+      if ((page.description ?? null) !== (input.description || null)) changes.push('설명')
+      if (page.content !== input.content) changes.push('본문')
+      if (page.published !== input.published) changes.push('발행 상태')
+      if (page.showInNav !== input.showInNav) changes.push('메뉴 노출')
+      const changed = changes.length > 0
 
       page.slug = slug
       page.title = input.title
@@ -681,7 +682,7 @@ export function handleDemoRequest(
       page.updatedAt = new Date().toISOString()
       if (changed) {
         page.version += 1
-        snapshotPage(db, page, '수정')
+        snapshotPage(db, page, `${changes.join(', ')} 변경`)
       }
       save(db)
       return page

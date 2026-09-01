@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type {
-  Page,
   PageListItem,
   PageSearchField,
   PageSort,
@@ -11,13 +10,11 @@ import type {
 import { PAGE_SORT_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
-import RichText from '../../components/RichText'
 import {
   Badge,
   EmptyState,
   ErrorMessage,
   Loading,
-  Modal,
   PageHeader,
   Pagination,
   RowMenu,
@@ -47,9 +44,8 @@ export default function PageListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // --- 선택 / 상세보기 ---
+  // --- 선택 ---
   const [selected, setSelected] = useState<number[]>([])
-  const [detail, setDetail] = useState<Page | null>(null)
   const [working, setWorking] = useState(false)
 
   const load = useCallback(() => {
@@ -90,14 +86,6 @@ export default function PageListPage() {
       alert((e as Error).message)
     } finally {
       setWorking(false)
-    }
-  }
-
-  async function handleDetail(id: number) {
-    try {
-      setDetail(await api<Page>(`/pages/${id}`, { auth: true }))
-    } catch (e) {
-      alert((e as Error).message)
     }
   }
 
@@ -292,7 +280,7 @@ export default function PageListPage() {
                     </td>
                     <td className="max-w-xs px-4 py-3">
                       <Link
-                        to={`/admin/pages/${item.id}`}
+                        to={`/admin/pages/${item.id}/detail`}
                         className="block truncate font-medium text-slate-900 hover:text-brand-600 dark:text-slate-100"
                       >
                         {item.title}
@@ -313,7 +301,7 @@ export default function PageListPage() {
                     <td className="px-4 py-3 text-right">
                       <RowMenu
                         items={[
-                          { label: '상세보기', icon: ICON.view, onClick: () => handleDetail(item.id) },
+                          { label: '상세보기', icon: ICON.view, onClick: () => navigate(`/admin/pages/${item.id}/detail`) },
                           { label: '수정', icon: ICON.edit, onClick: () => navigate(`/admin/pages/${item.id}`) },
                           { label: '삭제', icon: ICON.trash, danger: true, onClick: () => handleDelete(item) },
                         ]}
@@ -329,48 +317,6 @@ export default function PageListPage() {
 
       {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} edges />}
 
-      {detail && (
-        <Modal
-          title={detail.title}
-          onClose={() => setDetail(null)}
-          wide
-          footer={
-            <>
-              <Link to={`/admin/pages/${detail.id}`} className="btn-primary">
-                수정하기
-              </Link>
-              <button type="button" onClick={() => setDetail(null)} className="btn-secondary">
-                닫기
-              </button>
-            </>
-          }
-        >
-          <dl className="mb-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-xs text-slate-500">슬러그</dt>
-              <dd className="font-mono text-slate-800 dark:text-slate-200">{detail.slug}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">상태</dt>
-              <dd>{detail.published ? <Badge tone="green">발행</Badge> : <Badge tone="slate">미발행</Badge>}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">버전</dt>
-              <dd className="text-slate-800 dark:text-slate-200">v{detail.version}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">조회수</dt>
-              <dd className="text-slate-800 dark:text-slate-200">{detail.views}</dd>
-            </div>
-          </dl>
-          {detail.description && (
-            <p className="mb-4 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-900/50 dark:text-slate-400">
-              {detail.description}
-            </p>
-          )}
-          <RichText html={detail.content} />
-        </Modal>
-      )}
     </>
   )
 }

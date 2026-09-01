@@ -188,7 +188,7 @@ async function main() {
           content,
           published,
           showInNav: created.showInNav,
-          note: '최초 작성',
+          note: '최초 생성',
           authorId: admin.id,
           authorName: admin.name,
           createdAt: created.createdAt,

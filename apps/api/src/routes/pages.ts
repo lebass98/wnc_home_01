@@ -265,7 +265,7 @@ pagesRouter.post(
         version: 1,
       },
     })
-    await snapshot(page, '최초 작성', author)
+    await snapshot(page, '최초 생성', author)
 
     res.status(201).json(toDetail(page))
   }),
@@ -285,14 +285,15 @@ pagesRouter.put(
     const slug = await uniqueSlug(data.slug?.trim() ? toSlug(data.slug) : toSlug(data.title), id)
     const author = await currentAuthor(req.user!.sub, req.user!.email)
 
-    // 내용이 실제로 바뀐 저장만 새 버전으로 남긴다.
-    const changed =
-      existing.title !== data.title ||
-      existing.content !== data.content ||
-      (existing.description ?? null) !== (data.description ?? null) ||
-      existing.slug !== slug ||
-      existing.published !== data.published ||
-      existing.showInNav !== data.showInNav
+    // 어떤 항목이 바뀌었는지 모아 둔다. 하나도 없으면 새 버전을 만들지 않는다.
+    const changes: string[] = []
+    if (existing.title !== data.title) changes.push('제목')
+    if (existing.slug !== slug) changes.push('슬러그')
+    if ((existing.description ?? null) !== (data.description ?? null)) changes.push('설명')
+    if (existing.content !== data.content) changes.push('본문')
+    if (existing.published !== data.published) changes.push('발행 상태')
+    if (existing.showInNav !== data.showInNav) changes.push('메뉴 노출')
+    const changed = changes.length > 0
 
     const page = await prisma.page.update({
       where: { id },
@@ -308,7 +309,7 @@ pagesRouter.put(
         ...(changed ? { version: existing.version + 1 } : {}),
       },
     })
-    if (changed) await snapshot(page, '수정', author)
+    if (changed) await snapshot(page, `${changes.join(', ')} 변경`, author)
 
     res.json(toDetail(page))
   }),

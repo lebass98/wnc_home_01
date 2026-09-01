@@ -255,7 +255,7 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
       content,
       published,
       showInNav: slug === 'about' || slug === 'faq',
-      note: '최초 작성',
+      note: '최초 생성',
       authorName: DEMO_USER.name,
       createdAt,
     })

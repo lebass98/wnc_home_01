@@ -7,6 +7,7 @@ import { useSiteSeo, useSiteSetting } from '../lib/seo'
 import SitePopups from './SitePopups'
 import SiteUtilMenu from './SiteUtilMenu'
 import SitemapDrawer from './SitemapDrawer'
+import MobileNavDrawer from './MobileNavDrawer'
 
 /**
  * 푸터 SNS 아이콘 — 주소는 환경설정 > 회사 정보에서 읽고, 비어 있으면 아이콘을 보이지 않는다.
@@ -117,13 +118,21 @@ export default function SiteLayout() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [overHero])
 
-  // 투명 상태에서는 글자를 흰색으로 뒤집는다. (모바일 메뉴가 열리면 흰 배경이므로 제외)
-  const transparent = overHero && !scrolled && !open
+  // 투명 상태에서는 글자를 흰색으로 뒤집는다.
+  // 모바일 메뉴는 화면 전체를 덮는 별도 판이라 헤더 색은 건드리지 않는다.
+  const transparent = overHero && !scrolled
 
   return (
     <div className="flex min-h-screen flex-col">
       <SitePopups />
       <SitemapDrawer open={sitemapOpen} onClose={() => setSitemapOpen(false)} />
+      <MobileNavDrawer
+        open={open}
+        menu={menu}
+        logo={company.companyNameEn || company.companyName}
+        onClose={() => setOpen(false)}
+        onOpenSitemap={() => setSitemapOpen(true)}
+      />
       <header
         style={{ top: 'var(--demo-banner-h)' }}
         onMouseLeave={() => setMegaOpen(false)}
@@ -236,58 +245,22 @@ export default function SiteLayout() {
             </button>
           </nav>
 
-          {/* 모바일 — 햄버거 왼쪽에 언어·팝업을 둔다. */}
-          <div className="flex items-center gap-3 md:hidden">
-            <SiteUtilMenu transparent={transparent} />
+          {/* 모바일 — 햄버거만 둔다. 언어 선택과 팝업 열기는 메뉴 안에 있다. */}
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className={`rounded-lg p-2 md:hidden ${
+            onClick={() => setOpen(true)}
+            className={`-mr-1 rounded-lg p-2 md:hidden ${
               transparent ? 'text-white hover:bg-white/15' : 'text-slate-600 hover:bg-slate-100'
             }`}
             aria-label="메뉴 열기"
             aria-expanded={open}
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-              />
+            <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          </div>
         </div>
 
-        {open && (
-          <nav className="border-t border-slate-200 bg-white md:hidden">
-            <div className="container-wnc flex flex-col py-2">
-              {menu.map((item) => (
-                <MenuLink
-                  key={item.id}
-                  item={item}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-3 text-sm font-medium ${
-                      isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
-                    }`
-                  }
-                >
-                  {item.label}
-                </MenuLink>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false)
-                  setSitemapOpen(true)
-                }}
-                className="rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                사이트맵
-              </button>
-            </div>
-          </nav>
-        )}
       </header>
 
       <main className="flex-1">

@@ -9,6 +9,7 @@ export const boardsRouter = Router()
 const boardInputSchema = z.object({
   name: z.string().trim().min(1, '게시판 이름을 입력하세요.').max(60),
   slug: z.string().trim().max(40).optional(),
+  type: z.enum(['basic', 'gallery', 'card']).default('basic'),
   description: z.string().max(300).nullable().optional(),
   published: z.boolean(),
   sortOrder: z.number().int().optional(),
@@ -39,6 +40,7 @@ async function toItem(board: Record<string, any>) {
     id: board.id,
     name: board.name,
     slug: board.slug,
+    type: board.type,
     description: board.description,
     published: board.published,
     sortOrder: board.sortOrder,
@@ -71,6 +73,7 @@ boardsRouter.post(
     const board = await prisma.board.create({
       data: {
         name: data.name,
+        type: data.type,
         slug,
         description: data.description ?? null,
         published: data.published,
@@ -103,6 +106,7 @@ boardsRouter.put(
         where: { id },
         data: {
           name: data.name,
+          type: data.type,
           slug,
           description: data.description ?? null,
           published: data.published,

@@ -30,11 +30,28 @@ export const BOARD_CATEGORY_LABEL: Record<string, string> = {
   press: '보도자료',
 }
 
+/** 게시판 목록 표시 방식 */
+export type BoardType = 'basic' | 'gallery' | 'card'
+
+export const BOARD_TYPE_LABEL: Record<BoardType, string> = {
+  basic: '기본형',
+  gallery: '갤러리형',
+  card: '카드형',
+}
+
+export const BOARD_TYPE_DESCRIPTION: Record<BoardType, string> = {
+  basic: '제목 중심의 목록입니다. 공지사항처럼 글이 많은 게시판에 적합합니다.',
+  gallery: '썸네일을 격자로 보여줍니다. 사진 위주의 게시판에 적합합니다.',
+  card: '이미지와 요약을 카드로 보여줍니다. 뉴스나 소식에 적합합니다.',
+}
+
 export interface Board {
   id: number
   name: string
   /** 글의 category 값 */
   slug: string
+  /** 목록 표시 방식 */
+  type: BoardType
   description: string | null
   /** 끄면 홈페이지에서 감춘다 */
   published: boolean
@@ -47,6 +64,7 @@ export interface Board {
 export interface BoardInput {
   name: string
   slug?: string
+  type: BoardType
   description?: string | null
   published: boolean
   sortOrder?: number

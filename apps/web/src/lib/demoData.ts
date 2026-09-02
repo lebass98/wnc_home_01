@@ -361,6 +361,7 @@ export interface DemoBoard {
   id: number
   name: string
   slug: string
+  type: 'basic' | 'gallery' | 'card'
   description: string | null
   published: boolean
   sortOrder: number
@@ -369,15 +370,16 @@ export interface DemoBoard {
 }
 
 export function createDemoBoards(): DemoBoard[] {
-  const seed: [string, string, string][] = [
-    ['notice', '공지사항', '워드앤코드의 공지사항과 안내를 전해 드립니다.'],
-    ['news', '뉴스', '워드앤코드의 새로운 소식과 활동을 소개합니다.'],
-    ['press', '보도자료', '언론에 보도된 워드앤코드 소식을 모았습니다.'],
+  const seed: [string, string, DemoBoard['type'], string][] = [
+    ['notice', '공지사항', 'basic', '워드앤코드의 공지사항과 안내를 전해 드립니다.'],
+    ['news', '뉴스', 'card', '워드앤코드의 새로운 소식과 활동을 소개합니다.'],
+    ['press', '보도자료', 'gallery', '언론에 보도된 워드앤코드 소식을 모았습니다.'],
   ]
-  return seed.map(([slug, name, description], i) => ({
+  return seed.map(([slug, name, type, description], i) => ({
     id: i + 1,
     name,
     slug,
+    type,
     description,
     published: true,
     sortOrder: i,

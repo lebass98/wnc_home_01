@@ -229,6 +229,8 @@ model Board {
   name        String
   /// 글의 category 값으로 쓰인다.
   slug        String  @unique
+  /// 목록 표시 방식: basic(기본형) | gallery(갤러리형) | card(카드형)
+  type        String  @default("basic")
   description String?
   /// 끄면 홈페이지 소식 화면에서 감춘다.
   published   Boolean @default(true)

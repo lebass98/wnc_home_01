@@ -72,7 +72,6 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
       to: '/about',
       items: [
         { to: '/about', label: '회사 소개' },
-        { to: '/about', label: '개발 철학' },
         { to: '/services', label: '사업분야' },
       ],
     },

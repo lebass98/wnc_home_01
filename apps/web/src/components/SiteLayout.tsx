@@ -21,26 +21,22 @@ interface NavItem {
   children: SubItem[]
 }
 
-/** 고정 메뉴 — 제품·소식의 2차 메뉴는 서버에서 받은 분류·게시판으로 채운다. */
+/**
+ * 고정 메뉴 — 2차 메뉴에는 실제로 따로 있는 화면만 올린다.
+ * (같은 페이지 안의 구역은 넣지 않는다.) 제품·소식의 2차 메뉴는 서버에서 받은 분류·게시판으로 채운다.
+ */
 const NAV: NavItem[] = [
   {
     to: '/about',
     label: '회사소개',
+    // 회사소개 배너의 탭과 같은 구성 — 회사 소개 / 사업분야
     children: [
       { to: '/about', label: '회사 소개' },
-      { to: '/about', label: '개발 철학' },
       { to: '/services', label: '사업분야' },
     ],
   },
-  {
-    to: '/services',
-    label: '사업분야',
-    children: [
-      { to: '/services', label: '사업 인프라' },
-      { to: '/services', label: '사업영역' },
-      { to: '/services', label: '서비스영역' },
-    ],
-  },
+  // 사업분야는 한 화면뿐이라 2차 메뉴가 없다.
+  { to: '/services', label: '사업분야', children: [] },
   { to: '/products', label: '제품소개', children: [{ to: '/products', label: '전체 제품' }] },
   { to: '/board', label: '소식', children: [{ to: '/board', label: '전체 소식' }] },
   {

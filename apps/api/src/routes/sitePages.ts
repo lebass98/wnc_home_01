@@ -1,0 +1,194 @@
+import { Router } from 'express'
+import { z } from 'zod'
+import path from 'node:path'
+import { existsSync, mkdirSync } from 'node:fs'
+import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
+import { asyncHandler } from '../lib/handler.js'
+import { requireAuth } from '../lib/auth.js'
+
+export const sitePagesRouter = Router()
+
+/**
+ * 관리할 수 있는 화면 등록부 — packages/shared 의 SITE_PAGES 와 같은 목록이다.
+ * 서버는 실행 시점에 공용 패키지를 읽을 수 없어 여기에 따로 둔다. 화면을 추가하면 두 곳을 같이 고친다.
+ */
+const SITE_PAGES = [
+  { key: 'home', label: '메인', path: '/', file: 'HomePage.tsx', description: '메인 비주얼과 소개 구역' },
+  { key: 'about', label: '회사소개', path: '/about', file: 'AboutPage.tsx', description: '회사 소개 · 개발 철학' },
+  { key: 'services', label: '사업분야', path: '/services', file: 'ServicesPage.tsx', description: '사업 인프라 카드' },
+  { key: 'directions', label: '찾아오시는 길', path: '/about/directions', file: 'DirectionsPage.tsx', description: '지도 · 본사 · 지점' },
+  { key: 'products', label: '제품소개', path: '/products', file: 'ProductsPage.tsx', description: '대분류 탭과 제품 목록' },
+  { key: 'productDetail', label: '제품 상세', path: '/products/:id', file: 'ProductDetailPage.tsx', description: '제품 한 건의 상세' },
+  { key: 'board', label: '소식', path: '/board', file: 'BoardPage.tsx', description: '게시판 탭과 유형별 목록' },
+  { key: 'postDetail', label: '소식 상세', path: '/board/:id', file: 'PostDetailPage.tsx', description: '글 한 건의 상세' },
+  { key: 'contact', label: '문의하기', path: '/contact', file: 'ContactPage.tsx', description: '문의 절차 · 연락처 · 양식' },
+  { key: 'faq', label: '자주 묻는 질문', path: '/contact/faq', file: 'FaqPage.tsx', description: '분류 탭과 아코디언' },
+  { key: 'terms', label: '이용약관', path: '/terms', file: 'TermsPage.tsx', description: '조문 목차와 본문' },
+  { key: 'privacy', label: '개인정보처리방침', path: '/privacy', file: 'PrivacyPage.tsx', description: '라벨링 · 목차 · 본문 · 개정이력' },
+  { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
+]
+
+/**
+ * 코드로 만들어진 실제 화면의 소스를 관리자에서 보고 고친다.
+ * 서버는 apps/api 에서 실행되므로 형제 폴더의 apps/web 소스를 가리킨다.
+ * 고치기 전 원본은 uploads/site-page-backups 아래에 시각 이름으로 남긴다. (git 에는 올라가지 않는다)
+ */
+const PAGES_DIR = path.resolve(process.cwd(), '../web/src/pages/site')
+const BACKUP_DIR = path.resolve(process.cwd(), 'uploads/site-page-backups')
+
+/** 최근 몇 개까지 남길지 */
+const MAX_BACKUPS = 20
+
+function findDef(key: string) {
+  return SITE_PAGES.find((p) => p.key === key) ?? null
+}
+
+/** 등록부에 있는 파일만 다룬다 — 주소로 아무 파일이나 읽지 못하게 한다. */
+function filePathOf(key: string): string | null {
+  const def = findDef(key)
+  return def ? path.join(PAGES_DIR, def.file) : null
+}
+
+function backupDirOf(key: string): string {
+  const dir = path.join(BACKUP_DIR, key)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+/** 백업 파일 이름 — 정렬하면 시간순이 되도록 시각을 앞에 둔다. */
+function backupName(): string {
+  return `${new Date().toISOString().replace(/[:.]/g, '-')}.tsx`
+}
+
+async function listBackups(key: string) {
+  const dir = backupDirOf(key)
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.tsx')).sort().reverse()
+  return Promise.all(
+    names.map(async (name) => {
+      const info = await stat(path.join(dir, name))
+      return { name, createdAt: info.mtime.toISOString(), size: info.size }
+    }),
+  )
+}
+
+/** 목록 — 파일 크기·줄 수·수정 시각·백업 수 */
+sitePagesRouter.get(
+  '/',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    const items = await Promise.all(
+      SITE_PAGES.map(async (def) => {
+        const file = path.join(PAGES_DIR, def.file)
+        if (!existsSync(file)) {
+          return { ...def, available: false, size: 0, lines: 0, updatedAt: null, backups: 0 }
+        }
+        const [info, text, backups] = await Promise.all([stat(file), readFile(file, 'utf8'), listBackups(def.key)])
+        return {
+          ...def,
+          available: true,
+          size: info.size,
+          lines: text.split('\n').length,
+          updatedAt: info.mtime.toISOString(),
+          backups: backups.length,
+        }
+      }),
+    )
+    res.json(items)
+  }),
+)
+
+/** 소스 보기 */
+sitePagesRouter.get(
+  '/:key/source',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const def = findDef(req.params.key)
+    const file = filePathOf(req.params.key)
+    if (!def || !file) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    if (!existsSync(file)) return res.status(404).json({ message: `소스 파일이 없습니다. (${def.file})` })
+
+    const [text, info] = await Promise.all([readFile(file, 'utf8'), stat(file)])
+    res.json({ ...def, content: text, updatedAt: info.mtime.toISOString() })
+  }),
+)
+
+/** 소스 저장 — 저장 전 원본을 백업하고, 개발 서버가 바로 반영한다. */
+sitePagesRouter.put(
+  '/:key/source',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const def = findDef(req.params.key)
+    const file = filePathOf(req.params.key)
+    if (!def || !file) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    if (!existsSync(file)) return res.status(404).json({ message: `소스 파일이 없습니다. (${def.file})` })
+
+    const { content } = z
+      .object({ content: z.string().min(1, '내용이 비어 있습니다. 화면 코드를 모두 지울 수는 없습니다.') })
+      .parse(req.body)
+
+    // 최소한의 안전장치 — 화면 컴포넌트가 사라지면 사이트가 깨진다.
+    if (!/export\s+default\s+function/.test(content)) {
+      return res.status(400).json({
+        message: "'export default function' 이 없습니다. 화면 컴포넌트의 기본 내보내기를 지우면 페이지가 열리지 않습니다.",
+      })
+    }
+
+    const before = await readFile(file, 'utf8')
+    if (before === content) return res.json({ saved: false, message: '바뀐 내용이 없습니다.' })
+
+    // 백업 — 오래된 것은 지운다.
+    const dir = backupDirOf(def.key)
+    await copyFile(file, path.join(dir, backupName()))
+    const backups = await listBackups(def.key)
+    for (const b of backups.slice(MAX_BACKUPS)) {
+      await import('node:fs/promises').then((fs) => fs.unlink(path.join(dir, b.name)))
+    }
+
+    await writeFile(file, content, 'utf8')
+    const info = await stat(file)
+    res.json({ saved: true, updatedAt: info.mtime.toISOString(), backups: Math.min(backups.length, MAX_BACKUPS) })
+  }),
+)
+
+/** 백업 목록 */
+sitePagesRouter.get(
+  '/:key/backups',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!findDef(req.params.key)) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    res.json(await listBackups(req.params.key))
+  }),
+)
+
+/** 백업 내용 보기 */
+sitePagesRouter.get(
+  '/:key/backups/:name',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!findDef(req.params.key)) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    const name = path.basename(req.params.name)
+    const target = path.join(backupDirOf(req.params.key), name)
+    if (!name.endsWith('.tsx') || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
+    res.json({ name, content: await readFile(target, 'utf8') })
+  }),
+)
+
+/** 백업으로 되돌리기 — 지금 내용도 백업으로 남겨 다시 되돌릴 수 있다. */
+sitePagesRouter.post(
+  '/:key/backups/:name/restore',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const def = findDef(req.params.key)
+    const file = filePathOf(req.params.key)
+    if (!def || !file) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    const name = path.basename(req.params.name)
+    const dir = backupDirOf(def.key)
+    const target = path.join(dir, name)
+    if (!name.endsWith('.tsx') || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
+
+    await copyFile(file, path.join(dir, backupName()))
+    await copyFile(target, file)
+    const info = await stat(file)
+    res.json({ restored: name, updatedAt: info.mtime.toISOString() })
+  }),
+)

@@ -658,3 +658,58 @@ export interface PrivacyRevisionInput {
   summary?: string
   content: string
 }
+
+/* --------------------------- 사이트 페이지(실제 화면) --------------------------- */
+
+/** 코드로 만들어진 실제 화면 — 관리자 페이지 관리에서 코드를 보고 고칠 수 있다. */
+export interface SitePageDef {
+  /** 파일·API 에서 쓰는 식별자 */
+  key: string
+  label: string
+  /** 홈페이지 주소 (:id 같은 자리표시자 포함) */
+  path: string
+  /** apps/web/src/pages/site 아래 파일 이름 */
+  file: string
+  /** 화면 설명 */
+  description: string
+}
+
+export const SITE_PAGES: SitePageDef[] = [
+  { key: 'home', label: '메인', path: '/', file: 'HomePage.tsx', description: '메인 비주얼과 소개 구역' },
+  { key: 'about', label: '회사소개', path: '/about', file: 'AboutPage.tsx', description: '회사 소개 · 개발 철학' },
+  { key: 'services', label: '사업분야', path: '/services', file: 'ServicesPage.tsx', description: '사업 인프라 카드' },
+  { key: 'directions', label: '찾아오시는 길', path: '/about/directions', file: 'DirectionsPage.tsx', description: '지도 · 본사 · 지점' },
+  { key: 'products', label: '제품소개', path: '/products', file: 'ProductsPage.tsx', description: '대분류 탭과 제품 목록' },
+  { key: 'productDetail', label: '제품 상세', path: '/products/:id', file: 'ProductDetailPage.tsx', description: '제품 한 건의 상세' },
+  { key: 'board', label: '소식', path: '/board', file: 'BoardPage.tsx', description: '게시판 탭과 유형별 목록' },
+  { key: 'postDetail', label: '소식 상세', path: '/board/:id', file: 'PostDetailPage.tsx', description: '글 한 건의 상세' },
+  { key: 'contact', label: '문의하기', path: '/contact', file: 'ContactPage.tsx', description: '문의 절차 · 연락처 · 양식' },
+  { key: 'faq', label: '자주 묻는 질문', path: '/contact/faq', file: 'FaqPage.tsx', description: '분류 탭과 아코디언' },
+  { key: 'terms', label: '이용약관', path: '/terms', file: 'TermsPage.tsx', description: '조문 목차와 본문' },
+  { key: 'privacy', label: '개인정보처리방침', path: '/privacy', file: 'PrivacyPage.tsx', description: '라벨링 · 목차 · 본문 · 개정이력' },
+  { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
+]
+
+/** 목록 항목 — 파일 상태를 함께 준다. */
+export interface SitePageInfo extends SitePageDef {
+  /** 파일이 실제로 있는지 (데모 모드에서는 false) */
+  available: boolean
+  size: number
+  lines: number
+  /** 파일 수정 시각 (ISO). 없으면 null */
+  updatedAt: string | null
+  /** 저장해 둔 백업 수 */
+  backups: number
+}
+
+export interface SitePageSource extends SitePageDef {
+  content: string
+  updatedAt: string | null
+}
+
+export interface SitePageBackup {
+  /** 파일 이름 (시각 기반) */
+  name: string
+  createdAt: string
+  size: number
+}

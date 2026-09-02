@@ -7,6 +7,15 @@ import RichText from '../../components/RichText'
 import PageVersionHistory from '../../components/PageVersionHistory'
 import { Badge, ErrorMessage, Loading, Modal, PageHeader } from '../../components/ui'
 
+/** 한 줄로 저장된 HTML 을 태그마다 줄을 나눠 읽기 쉽게 만든다. 내용 자체는 바꾸지 않는다. */
+function formatHtml(html: string): string {
+  return html
+    .replace(/></g, '>\n<')
+    .replace(/(<\/(?:p|h[1-6]|li|ul|ol|blockquote|pre|table|tr|div)>)/g, '$1\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+}
+
 export default function PageDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -15,6 +24,8 @@ export default function PageDetailPage() {
   const [versions, setVersions] = useState<PageVersionItem[]>([])
   const [preview, setPreview] = useState<PageVersionDetail | null>(null)
   const [openPreviewCard, setOpenPreviewCard] = useState(true)
+  // 미리보기 카드에서 렌더링 결과 대신 실제 HTML 코드를 본다.
+  const [showCode, setShowCode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -170,7 +181,30 @@ export default function PageDetailPage() {
         </button>
         {openPreviewCard && (
           <div className="px-6 pb-8 pt-1">
-            <RichText html={page.content} />
+            <div className="mb-4 inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-600">
+              {([false, true] as const).map((code) => (
+                <button
+                  key={String(code)}
+                  type="button"
+                  onClick={() => setShowCode(code)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+                    showCode === code
+                      ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {code ? '코드 보기' : '미리보기'}
+                </button>
+              ))}
+            </div>
+            {showCode ? (
+              // 저장된 HTML 을 있는 그대로 — 태그가 해석되지 않고 코드로 보인다.
+              <pre className="overflow-x-auto rounded-lg bg-slate-950 px-4 py-3 text-[13px] leading-6 text-slate-100">
+                <code>{formatHtml(page.content)}</code>
+              </pre>
+            ) : (
+              <RichText html={page.content} />
+            )}
           </div>
         )}
       </div>

@@ -27,6 +27,14 @@ export default function PageEditPage() {
   const [current, setCurrent] = useState<Page | null>(null)
   const [versions, setVersions] = useState<PageVersionItem[]>([])
   const [preview, setPreview] = useState<PageVersionDetail | null>(null)
+  // 내용 카드에서 에디터 대신 HTML 코드를 직접 고친다.
+  const [codeMode, setCodeModeState] = useState(false)
+  // 코드 모드에서 돌아올 때 에디터를 새로 만들어 고친 HTML 을 읽게 한다.
+  const [editorKey, setEditorKey] = useState(0)
+  const setCodeMode = (code: boolean) => {
+    if (!code) setEditorKey((k) => k + 1)
+    setCodeModeState(code)
+  }
   const [openContent, setOpenContent] = useState(true)
 
   const [loading, setLoading] = useState(!isNew)
@@ -306,7 +314,41 @@ export default function PageEditPage() {
           </button>
           {openContent && (
             <div className="px-6 pb-6 pt-1">
-              <RichEditor value={form.content} onChange={(html) => set('content', html)} />
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-600">
+                  {([false, true] as const).map((code) => (
+                    <button
+                      key={String(code)}
+                      type="button"
+                      onClick={() => setCodeMode(code)}
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+                        codeMode === code
+                          ? 'bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900'
+                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {code ? 'HTML 코드' : '에디터'}
+                    </button>
+                  ))}
+                </div>
+                {codeMode && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    저장된 HTML 을 그대로 고칩니다. 에디터로 돌아가면 고친 코드가 반영됩니다.
+                  </p>
+                )}
+              </div>
+              {codeMode ? (
+                <textarea
+                  value={form.content}
+                  onChange={(e) => set('content', e.target.value)}
+                  spellCheck={false}
+                  className="input min-h-[24rem] resize-y bg-slate-950 text-[13px] leading-6 text-slate-100"
+                  style={{ tabSize: 2, whiteSpace: 'pre', overflowWrap: 'normal', overflowX: 'auto' }}
+                  aria-label="HTML 코드"
+                />
+              ) : (
+                <RichEditor key={editorKey} value={form.content} onChange={(html) => set('content', html)} />
+              )}
             </div>
           )}
         </div>

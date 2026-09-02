@@ -10,6 +10,7 @@ import type {
 import { PAGE_SORT_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
+import SitePagesPanel from '../../components/SitePagesPanel'
 import {
   Badge,
   EmptyState,
@@ -111,7 +112,7 @@ export default function PageListPage() {
     <>
       <PageHeader
         title="페이지 관리"
-        description="정적 페이지를 만들고 발행 상태와 버전을 관리합니다."
+        description="코드로 만들어진 실제 화면과 에디터로 작성한 페이지를 한곳에서 관리합니다."
         action={
           <div className="flex items-center gap-2">
             <button
@@ -135,6 +136,11 @@ export default function PageListPage() {
           </div>
         }
       />
+
+      {/* 코드로 만들어진 실제 화면 — 소스를 보고 고친다 */}
+      <SitePagesPanel />
+
+      <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-slate-100">관리자 페이지 (에디터로 작성)</h2>
 
       {/* 검색 */}
       <div className="card mb-4 p-4">

@@ -8,6 +8,7 @@ import type {
   PostInput,
   PostListItem,
 } from '@wnc/shared'
+import { SITE_PAGES } from '@wnc/shared'
 import {
   createDemoCategories,
   createDemoContacts,
@@ -399,6 +400,14 @@ export function handleDemoRequest(
     hidePeriod: p.hidePeriod,
   })
 
+
+  // --- 사이트 페이지(실제 화면) — 데모에서는 파일을 읽을 수 없어 목록만 준다 ---
+  if (rawPath === '/site-pages' && method === 'GET') {
+    return SITE_PAGES.map((p) => ({ ...p, available: false, size: 0, lines: 0, updatedAt: null, backups: 0 }))
+  }
+  if (rawPath.startsWith('/site-pages/')) {
+    throw new DemoError('GitHub Pages 데모에서는 소스 코드를 읽거나 고칠 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  }
 
   // --- 개인정보처리방침 개정 이력 ---
   const revisionItem = ({ content: _c, ...rest }: DemoPrivacyRevision) => rest

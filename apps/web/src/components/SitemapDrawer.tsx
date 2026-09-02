@@ -21,8 +21,8 @@ interface SitemapGroup {
 const DURATION = 350
 
 /**
- * 오른쪽에서 밀려 나오는 사이트맵 서랍.
- * 뒤쪽은 어둡게 가리고, 참고 사이트(인천공항)처럼 큰 제목 아래 하위 메뉴를 늘어놓는다.
+ * 오른쪽에서 밀려 나와 화면 전체를 덮는 사이트맵.
+ * 검정 반투명 덮개 위에 참고 사이트(인천공항)처럼 왼쪽 큰 제목, 오른쪽 네 칸 메뉴를 늘어놓는다.
  */
 export default function SitemapDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   // 닫힐 때도 밀려 나가는 동작이 보이도록, DOM 은 애니메이션이 끝난 뒤 떼어 낸다.
@@ -117,63 +117,57 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
 
   return (
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal aria-label="사이트맵">
-      {/* 암막 — 누르면 닫힌다. */}
+      {/* 전체 화면을 덮는 검정 반투명 덮개 — 오른쪽 바깥에 있다가 밀려 들어온다. */}
       <div
-        onClick={onClose}
-        aria-hidden
-        className={`absolute inset-0 bg-black/60 transition-opacity duration-[350ms] ${
-          shown ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-
-      {/* 서랍 — 오른쪽 바깥에 있다가 밀려 들어온다. */}
-      <aside
-        className={`absolute inset-y-0 right-0 flex w-full max-w-[520px] flex-col bg-white shadow-2xl transition-transform duration-[350ms] ease-out ${
+        className={`absolute inset-0 flex flex-col overflow-y-auto bg-black/85 backdrop-blur-sm transition-transform duration-[350ms] ease-out ${
           shown ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex h-16 flex-none items-center justify-between border-b border-slate-200 px-6 sm:px-8">
-          <span className="text-lg font-bold text-slate-900">사이트맵</span>
+        <div className="container-wnc flex h-16 flex-none items-center justify-between">
+          <span className="text-lg font-bold tracking-[0.2em] text-white">WORDNCODE</span>
           <button
             type="button"
             onClick={onClose}
             aria-label="사이트맵 닫기"
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100"
+            className="grid h-10 w-10 place-items-center rounded-lg text-white/85 transition hover:bg-white/15 hover:text-white"
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-8">
+        <div className="container-wnc py-12 sm:py-16">
+          <h2 className="mb-12 text-3xl font-bold text-white sm:mb-16 sm:text-4xl">사이트맵</h2>
+
           {groups.map((group) => (
-            <section key={group.title} className="mb-10 last:mb-0">
-              {/* 큰 제목 — 위에 두꺼운 강조선을 얹는다. */}
-              <h2 className="relative mb-5 inline-block pt-4 text-2xl font-bold leading-tight text-slate-900 before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:bg-mint-500">
-                <Link to={group.to} onClick={onClose} className="transition hover:text-mint-700">
+            <section key={group.title} className="mb-14 md:mb-16 md:flex md:items-start">
+              {/* 왼쪽 큰 제목 — 위에 두꺼운 강조선을 얹는다. */}
+              <h3 className="relative mb-5 w-[130px] flex-none pt-5 text-[25px] font-bold leading-tight text-white before:absolute before:left-0 before:top-0 before:h-[5px] before:w-full before:bg-mint-400 md:mb-0 md:mr-20 md:w-[200px] md:text-3xl">
+                <Link to={group.to} onClick={onClose} className="transition hover:text-mint-300">
                   {group.title}
                 </Link>
-              </h2>
+              </h3>
 
-              <ul className="grid gap-x-6 gap-y-6 border-t border-slate-700 pt-5 sm:grid-cols-2">
+              {/* 오른쪽 메뉴 — 위아래 선 사이에 네 칸으로 펼친다. */}
+              <ul className="flex flex-1 flex-wrap border-b border-white/20 pt-7 md:border-t md:border-t-white/50">
                 {group.items.map((item) => (
-                  <li key={item.label}>
+                  <li key={item.label} className="mb-10 w-full pr-4 sm:w-1/2 lg:w-1/4">
                     <Link
                       to={item.to}
                       onClick={onClose}
-                      className="mb-3 block text-base font-bold text-slate-900 transition hover:text-mint-700"
+                      className="mb-4 block text-lg font-bold text-white transition hover:text-mint-300 sm:text-xl"
                     >
                       {item.label}
                     </Link>
                     {item.children && item.children.length > 0 && (
-                      <ul className="space-y-2.5">
+                      <ul className="space-y-3">
                         {item.children.map((child) => (
                           <li
                             key={child.label}
-                            className="relative pl-3.5 text-sm leading-snug text-slate-600 before:absolute before:left-0 before:top-2 before:h-1.5 before:w-1.5 before:rounded-full before:bg-mint-500"
+                            className="relative pl-4 text-base leading-snug text-white/70 before:absolute before:left-0 before:top-2 before:h-[5px] before:w-[5px] before:rounded-full before:bg-mint-400"
                           >
-                            <Link to={child.to} onClick={onClose} className="transition hover:text-mint-700">
+                            <Link to={child.to} onClick={onClose} className="transition hover:text-white">
                               {child.label}
                             </Link>
                           </li>
@@ -186,7 +180,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
             </section>
           ))}
         </div>
-      </aside>
+      </div>
     </div>
   )
 }

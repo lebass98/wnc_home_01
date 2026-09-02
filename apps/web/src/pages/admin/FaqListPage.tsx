@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { Faq, Paginated } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
+import FaqCategoryManager from '../../components/FaqCategoryManager'
 import {
   Badge,
   EmptyState,
@@ -104,6 +105,11 @@ export default function FaqListPage() {
           </Link>
         }
       />
+
+      {/* 분류 관리 — 질문 작성 시 여기서 등록한 분류 중에서 고른다. */}
+      <div className="mb-4">
+        <FaqCategoryManager onChange={load} />
+      </div>
 
       {/* 검색 */}
       <form

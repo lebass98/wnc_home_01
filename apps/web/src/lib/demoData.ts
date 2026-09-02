@@ -533,3 +533,21 @@ export function createDemoFaqs(): DemoFaq[] {
     updatedAt: isoDaysAgo(20 - i),
   }))
 }
+
+export interface DemoFaqCategory {
+  id: number
+  name: string
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export function createDemoFaqCategories(): DemoFaqCategory[] {
+  return ['서비스', '견적·계약', '개발·운영', '유지보수'].map((name, i) => ({
+    id: i + 1,
+    name,
+    sortOrder: i,
+    createdAt: isoDaysAgo(21),
+    updatedAt: isoDaysAgo(21),
+  }))
+}

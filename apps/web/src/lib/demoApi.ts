@@ -19,6 +19,7 @@ import {
   createDemoBoards,
   createDemoPopups,
   createDemoFaqs,
+  createDemoFaqCategories,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -30,6 +31,7 @@ import {
   type DemoBoard,
   type DemoPopup,
   type DemoFaq,
+  type DemoFaqCategory,
 } from './demoData'
 
 /**
@@ -52,9 +54,11 @@ interface DemoDb {
   boards: DemoBoard[]
   popups: DemoPopup[]
   faqs: DemoFaq[]
+  faqCategories: DemoFaqCategory[]
   nextBoardId: number
   nextPopupId: number
   nextFaqId: number
+  nextFaqCategoryId: number
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -71,6 +75,7 @@ function seed(): DemoDb {
   const { pages, versions } = createDemoPages()
   const popups = createDemoPopups()
   const faqs = createDemoFaqs()
+  const faqCategories = createDemoFaqCategories()
   return {
     posts,
     contacts,
@@ -83,9 +88,11 @@ function seed(): DemoDb {
     boards: createDemoBoards(),
     popups,
     faqs,
+    faqCategories,
     nextBoardId: 4,
     nextPopupId: popups.length + 1,
     nextFaqId: faqs.length + 1,
+    nextFaqCategoryId: faqCategories.length + 1,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -109,7 +116,8 @@ function load(): DemoDb {
         parsed.boardSetting &&
         Array.isArray(parsed.boards) &&
         Array.isArray(parsed.popups) &&
-        Array.isArray(parsed.faqs)
+        Array.isArray(parsed.faqs) &&
+        Array.isArray(parsed.faqCategories)
       ) {
         return parsed
       }
@@ -383,6 +391,66 @@ export function handleDemoRequest(
     hidePeriod: p.hidePeriod,
   })
 
+
+  // --- 자주 묻는 질문 분류 ---
+  const faqCategoryList = () =>
+    [...db.faqCategories]
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      .map((c) => ({ ...c, faqCount: db.faqs.filter((f) => f.category === c.name).length }))
+
+  if (rawPath === '/faqs/categories' && method === 'GET') return faqCategoryList()
+
+  if (rawPath === '/faqs/categories' && method === 'POST') {
+    const name = String(body.name ?? '').trim()
+    if (!name) throw new DemoError('분류 이름을 입력하세요.', 400)
+    if (db.faqCategories.some((c) => c.name === name)) {
+      throw new DemoError(`'${name}' 분류가 이미 있습니다. 다른 이름을 쓰세요.`, 409)
+    }
+    const now = new Date().toISOString()
+    const last = Math.max(-1, ...db.faqCategories.map((c) => c.sortOrder))
+    db.faqCategories.push({
+      id: db.nextFaqCategoryId++,
+      name,
+      sortOrder: body.sortOrder ?? last + 1,
+      createdAt: now,
+      updatedAt: now,
+    })
+    save(db)
+    return faqCategoryList()
+  }
+
+  const faqCategoryMatch = rawPath.match(/^\/faqs\/categories\/(\d+)$/)
+  if (faqCategoryMatch) {
+    const idx = db.faqCategories.findIndex((c) => c.id === Number(faqCategoryMatch[1]))
+    if (idx === -1) throw new DemoError('분류를 찾을 수 없습니다.', 404)
+    const cat = db.faqCategories[idx]
+
+    if (method === 'PUT') {
+      const name = String(body.name ?? '').trim()
+      if (!name) throw new DemoError('분류 이름을 입력하세요.', 400)
+      if (name !== cat.name && db.faqCategories.some((c) => c.name === name)) {
+        throw new DemoError(`'${name}' 분류가 이미 있습니다. 다른 이름을 쓰세요.`, 409)
+      }
+      // 이름을 바꾸면 그 분류를 쓰던 질문들도 함께 바뀐다.
+      for (const f of db.faqs) if (f.category === cat.name) f.category = name
+      db.faqCategories[idx] = {
+        ...cat,
+        name,
+        sortOrder: body.sortOrder ?? cat.sortOrder,
+        updatedAt: new Date().toISOString(),
+      }
+      save(db)
+      return faqCategoryList()
+    }
+
+    if (method === 'DELETE') {
+      // 분류를 지우면 그 분류를 쓰던 질문은 '분류 없음'이 된다.
+      for (const f of db.faqs) if (f.category === cat.name) f.category = ''
+      db.faqCategories.splice(idx, 1)
+      save(db)
+      return faqCategoryList()
+    }
+  }
 
   // --- 자주 묻는 질문 ---
   if (rawPath === '/faqs' && method === 'GET') {

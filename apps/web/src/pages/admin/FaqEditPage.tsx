@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import type { Faq, FaqInput } from '@wnc/shared'
+import type { Faq, FaqCategory, FaqInput } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
@@ -25,9 +25,17 @@ export default function FaqEditPage() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState<FaqInput>(EMPTY)
+  const [categories, setCategories] = useState<FaqCategory[]>([])
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // 분류는 목록 화면의 [분류 관리]에서 등록한 것 중에서만 고른다.
+  useEffect(() => {
+    api<FaqCategory[]>('/faqs/categories')
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
     if (isNew) return
@@ -106,14 +114,29 @@ export default function FaqEditPage() {
             </div>
           </Row>
 
-          <Row label="분류" description="질문 앞에 작게 보입니다. 예: 서비스, 견적·계약, 유지보수. 비워 둘 수 있습니다.">
-            <input
-              value={form.category ?? ''}
-              onChange={(e) => set('category', e.target.value)}
-              className="input max-w-xs"
-              placeholder="예: 견적·계약"
-              maxLength={30}
-            />
+          <Row label="분류" description="홈페이지 탭과 질문 앞의 작은 표시에 쓰입니다. 분류는 목록 화면의 [분류 관리]에서 등록합니다.">
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={form.category ?? ''}
+                onChange={(e) => set('category', e.target.value)}
+                className="select max-w-xs"
+                aria-label="분류"
+              >
+                <option value="">분류 없음</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+                {/* 지워진 분류를 아직 쓰고 있는 질문이면 그 값을 잃지 않도록 남겨 둔다. */}
+                {form.category && !categories.some((c) => c.name === form.category) && (
+                  <option value={form.category}>{form.category} (삭제된 분류)</option>
+                )}
+              </select>
+              <Link to="/admin/faqs" className="text-xs text-brand-600 hover:underline">
+                분류 관리로 이동
+              </Link>
+            </div>
           </Row>
 
           <Row label="질문" description="방문자가 목록에서 보는 한 줄입니다.">

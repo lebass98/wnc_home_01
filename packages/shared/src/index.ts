@@ -618,3 +618,19 @@ export interface FaqInput {
   published: boolean
   sortOrder?: number
 }
+
+/** 자주 묻는 질문 분류 — 관리자가 등록하고, 질문 작성 시 선택한다. */
+export interface FaqCategory {
+  id: number
+  name: string
+  sortOrder: number
+  /** 이 분류를 쓰는 질문 수 */
+  faqCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FaqCategoryInput {
+  name: string
+  sortOrder?: number
+}

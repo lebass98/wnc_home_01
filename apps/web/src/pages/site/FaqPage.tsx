@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { Faq } from '@wnc/shared'
+import type { Faq, FaqCategory } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
 import Reveal from '../../components/Reveal'
@@ -21,18 +21,22 @@ export const CONTACT_TABS = [
 export default function FaqPage() {
   usePageTitle('자주 묻는 질문')
   const [faqs, setFaqs] = useState<Faq[]>([])
+  const [registered, setRegistered] = useState<FaqCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<number | null>(null)
   // 분류 탭과 검색어 — 관리자가 입력한 분류를 그대로 탭으로 쓴다.
   const [category, setCategory] = useState('')
   const [keyword, setKeyword] = useState('')
 
-  // 등록된 순서대로 분류를 모은다. 분류가 없는 질문은 '전체'에서만 보인다.
+  // 관리자가 정한 분류 순서를 따르되, 질문이 하나도 없는 분류는 탭에서 뺀다.
+  // 분류가 없는 질문은 '전체'에서만 보인다.
   const categories = useMemo(() => {
-    const seen: string[] = []
-    for (const f of faqs) if (f.category && !seen.includes(f.category)) seen.push(f.category)
-    return seen
-  }, [faqs])
+    const used = new Set(faqs.map((f) => f.category).filter(Boolean))
+    const ordered = registered.map((c) => c.name).filter((n) => used.has(n))
+    // 등록 목록에 없는 분류(지워진 것 등)가 남아 있으면 뒤에 붙인다.
+    for (const n of used) if (!ordered.includes(n)) ordered.push(n)
+    return ordered
+  }, [faqs, registered])
 
   const items = useMemo(() => {
     const k = keyword.trim()
@@ -51,8 +55,14 @@ export default function FaqPage() {
   }, [items])
 
   useEffect(() => {
-    api<Faq[]>('/faqs')
-      .then(setFaqs)
+    Promise.all([
+      api<Faq[]>('/faqs'),
+      api<FaqCategory[]>('/faqs/categories').catch(() => [] as FaqCategory[]),
+    ])
+      .then(([items, cats]) => {
+        setFaqs(items)
+        setRegistered(cats)
+      })
       .catch(() => setFaqs([]))
       .finally(() => setLoading(false))
   }, [])

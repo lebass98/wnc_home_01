@@ -332,3 +332,13 @@ model Faq {
 
   @@index([published, sortOrder])
 }
+
+/// 자주 묻는 질문의 분류 — 관리자가 등록해 두고 질문 작성 시 골라 쓴다. Faq.category 에는 이름이 들어간다.
+model FaqCategory {
+  id Int @id @default(autoincrement())
+  name String @unique
+  /// 홈페이지 탭 순서. 작을수록 앞에 온다.
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

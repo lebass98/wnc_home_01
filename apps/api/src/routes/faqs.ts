@@ -77,6 +77,103 @@ faqsRouter.get(
   }),
 )
 
+/* --------------------------- 분류 --------------------------- */
+
+const categoryInputSchema = z.object({
+  name: z.string().trim().min(1, '분류 이름을 입력하세요.').max(30),
+  sortOrder: z.number().int().min(0).max(9999).optional(),
+})
+
+/** 분류마다 쓰이는 질문 수를 함께 센다. */
+async function listCategories() {
+  const [categories, counts] = await Promise.all([
+    prisma.faqCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }),
+    prisma.faq.groupBy({ by: ['category'], _count: { _all: true } }),
+  ])
+  const countOf = new Map(counts.map((c) => [c.category, c._count._all]))
+  return categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    sortOrder: c.sortOrder,
+    faqCount: countOf.get(c.name) ?? 0,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }))
+}
+
+/** 분류 목록 — 홈페이지 탭 순서에도 쓰므로 인증 없이 준다. */
+faqsRouter.get(
+  '/categories',
+  asyncHandler(async (_req, res) => {
+    res.json(await listCategories())
+  }),
+)
+
+faqsRouter.post(
+  '/categories',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const data = categoryInputSchema.parse(req.body)
+    const dup = await prisma.faqCategory.findUnique({ where: { name: data.name } })
+    if (dup) return res.status(409).json({ message: `'${data.name}' 분류가 이미 있습니다. 다른 이름을 쓰세요.` })
+
+    const last = await prisma.faqCategory.findFirst({ orderBy: { sortOrder: 'desc' } })
+    await prisma.faqCategory.create({
+      data: { name: data.name, sortOrder: data.sortOrder ?? (last ? last.sortOrder + 1 : 0) },
+    })
+    res.status(201).json(await listCategories())
+  }),
+)
+
+/** 이름을 바꾸면 그 분류를 쓰던 질문들도 함께 바뀐다. */
+faqsRouter.put(
+  '/categories/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
+
+    const data = categoryInputSchema.parse(req.body)
+    const existing = await prisma.faqCategory.findUnique({ where: { id } })
+    if (!existing) return res.status(404).json({ message: '분류를 찾을 수 없습니다.' })
+
+    if (data.name !== existing.name) {
+      const dup = await prisma.faqCategory.findUnique({ where: { name: data.name } })
+      if (dup) return res.status(409).json({ message: `'${data.name}' 분류가 이미 있습니다. 다른 이름을 쓰세요.` })
+    }
+
+    await prisma.$transaction([
+      prisma.faqCategory.update({
+        where: { id },
+        data: { name: data.name, sortOrder: data.sortOrder ?? existing.sortOrder },
+      }),
+      prisma.faq.updateMany({ where: { category: existing.name }, data: { category: data.name } }),
+    ])
+    res.json(await listCategories())
+  }),
+)
+
+/** 분류를 지우면 그 분류를 쓰던 질문은 '분류 없음'이 된다. */
+faqsRouter.delete(
+  '/categories/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
+
+    const existing = await prisma.faqCategory.findUnique({ where: { id } })
+    if (!existing) return res.status(404).json({ message: '분류를 찾을 수 없습니다.' })
+
+    await prisma.$transaction([
+      prisma.faq.updateMany({ where: { category: existing.name }, data: { category: '' } }),
+      prisma.faqCategory.delete({ where: { id } }),
+    ])
+    res.json(await listCategories())
+  }),
+)
+
+/* --------------------------- 질문 --------------------------- */
+
 faqsRouter.get(
   '/:id',
   requireAuth,

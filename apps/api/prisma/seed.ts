@@ -275,6 +275,12 @@ async function main() {
     }
   }
 
+  if ((await prisma.faqCategory.count()) === 0) {
+    for (const [i, name] of ['서비스', '견적·계약', '개발·운영', '유지보수'].entries()) {
+      await prisma.faqCategory.create({ data: { name, sortOrder: i } })
+    }
+  }
+
   if ((await prisma.faq.count()) === 0) {
     const faqs: [string, string, string][] = [
       ['서비스', '어떤 종류의 서비스를 개발하나요?', '기업 홈페이지와 브랜드 사이트, 이커머스 플랫폼, 사내 업무 시스템(그룹웨어·ERP), 관리자 대시보드, 모바일 앱까지 목적에 맞는 구조로 설계하고 개발합니다. 웹과 모바일을 가리지 않으며, 운영 중인 서비스의 리뉴얼과 성능 개선도 함께 진행합니다.'],

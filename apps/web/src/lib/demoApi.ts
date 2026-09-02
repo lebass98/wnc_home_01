@@ -16,6 +16,7 @@ import {
   createDemoPosts,
   createDemoProducts,
   createDemoSetting,
+  createDemoMenus,
   createDemoBoardSetting,
   createDemoBoards,
   createDemoPopups,
@@ -29,6 +30,7 @@ import {
   type DemoPageVersion,
   type DemoProduct,
   type DemoSetting,
+  type DemoMenuItem,
   type DemoBoardSetting,
   type DemoBoard,
   type DemoPopup,
@@ -59,6 +61,8 @@ interface DemoDb {
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
   privacyRevisions: DemoPrivacyRevision[]
+  menus: DemoMenuItem[]
+  nextMenuId: number
   nextBoardId: number
   nextPopupId: number
   nextFaqId: number
@@ -82,6 +86,7 @@ function seed(): DemoDb {
   const faqs = createDemoFaqs()
   const faqCategories = createDemoFaqCategories()
   const privacyRevisions = createDemoPrivacyRevisions()
+  const menus = createDemoMenus()
   return {
     posts,
     contacts,
@@ -96,6 +101,8 @@ function seed(): DemoDb {
     faqs,
     faqCategories,
     privacyRevisions,
+    menus,
+    nextMenuId: menus.length + 1,
     nextBoardId: 4,
     nextPopupId: popups.length + 1,
     nextFaqId: faqs.length + 1,
@@ -126,7 +133,8 @@ function load(): DemoDb {
         Array.isArray(parsed.popups) &&
         Array.isArray(parsed.faqs) &&
         Array.isArray(parsed.faqCategories) &&
-        Array.isArray(parsed.privacyRevisions)
+        Array.isArray(parsed.privacyRevisions) &&
+        Array.isArray(parsed.menus)
       ) {
         return parsed
       }
@@ -1228,6 +1236,99 @@ export function handleDemoRequest(
       db.pageVersions = db.pageVersions.filter((v) => v.pageId !== id)
       save(db)
       return undefined
+    }
+  }
+
+  // --- 홈페이지 메뉴 ---
+  const menuTree = (onlyPublished: boolean) => {
+    const rows = [...db.menus].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    const visible = onlyPublished ? rows.filter((r) => r.published) : rows
+    return visible
+      .filter((r) => r.parentId === null)
+      .map((r) => ({ ...r, children: visible.filter((c) => c.parentId === r.id).map((c) => ({ ...c, children: [] })) }))
+  }
+  const menuInput = (): Omit<DemoMenuItem, 'id' | 'sortOrder' | 'createdAt' | 'updatedAt'> => {
+    const label = String(body.label ?? '').trim()
+    if (!label) throw new DemoError('메뉴 이름을 입력하세요.', 400)
+    const url = String(body.url ?? '').trim()
+    if (url && !url.startsWith('/') && !/^https?:\/\//.test(url)) {
+      throw new DemoError('주소는 / 로 시작하는 사이트 안 경로이거나 http:// 또는 https:// 로 시작하는 외부 주소여야 합니다.', 400)
+    }
+    const parentId = body.parentId ? Number(body.parentId) : null
+    if (parentId) {
+      const parent = db.menus.find((m) => m.id === parentId)
+      if (!parent) throw new DemoError('상위 메뉴를 찾을 수 없습니다.', 404)
+      if (parent.parentId !== null) throw new DemoError('2차 메뉴 아래에는 메뉴를 더 만들 수 없습니다. 1차 메뉴를 상위로 고르세요.', 400)
+    }
+    return {
+      parentId,
+      label,
+      url,
+      newTab: Boolean(body.newTab),
+      autoChildren: parentId ? 'none' : (body.autoChildren ?? 'none'),
+      published: body.published ?? true,
+      showInGnb: body.showInGnb ?? true,
+      showInFooter: body.showInFooter ?? true,
+      showInSitemap: body.showInSitemap ?? true,
+    }
+  }
+  const menuLast = (parentId: number | null) =>
+    Math.max(-1, ...db.menus.filter((m) => m.parentId === parentId).map((m) => m.sortOrder))
+
+  if (rawPath === '/menus' && method === 'GET') return menuTree(true)
+  if (rawPath === '/menus/admin' && method === 'GET') return menuTree(false)
+
+  if (rawPath === '/menus' && method === 'POST') {
+    const input = menuInput()
+    const now = new Date().toISOString()
+    db.menus.push({ ...input, id: db.nextMenuId++, sortOrder: menuLast(input.parentId) + 1, createdAt: now, updatedAt: now })
+    save(db)
+    return menuTree(false)
+  }
+
+  if (rawPath === '/menus/reorder' && method === 'PUT') {
+    const parentId = body.parentId ? Number(body.parentId) : null
+    const ids: number[] = Array.isArray(body.ids) ? body.ids.map(Number) : []
+    const siblings = db.menus.filter((m) => m.parentId === parentId)
+    if (ids.length !== siblings.length || ids.some((id) => !siblings.some((s) => s.id === id))) {
+      throw new DemoError('순서 목록이 현재 메뉴와 맞지 않습니다. 화면을 새로고침한 뒤 다시 시도하세요.', 400)
+    }
+    for (const m of siblings) m.sortOrder = ids.indexOf(m.id)
+    save(db)
+    return menuTree(false)
+  }
+
+  const menuMatch = rawPath.match(/^\/menus\/(\d+)(\/flags)?$/)
+  if (menuMatch) {
+    const idx = db.menus.findIndex((m) => m.id === Number(menuMatch[1]))
+    if (idx === -1) throw new DemoError('메뉴를 찾을 수 없습니다.', 404)
+    const item = db.menus[idx]
+
+    if (menuMatch[2] && method === 'PATCH') {
+      for (const key of ['published', 'showInGnb', 'showInFooter', 'showInSitemap'] as const) {
+        if (typeof body[key] === 'boolean') item[key] = body[key]
+      }
+      item.updatedAt = new Date().toISOString()
+      save(db)
+      return menuTree(false)
+    }
+
+    if (!menuMatch[2] && method === 'PUT') {
+      const input = menuInput()
+      if (input.parentId === item.id) throw new DemoError('자기 자신을 상위 메뉴로 둘 수 없습니다.', 400)
+      if (input.parentId && db.menus.some((m) => m.parentId === item.id)) {
+        throw new DemoError('2차 메뉴가 달린 1차 메뉴는 다른 메뉴 아래로 옮길 수 없습니다. 먼저 2차 메뉴를 옮기거나 지우세요.', 400)
+      }
+      const sortOrder = input.parentId !== item.parentId ? menuLast(input.parentId) + 1 : item.sortOrder
+      db.menus[idx] = { ...item, ...input, sortOrder, updatedAt: new Date().toISOString() }
+      save(db)
+      return menuTree(false)
+    }
+
+    if (!menuMatch[2] && method === 'DELETE') {
+      db.menus = db.menus.filter((m) => m.id !== item.id && m.parentId !== item.id)
+      save(db)
+      return menuTree(false)
     }
   }
 

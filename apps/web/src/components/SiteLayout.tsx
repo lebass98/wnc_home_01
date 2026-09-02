@@ -1,26 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
-import type { CategoryNode, PageListItem, SiteSetting } from '@wnc/shared'
+import type { SiteSetting } from '@wnc/shared'
 import { DEFAULT_COMPANY } from '@wnc/shared'
-import { api } from '../lib/api'
-import { useBoards } from '../lib/boards'
+import { isExternalUrl, pickMenu, useSiteMenu, type SiteMenuLink } from '../lib/menus'
 import { useSiteSeo, useSiteSetting } from '../lib/seo'
 import SitePopups from './SitePopups'
 import SiteUtilMenu from './SiteUtilMenu'
 import SitemapDrawer from './SitemapDrawer'
-
-interface SubItem {
-  to: string
-  label: string
-}
-
-interface NavItem {
-  to: string
-  label: string
-  /** 상단 메뉴에 올리면 아래로 펼쳐지는 2차 메뉴 */
-  children: SubItem[]
-}
 
 /**
  * 푸터 SNS 아이콘 — 주소는 환경설정 > 회사 정보에서 읽고, 비어 있으면 아이콘을 보이지 않는다.
@@ -49,34 +35,39 @@ const SOCIAL: { key: keyof Pick<SiteSetting, 'snsFacebook' | 'snsYoutube' | 'sns
   },
 ]
 
-/**
- * 고정 메뉴 — 2차 메뉴에는 실제로 따로 있는 화면만 올린다.
- * (같은 페이지 안의 구역은 넣지 않는다.) 제품·소식의 2차 메뉴는 서버에서 받은 분류·게시판으로 채운다.
- */
-const NAV: NavItem[] = [
-  {
-    to: '/about',
-    label: '회사소개',
-    // 회사소개 배너의 탭과 같은 구성 — 회사 소개 / 사업분야
-    children: [
-      { to: '/about', label: '회사 소개' },
-      { to: '/services', label: '사업분야' },
-      { to: '/about/directions', label: '찾아오시는 길' },
-    ],
-  },
-  // 사업분야는 한 화면뿐이라 2차 메뉴가 없다.
-  { to: '/services', label: '사업분야', children: [] },
-  { to: '/products', label: '제품소개', children: [{ to: '/products', label: '전체 제품' }] },
-  { to: '/board', label: '소식', children: [{ to: '/board', label: '전체 소식' }] },
-  {
-    to: '/contact',
-    label: '문의하기',
-    children: [
-      { to: '/contact', label: '문의하기' },
-      { to: '/contact/faq', label: '자주 묻는 질문' },
-    ],
-  },
-]
+/** 메뉴 링크 — 외부 주소는 <a> 로, 사이트 안 경로는 라우터 링크로 연다. 주소가 없으면 글자만 보인다. */
+function MenuLink({
+  item,
+  className,
+  tabIndex,
+  children,
+}: {
+  item: SiteMenuLink
+  className: string | ((state: { isActive: boolean }) => string)
+  tabIndex?: number
+  children: ReactNode
+}) {
+  const cls = typeof className === 'function' ? className({ isActive: false }) : className
+  if (!item.url) return <span className={cls}>{children}</span>
+  if (isExternalUrl(item.url)) {
+    return (
+      <a
+        href={item.url}
+        target={item.newTab ? '_blank' : undefined}
+        rel={item.newTab ? 'noopener noreferrer' : undefined}
+        className={cls}
+        tabIndex={tabIndex}
+      >
+        {children}
+      </a>
+    )
+  }
+  return (
+    <NavLink to={item.url} target={item.newTab ? '_blank' : undefined} className={className} tabIndex={tabIndex}>
+      {children}
+    </NavLink>
+  )
+}
 
 export default function SiteLayout() {
   useSiteSeo()
@@ -85,45 +76,14 @@ export default function SiteLayout() {
   const social = SOCIAL.map((x) => ({ ...x, href: company[x.key] })).filter((x) => x.href)
   const [open, setOpen] = useState(false)
   const [sitemapOpen, setSitemapOpen] = useState(false)
-  const [navPages, setNavPages] = useState<PageListItem[]>([])
-  const [categories, setCategories] = useState<CategoryNode[]>([])
   // 상단 메뉴에 올리면 2차 메뉴 판이 펼쳐진다.
   const [megaOpen, setMegaOpen] = useState(false)
-  const boards = useBoards()
   const { pathname } = useLocation()
 
-  // 관리자가 '상단 메뉴에 표시'로 발행한 페이지를 메뉴 뒤에 덧붙인다.
-  useEffect(() => {
-    api<PageListItem[]>('/pages/nav')
-      .then(setNavPages)
-      .catch(() => setNavPages([]))
-    api<CategoryNode[]>('/categories')
-      .then(setCategories)
-      .catch(() => setCategories([]))
-  }, [])
-
-  // 제품소개 아래에는 대분류, 소식 아래에는 게시판을 2차 메뉴로 붙인다.
-  const menu: NavItem[] = [
-    ...NAV.map((item) => {
-      if (item.to === '/products') {
-        return {
-          ...item,
-          children: [
-            ...item.children,
-            ...categories.map((c) => ({ to: `/products?category=${c.id}`, label: c.name })),
-          ],
-        }
-      }
-      if (item.to === '/board') {
-        return {
-          ...item,
-          children: [...item.children, ...boards.map((b) => ({ to: `/board?category=${b.slug}`, label: b.name }))],
-        }
-      }
-      return item
-    }),
-    ...navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title, children: [] as SubItem[] })),
-  ]
+  // 메뉴는 관리자 [메뉴 관리]에서 정한다. 상단·푸터는 각각의 노출 스위치로 거른다.
+  const siteMenu = useSiteMenu()
+  const menu = pickMenu(siteMenu, 'gnb')
+  const footerMenu = pickMenu(siteMenu, 'footer')
   // 2차 메뉴 판의 높이(rem) — 가장 긴 열에 맞춘다. 참고 템플릿처럼 열마다 높이가 늘어나며 아래가 드러난다.
   const megaRows = Math.max(1, ...menu.map((m) => m.children.length))
   const megaHeight = megaRows * 2.1 + 3
@@ -201,12 +161,12 @@ export default function SiteLayout() {
           <nav className="hidden h-full items-start gap-0 self-start md:flex" onMouseEnter={() => setMegaOpen(true)}>
             {menu.map((item) => (
               <div
-                key={item.to}
+                key={item.id}
                 style={{ height: `${megaOpen ? HEADER_H + megaHeight : HEADER_H}rem` }}
                 className="group relative overflow-hidden transition-[height] duration-200 ease-in-out"
               >
-                <NavLink
-                  to={item.to}
+                <MenuLink
+                  item={item}
                   className={({ isActive }) =>
                     `relative flex h-[4.5rem] items-center px-[31px] text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
@@ -227,15 +187,15 @@ export default function SiteLayout() {
                       transparent ? 'bg-white' : 'bg-slate-900'
                     }`}
                   />
-                </NavLink>
+                </MenuLink>
 
                 {/* 2차 메뉴 — 열이 늘어나면서 위에서부터 드러난다. */}
                 {item.children.length > 0 && (
                   <ul className="absolute left-0 top-[4.5rem] flex w-48 flex-col gap-2.5 px-[31px] pt-5">
                     {item.children.map((child) => (
-                      <li key={child.label}>
-                        <Link
-                          to={child.to}
+                      <li key={child.id}>
+                        <MenuLink
+                          item={child}
                           tabIndex={megaOpen ? 0 : -1}
                           className={`block text-[0.95rem] transition ${
                             transparent
@@ -244,7 +204,7 @@ export default function SiteLayout() {
                           }`}
                         >
                           {child.label}
-                        </Link>
+                        </MenuLink>
                       </li>
                     ))}
                   </ul>
@@ -303,9 +263,9 @@ export default function SiteLayout() {
           <nav className="border-t border-slate-200 bg-white md:hidden">
             <div className="container-wnc flex flex-col py-2">
               {menu.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
+                <MenuLink
+                  key={item.id}
+                  item={item}
                   className={({ isActive }) =>
                     `rounded-lg px-3 py-3 text-sm font-medium ${
                       isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
@@ -313,7 +273,7 @@ export default function SiteLayout() {
                   }
                 >
                   {item.label}
-                </NavLink>
+                </MenuLink>
               ))}
               <button
                 type="button"
@@ -343,18 +303,18 @@ export default function SiteLayout() {
 
           {/* 메뉴 — 1차 메뉴 아래 2차 메뉴를 세로로. 열 사이에 옅은 세로선 */}
           <div className="mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-y-10 text-left sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-white/30">
-            {menu.map((item) => (
-              <div key={item.to} className="px-4 lg:px-8">
-                <Link to={item.to} className="text-base font-bold transition hover:text-white/80">
+            {footerMenu.map((item) => (
+              <div key={item.id} className="px-4 lg:px-8">
+                <MenuLink item={item} className="text-base font-bold transition hover:text-white/80">
                   {item.label}
-                </Link>
+                </MenuLink>
                 {item.children.length > 0 && (
                   <ul className="mt-4 space-y-2">
                     {item.children.map((child) => (
-                      <li key={child.label}>
-                        <Link to={child.to} className="text-sm text-white/70 transition hover:text-white">
+                      <li key={child.id}>
+                        <MenuLink item={child} className="text-sm text-white/70 transition hover:text-white">
                           {child.label}
-                        </Link>
+                        </MenuLink>
                       </li>
                     ))}
                   </ul>

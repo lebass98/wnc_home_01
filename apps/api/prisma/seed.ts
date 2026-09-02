@@ -314,6 +314,75 @@ async function main() {
     }
   }
 
+  // 홈페이지 메뉴 — 기존에 코드로 고정돼 있던 GNB 구성을 그대로 옮긴다.
+  if ((await prisma.menuItem.count()) === 0) {
+    type Child = { label: string; url: string; showInGnb?: boolean }
+    const menus: {
+      label: string
+      url: string
+      autoChildren?: string
+      showInGnb?: boolean
+      showInFooter?: boolean
+      children: Child[]
+    }[] = [
+      {
+        label: '회사소개',
+        url: '/about',
+        children: [
+          { label: '회사 소개', url: '/about' },
+          { label: '사업분야', url: '/services' },
+          { label: '찾아오시는 길', url: '/about/directions' },
+        ],
+      },
+      { label: '사업분야', url: '/services', children: [] },
+      { label: '제품소개', url: '/products', autoChildren: 'categories', children: [{ label: '전체 제품', url: '/products' }] },
+      { label: '소식', url: '/board', autoChildren: 'boards', children: [{ label: '전체 소식', url: '/board' }] },
+      {
+        label: '문의하기',
+        url: '/contact',
+        children: [
+          { label: '문의하기', url: '/contact' },
+          { label: '자주 묻는 질문', url: '/contact/faq' },
+        ],
+      },
+      // 이용안내는 사이트맵에만 보인다.
+      {
+        label: '이용안내',
+        url: '/terms',
+        showInGnb: false,
+        showInFooter: false,
+        children: [
+          { label: '이용약관', url: '/terms' },
+          { label: '개인정보처리방침', url: '/privacy' },
+        ],
+      },
+    ]
+    for (const [i, m] of menus.entries()) {
+      const parent = await prisma.menuItem.create({
+        data: {
+          label: m.label,
+          url: m.url,
+          autoChildren: m.autoChildren ?? 'none',
+          showInGnb: m.showInGnb ?? true,
+          showInFooter: m.showInFooter ?? true,
+          sortOrder: i,
+        },
+      })
+      for (const [j, c] of m.children.entries()) {
+        await prisma.menuItem.create({
+          data: {
+            parentId: parent.id,
+            label: c.label,
+            url: c.url,
+            showInGnb: (c.showInGnb ?? m.showInGnb) ?? true,
+            showInFooter: m.showInFooter ?? true,
+            sortOrder: j,
+          },
+        })
+      }
+    }
+  }
+
   console.log('시드 데이터 생성 완료')
   console.log('  관리자: admin@wnc.co.kr / admin1234')
   console.log('  편집자: editor@wnc.co.kr / admin1234')

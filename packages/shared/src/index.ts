@@ -801,3 +801,57 @@ export interface SitePageBackup {
   createdAt: string
   size: number
 }
+
+/* ------------------------------------------------------------------ *
+ *  홈페이지 메뉴 — GNB · 푸터 · 사이트맵 공용
+ * ------------------------------------------------------------------ */
+
+/** 2차 메뉴를 서버 데이터로 자동으로 채우는 방식 */
+export const MENU_AUTO_CHILDREN = ['none', 'categories', 'boards'] as const
+export type MenuAutoChildren = (typeof MENU_AUTO_CHILDREN)[number]
+
+export const MENU_AUTO_CHILDREN_LABEL: Record<MenuAutoChildren, string> = {
+  none: '직접 등록한 2차 메뉴만',
+  categories: '제품 대분류를 2차 메뉴로 자동 추가',
+  boards: '게시판을 2차 메뉴로 자동 추가',
+}
+
+export interface MenuItem {
+  id: number
+  parentId: number | null
+  label: string
+  /** 사이트 안 경로(/about) 또는 외부 주소(https://…). 비어 있으면 글자만 보인다. */
+  url: string
+  newTab: boolean
+  autoChildren: MenuAutoChildren
+  /** 끄면 어디에도 보이지 않는다. */
+  published: boolean
+  showInGnb: boolean
+  showInFooter: boolean
+  showInSitemap: boolean
+  sortOrder: number
+  children: MenuItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MenuItemInput {
+  parentId?: number | null
+  label: string
+  url: string
+  newTab: boolean
+  autoChildren: MenuAutoChildren
+  published: boolean
+  showInGnb: boolean
+  showInFooter: boolean
+  showInSitemap: boolean
+}
+
+/** 노출 스위치만 바꿀 때 */
+export type MenuFlagsInput = Partial<Pick<MenuItemInput, 'published' | 'showInGnb' | 'showInFooter' | 'showInSitemap'>>
+
+/** 순서 바꾸기 — 같은 부모 아래의 id 를 원하는 순서대로 보낸다. */
+export interface MenuReorderInput {
+  parentId: number | null
+  ids: number[]
+}

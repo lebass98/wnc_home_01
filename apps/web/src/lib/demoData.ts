@@ -1,4 +1,4 @@
-import type { BoardCategory, Branch, Contact, ContactStatus, Post } from '@wnc/shared'
+import type { BoardCategory, Branch, Contact, ContactStatus, MenuAutoChildren, Post } from '@wnc/shared'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 
 /**
@@ -603,4 +603,71 @@ export function createDemoPrivacyRevisions(): DemoPrivacyRevision[] {
     createdAt: new Date(`${date}T09:00:00`).toISOString(),
     updatedAt: new Date(`${date}T09:00:00`).toISOString(),
   }))
+}
+
+/* ------------------------------ 홈페이지 메뉴 ------------------------------ */
+
+export interface DemoMenuItem {
+  id: number
+  parentId: number | null
+  label: string
+  url: string
+  newTab: boolean
+  autoChildren: MenuAutoChildren
+  published: boolean
+  showInGnb: boolean
+  showInFooter: boolean
+  showInSitemap: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 기본 메뉴 — 서버 시드와 같은 구성 */
+export function createDemoMenus(): DemoMenuItem[] {
+  const at = isoDaysAgo(30)
+  const items: DemoMenuItem[] = []
+  let id = 1
+  const add = (
+    parentId: number | null,
+    sortOrder: number,
+    label: string,
+    url: string,
+    extra: Partial<DemoMenuItem> = {},
+  ) => {
+    const item: DemoMenuItem = {
+      id: id++,
+      parentId,
+      label,
+      url,
+      newTab: false,
+      autoChildren: 'none',
+      published: true,
+      showInGnb: true,
+      showInFooter: true,
+      showInSitemap: true,
+      sortOrder,
+      createdAt: at,
+      updatedAt: at,
+      ...extra,
+    }
+    items.push(item)
+    return item.id
+  }
+  const about = add(null, 0, '회사소개', '/about')
+  add(about, 0, '회사 소개', '/about')
+  add(about, 1, '사업분야', '/services')
+  add(about, 2, '찾아오시는 길', '/about/directions')
+  add(null, 1, '사업분야', '/services')
+  const products = add(null, 2, '제품소개', '/products', { autoChildren: 'categories' })
+  add(products, 0, '전체 제품', '/products')
+  const board = add(null, 3, '소식', '/board', { autoChildren: 'boards' })
+  add(board, 0, '전체 소식', '/board')
+  const contact = add(null, 4, '문의하기', '/contact')
+  add(contact, 0, '문의하기', '/contact')
+  add(contact, 1, '자주 묻는 질문', '/contact/faq')
+  const guide = add(null, 5, '이용안내', '/terms', { showInGnb: false, showInFooter: false })
+  add(guide, 0, '이용약관', '/terms', { showInGnb: false, showInFooter: false })
+  add(guide, 1, '개인정보처리방침', '/privacy', { showInGnb: false, showInFooter: false })
+  return items
 }

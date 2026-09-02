@@ -41,6 +41,7 @@ import FaqListPage from './pages/admin/FaqListPage'
 import FaqEditPage from './pages/admin/FaqEditPage'
 import PrivacyRevisionListPage from './pages/admin/PrivacyRevisionListPage'
 import PrivacyRevisionEditPage from './pages/admin/PrivacyRevisionEditPage'
+import MenuListPage from './pages/admin/MenuListPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -110,6 +111,7 @@ export default function App() {
             <Route path="popups" element={<PopupListPage />} />
             <Route path="popups/new" element={<PopupEditPage />} />
             <Route path="popups/:id" element={<PopupEditPage />} />
+            <Route path="menus" element={<MenuListPage />} />
             <Route path="faqs" element={<FaqListPage />} />
             <Route path="faqs/new" element={<FaqEditPage />} />
             <Route path="faqs/:id" element={<FaqEditPage />} />

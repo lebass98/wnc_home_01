@@ -1,18 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import type { PageListItem } from '@wnc/shared'
-import { api } from '../lib/api'
-import { useBoards } from '../lib/boards'
+import { isExternalUrl, pickMenu, useSiteMenu, type SiteMenuLink } from '../lib/menus'
 
-interface SitemapLink {
-  to: string
-  label: string
-}
-
-interface SitemapGroup {
-  title: string
-  to: string
-  items: SitemapLink[]
+/** 사이트맵 안의 링크 — 외부 주소는 <a>, 사이트 안 경로는 라우터 링크. 주소가 없으면 글자만. */
+function SitemapLink({
+  item,
+  className,
+  onClick,
+  children,
+}: {
+  item: SiteMenuLink
+  className: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  if (!item.url) return <span className={className}>{children}</span>
+  if (isExternalUrl(item.url)) {
+    return (
+      <a
+        href={item.url}
+        target={item.newTab ? '_blank' : undefined}
+        rel={item.newTab ? 'noopener noreferrer' : undefined}
+        onClick={onClick}
+        className={className}
+      >
+        {children}
+      </a>
+    )
+  }
+  return (
+    <Link to={item.url} target={item.newTab ? '_blank' : undefined} onClick={onClick} className={className}>
+      {children}
+    </Link>
+  )
 }
 
 /** 여닫는 데 걸리는 시간(ms) — CSS duration 과 맞춘다. */
@@ -27,8 +47,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
   // 닫힐 때도 밀려 나가는 동작이 보이도록, DOM 은 애니메이션이 끝난 뒤 떼어 낸다.
   const [mounted, setMounted] = useState(open)
   const [shown, setShown] = useState(false)
-  const boards = useBoards()
-  const [navPages, setNavPages] = useState<PageListItem[]>([])
+  const siteMenu = useSiteMenu()
 
   useEffect(() => {
     if (open) {
@@ -57,58 +76,10 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
     }
   }, [open, onClose])
 
-  useEffect(() => {
-    if (!mounted) return
-    api<PageListItem[]>('/pages/nav')
-      .then(setNavPages)
-      .catch(() => setNavPages([]))
-  }, [mounted])
-
   if (!mounted) return null
 
-  const groups: SitemapGroup[] = [
-    {
-      title: '회사소개',
-      to: '/about',
-      items: [
-        { to: '/about', label: '회사 소개' },
-        { to: '/services', label: '사업분야' },
-        { to: '/about/directions', label: '찾아오시는 길' },
-      ],
-    },
-    {
-      title: '제품소개',
-      to: '/products',
-      items: [{ to: '/products', label: '제품 목록' }],
-    },
-    {
-      title: '소식',
-      to: '/board',
-      items: [
-        { to: '/board', label: '전체 소식' },
-        ...boards.map((b) => ({ to: `/board?category=${b.slug}`, label: b.name })),
-      ],
-    },
-    {
-      title: '문의하기',
-      to: '/contact',
-      items: [
-        { to: '/contact', label: '상담 신청' },
-        { to: '/contact/faq', label: '자주 묻는 질문' },
-      ],
-    },
-  ]
-
-  // 이용안내 — 약관·방침은 고정이고, 관리자가 '상단 메뉴에 표시'로 발행한 페이지가 있으면 뒤에 덧붙인다.
-  groups.push({
-    title: '이용안내',
-    to: '/terms',
-    items: [
-      { to: '/terms', label: '이용약관' },
-      { to: '/privacy', label: '개인정보처리방침' },
-      ...navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title })),
-    ],
-  })
+  // 메뉴는 관리자 [메뉴 관리]에서 정한다 — '사이트맵' 노출을 켠 항목만 보인다.
+  const groups = pickMenu(siteMenu, 'sitemap')
 
   return (
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal aria-label="사이트맵">
@@ -162,27 +133,29 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
             {/* 메뉴 — 큰 제목 아래 하위 항목을 세로로 늘어놓는다. */}
             <div className="mt-20 grid grid-cols-2 gap-x-8 gap-y-12 sm:mt-28 sm:grid-cols-3 lg:grid-cols-5">
               {groups.map((group) => (
-                <div key={group.title}>
-                  <Link
-                    to={group.to}
+                <div key={group.id}>
+                  <SitemapLink
+                    item={group}
                     onClick={onClose}
                     className="block text-lg font-bold text-white transition hover:text-mint-300"
                   >
-                    {group.title}
-                  </Link>
-                  <ul className="mt-9 space-y-2.5">
-                    {group.items.map((item) => (
-                      <li key={item.label}>
-                        <Link
-                          to={item.to}
-                          onClick={onClose}
-                          className="text-base text-white/70 transition hover:text-white"
-                        >
-                          {item.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                    {group.label}
+                  </SitemapLink>
+                  {group.children.length > 0 && (
+                    <ul className="mt-9 space-y-2.5">
+                      {group.children.map((item) => (
+                        <li key={item.id}>
+                          <SitemapLink
+                            item={item}
+                            onClick={onClose}
+                            className="text-base text-white/70 transition hover:text-white"
+                          >
+                            {item.label}
+                          </SitemapLink>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>

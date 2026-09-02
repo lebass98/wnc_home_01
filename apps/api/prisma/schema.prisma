@@ -389,3 +389,33 @@ model PrivacyRevision {
 
   @@index([effectiveAt])
 }
+
+/// 홈페이지 메뉴 — GNB·푸터·사이트맵이 모두 이 표를 읽는다. parentId 로 1차/2차 두 단계까지만 쓴다.
+model MenuItem {
+  id Int @id @default(autoincrement())
+  parentId Int?
+  parent   MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuTree")
+
+  label String
+  /// 이동할 주소 — 사이트 안 경로(/about) 또는 외부 주소(https://…). 비우면 글자만 보인다.
+  url String @default("")
+  /// 새 창으로 열기
+  newTab Boolean @default(false)
+  /// 2차 메뉴를 서버 데이터로 자동으로 채운다: none | categories(제품 대분류) | boards(게시판)
+  autoChildren String @default("none")
+
+  /// 끄면 어디에도 보이지 않는다.
+  published     Boolean @default(true)
+  showInGnb     Boolean @default(true)
+  showInFooter  Boolean @default(true)
+  showInSitemap Boolean @default(true)
+
+  /// 같은 부모 안에서의 순서. 작을수록 앞에 온다.
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId, sortOrder])
+}

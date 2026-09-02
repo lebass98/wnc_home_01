@@ -89,6 +89,12 @@ const NAV: NavItem[] = [
     icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
   },
   {
+    to: '/admin/menus',
+    label: '메뉴 관리',
+    end: false,
+    icon: 'M4 6h16M4 12h10M4 18h7',
+  },
+  {
     to: '/admin/popups',
     label: '팝업 관리',
     end: false,
@@ -138,6 +144,7 @@ export default function AdminLayout() {
       '제품 관리': 'nav.products',
       '제품 카테고리': 'nav.productCategories',
       '페이지 관리': 'nav.pages',
+      '메뉴 관리': 'nav.menus',
       '팝업 관리': 'nav.popups',
       '자주 묻는 질문': 'nav.faqs',
       '개인정보 이력': 'nav.privacyRevisions',

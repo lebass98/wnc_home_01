@@ -204,22 +204,21 @@ function CalendarPanel({
             const isToday = isSameDay(date, today)
             const sunday = date.getDay() === 0
 
-            // 기간의 양 끝과 사이 구간을 이어 붙여 하나의 띠처럼 보이게 한다.
-            const bandClass =
-              inRange || (isStart && endTime !== null) || (isEnd && startTime !== null)
-                ? `bg-brand-50 dark:bg-brand-900/30 ${
-                    isStart && endTime !== null && startTime !== endTime
-                      ? 'rounded-l-full'
-                      : isEnd && startTime !== null && startTime !== endTime
-                        ? 'rounded-r-full'
-                        : startTime === endTime
-                          ? 'rounded-full'
-                          : ''
-                  }`
-                : ''
+            // 기간 안쪽은 칸을 꽉 채우는 흰 띠로 이어 그린다.
+            // 시작·종료 칸은 반쪽만 칠해 동그란 표시와 자연스럽게 맞물리게 한다.
+            const hasRange = startTime !== null && endTime !== null && startTime !== endTime
+            const banded = hasRange && (inRange || isStart || isEnd)
 
             return (
-              <div key={date.toISOString()} className={`relative ${bandClass}`}>
+              <div key={date.toISOString()} className="relative h-9">
+                {banded && (
+                  <span
+                    aria-hidden
+                    className={`absolute inset-y-0 bg-white dark:bg-slate-700/60 ${
+                      isStart ? 'left-1/2 right-0' : isEnd ? 'left-0 right-1/2' : 'inset-x-0'
+                    }`}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => onPick(date)}
@@ -228,7 +227,10 @@ function CalendarPanel({
                   aria-label={`${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`}
                   className={`${CELL} relative rounded-full ${
                     isStart || isEnd
-                      ? 'bg-brand-800 font-semibold text-white dark:bg-brand-600'
+                      ? `bg-brand-900 font-semibold text-white dark:bg-brand-600 ${
+                          // 마지막에 고른 쪽에 테두리를 둘러 어디를 골랐는지 알려준다.
+                          isEnd && hasRange ? 'ring-2 ring-brand-600 ring-offset-1' : ''
+                        }`
                       : disabled
                         ? 'text-slate-300 dark:text-slate-600'
                         : !current
@@ -442,25 +444,39 @@ export default function DatePicker({
 }) {
   const [open, setOpen] = useState(false)
   const dialogId = useId()
-  const wrapRef = useDismiss(open, () => setOpen(false))
 
-  const selected = parseValue(value)
-  // 달력이 펼쳐 보여줄 달. 값이 없으면 오늘이 있는 달부터 시작한다.
-  const [view, setView] = useState(() => startOfMonth(selected ?? new Date()))
-  const [hour, setHour] = useState(() => selected?.getHours() ?? 0)
-  const [minute, setMinute] = useState(() => selected?.getMinutes() ?? 0)
+  // 달력에서 고른 값은 [확인] 을 누르기 전까지 여기에만 담아 둔다.
+  const [draft, setDraft] = useState(value)
+  const committed = parseValue(value)
+  const selected = parseValue(draft)
+
+  const [view, setView] = useState(() => startOfMonth(committed ?? new Date()))
+  const [hour, setHour] = useState(() => committed?.getHours() ?? 0)
+  const [minute, setMinute] = useState(() => committed?.getMinutes() ?? 0)
 
   const minDate = parseValue(min)
   const maxDate = parseValue(max)
 
-  // 바깥의 값이 바뀌면 달력과 시각도 맞춘다.
+  /** 달력을 열 때는 언제나 지금 확정된 값에서 다시 시작한다. */
+  function openPanel() {
+    if (disabled) return
+    const d = parseValue(value)
+    setDraft(value)
+    setView(startOfMonth(d ?? new Date()))
+    setHour(d?.getHours() ?? 0)
+    setMinute(d?.getMinutes() ?? 0)
+    setOpen(true)
+  }
+
+  // 바깥의 값이 바뀌면 화면의 시각 표시도 맞춘다.
   useEffect(() => {
     const d = parseValue(value)
     if (!d) return
-    setView(startOfMonth(d))
     setHour(d.getHours())
     setMinute(d.getMinutes())
   }, [value])
+
+  const wrapRef = useDismiss(open, () => setOpen(false))
 
   function outOfRange(d: Date): boolean {
     const t = dayOnly(d)
@@ -469,22 +485,27 @@ export default function DatePicker({
     return false
   }
 
+  /** 달력에서 날짜를 고른다 — 임시로만 표시하고 확정하지 않는다. */
   function pick(d: Date) {
     if (outOfRange(d)) return
-    if (withTime) {
-      onChange(toDateTimeValue(new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute)))
-    } else {
-      onChange(toDateValue(d))
-      setOpen(false)
-    }
+    setDraft(
+      withTime
+        ? toDateTimeValue(new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute))
+        : toDateValue(d),
+    )
   }
 
-  /** 시·분만 바꾼다. 날짜를 아직 고르지 않았으면 오늘로 잡는다. */
   function changeTime(h: number, m: number) {
     setHour(h)
     setMinute(m)
     const base = selected ?? new Date()
-    onChange(toDateTimeValue(new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m)))
+    setDraft(toDateTimeValue(new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m)))
+  }
+
+  /** [확인] — 고른 값을 실제로 넘긴다. */
+  function confirm() {
+    if (draft) onChange(draft)
+    setOpen(false)
   }
 
   const display = value
@@ -502,8 +523,8 @@ export default function DatePicker({
         disabled={disabled}
         expanded={open}
         controls={open ? dialogId : undefined}
-        onFocus={() => setOpen(true)}
-        onToggle={() => !disabled && setOpen((v) => !v)}
+        onFocus={openPanel}
+        onToggle={() => (open ? setOpen(false) : openPanel())}
         onType={(raw) => {
           if (raw.trim() === '') return onChange('')
           // 시각이 붙어 있으면 떼어 내고 날짜만 해석한다.
@@ -539,7 +560,7 @@ export default function DatePicker({
                   pick(now)
                 }}
                 onCancel={() => setOpen(false)}
-                onConfirm={() => setOpen(false)}
+                onConfirm={confirm}
               />
             }
           >
@@ -581,71 +602,85 @@ export function DateRangePicker({
 }) {
   const [open, setOpen] = useState(false)
   const dialogId = useId()
-  const wrapRef = useDismiss(open, () => setOpen(false))
 
-  const startDate = parseValue(start)
-  const endDate = parseValue(end)
-
-  const [view, setView] = useState(() => startOfMonth(startDate ?? new Date()))
+  // 달력에서 고르는 동안에는 여기에만 담고, [확인] 을 눌러야 실제 값이 된다.
+  const [draft, setDraft] = useState({ start, end })
   // 다음에 고를 쪽 — 시작을 고르면 종료로 넘어간다.
   const [picking, setPicking] = useState<'start' | 'end'>('start')
 
-  const [startTime, setStartTime] = useState(() => ({
-    h: startDate?.getHours() ?? 0,
-    m: startDate?.getMinutes() ?? 0,
-  }))
-  const [endTime, setEndTime] = useState(() => ({
-    h: endDate?.getHours() ?? 23,
-    m: endDate?.getMinutes() ?? 0,
-  }))
+  const draftStart = parseValue(draft.start)
+  const draftEnd = parseValue(draft.end)
 
+  const [view, setView] = useState(() => startOfMonth(parseValue(start) ?? new Date()))
+  const [startTime, setStartTime] = useState(() => {
+    const d = parseValue(start)
+    return { h: d?.getHours() ?? 0, m: d?.getMinutes() ?? 0 }
+  })
+  const [endTime, setEndTime] = useState(() => {
+    const d = parseValue(end)
+    return { h: d?.getHours() ?? 23, m: d?.getMinutes() ?? 0 }
+  })
+
+  // 바깥의 값이 바뀌면 화면의 시각 표시도 맞춘다.
   useEffect(() => {
     const s = parseValue(start)
-    if (s) {
-      setView(startOfMonth(s))
-      setStartTime({ h: s.getHours(), m: s.getMinutes() })
-    }
+    if (s) setStartTime({ h: s.getHours(), m: s.getMinutes() })
     const e = parseValue(end)
     if (e) setEndTime({ h: e.getHours(), m: e.getMinutes() })
   }, [start, end])
 
-  /** 날짜 하나를 값 문자열로 만든다. */
+  const wrapRef = useDismiss(open, () => setOpen(false))
+
+  /** 달력을 열 때는 언제나 지금 확정된 값에서 다시 시작한다. */
+  function openPanel(which: 'start' | 'end') {
+    if (disabled) return
+    setDraft({ start, end })
+    setPicking(which)
+    setView(startOfMonth(parseValue(which === 'end' ? end || start : start) ?? new Date()))
+    setOpen(true)
+  }
+
   const compose = (d: Date, t: { h: number; m: number }) =>
     withTime
       ? toDateTimeValue(new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.h, t.m))
       : toDateValue(d)
 
   /**
-   * 달력에서 날짜를 고른다.
+   * 달력에서 날짜를 고른다 — 확정하지 않고 임시로만 표시한다.
    * 시작을 고르면 종료를 비우고 다음 클릭을 기다리며,
    * 시작보다 앞선 날짜를 고르면 그것을 새 시작으로 삼는다.
    */
   function pick(d: Date) {
-    if (picking === 'start' || !startDate) {
-      onChange(compose(d, startTime), '')
+    if (picking === 'start' || !draftStart) {
+      setDraft({ start: compose(d, startTime), end: '' })
       setPicking('end')
       return
     }
-    if (dayOnly(d) < dayOnly(startDate)) {
-      onChange(compose(d, startTime), '')
+    if (dayOnly(d) < dayOnly(draftStart)) {
+      setDraft({ start: compose(d, startTime), end: '' })
       return
     }
-    onChange(start, compose(d, endTime))
+    setDraft((prev) => ({ ...prev, end: compose(d, endTime) }))
     setPicking('start')
-    if (!withTime) setOpen(false)
   }
 
   function changeStartTime(h: number, m: number) {
     setStartTime({ h, m })
-    if (startDate) onChange(compose(startDate, { h, m }), end)
+    if (draftStart) setDraft((prev) => ({ ...prev, start: compose(draftStart, { h, m }) }))
   }
 
   function changeEndTime(h: number, m: number) {
     setEndTime({ h, m })
-    if (endDate) onChange(start, compose(endDate, { h, m }))
+    if (draftEnd) setDraft((prev) => ({ ...prev, end: compose(draftEnd, { h, m }) }))
   }
 
-  /** 입력 칸에 직접 친 날짜를 반영한다. */
+  /** [확인] — 고른 기간을 실제로 넘긴다. 종료를 아직 안 골랐으면 시작일과 같은 날로 둔다. */
+  function confirm() {
+    if (draft.start) onChange(draft.start, draft.end || compose(draftStart as Date, endTime))
+    setOpen(false)
+  }
+
+  /** 입력 칸에 직접 친 날짜는 곧바로 반영한다. */
   function typed(which: 'start' | 'end', raw: string) {
     if (raw.trim() === '') {
       return which === 'start' ? onChange('', end) : onChange(start, '')
@@ -683,11 +718,8 @@ export function DateRangePicker({
           controls={open ? dialogId : undefined}
           showIcon={false}
           className="flex-1"
-          onFocus={() => {
-            setPicking('start')
-            setOpen(true)
-          }}
-          onToggle={() => setOpen((v) => !v)}
+          onFocus={() => openPanel('start')}
+          onToggle={() => (open ? setOpen(false) : openPanel('start'))}
           onType={(raw) => typed('start', raw)}
         />
         <span className="shrink-0 text-slate-400">-</span>
@@ -699,11 +731,8 @@ export function DateRangePicker({
           expanded={open}
           controls={open ? dialogId : undefined}
           className="flex-1"
-          onFocus={() => {
-            setPicking('end')
-            setOpen(true)
-          }}
-          onToggle={() => !disabled && setOpen((v) => !v)}
+          onFocus={() => openPanel('end')}
+          onToggle={() => (open ? setOpen(false) : openPanel('end'))}
           onType={(raw) => typed('end', raw)}
         />
       </div>
@@ -713,8 +742,8 @@ export function DateRangePicker({
           <CalendarPanel
             view={view}
             setView={setView}
-            start={startDate}
-            end={endDate}
+            start={draftStart}
+            end={draftEnd}
             onPick={pick}
             isDisabled={() => false}
             footer={
@@ -725,7 +754,7 @@ export function DateRangePicker({
                   pick(now)
                 }}
                 onCancel={() => setOpen(false)}
-                onConfirm={() => setOpen(false)}
+                onConfirm={confirm}
               />
             }
           >

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Faq } from '@wnc/shared'
 import { api } from '../../lib/api'
@@ -23,14 +23,36 @@ export default function FaqPage() {
   const [faqs, setFaqs] = useState<Faq[]>([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<number | null>(null)
+  // 분류 탭과 검색어 — 관리자가 입력한 분류를 그대로 탭으로 쓴다.
+  const [category, setCategory] = useState('')
+  const [keyword, setKeyword] = useState('')
+
+  // 등록된 순서대로 분류를 모은다. 분류가 없는 질문은 '전체'에서만 보인다.
+  const categories = useMemo(() => {
+    const seen: string[] = []
+    for (const f of faqs) if (f.category && !seen.includes(f.category)) seen.push(f.category)
+    return seen
+  }, [faqs])
+
+  const items = useMemo(() => {
+    const k = keyword.trim()
+    return faqs.filter(
+      (f) =>
+        (!category || f.category === category) &&
+        (!k || f.question.includes(k) || f.answer.includes(k)),
+    )
+  }, [faqs, category, keyword])
+
+  const countOf = (c: string) => (c ? faqs.filter((f) => f.category === c).length : faqs.length)
+
+  // 탭이나 검색어가 바뀌면 걸러진 첫 질문을 펼쳐 둔다.
+  useEffect(() => {
+    setOpenId(items[0]?.id ?? null)
+  }, [items])
 
   useEffect(() => {
     api<Faq[]>('/faqs')
-      .then((items) => {
-        setFaqs(items)
-        // 첫 질문은 펼쳐 둔다.
-        setOpenId(items[0]?.id ?? null)
-      })
+      .then(setFaqs)
       .catch(() => setFaqs([]))
       .finally(() => setLoading(false))
   }, [])
@@ -51,6 +73,50 @@ export default function FaqPage() {
             </h2>
           </Reveal>
 
+          {/* 분류 탭 · 검색 — 왼쪽에 알약 버튼(건수 포함), 오른쪽에 검색 */}
+          {!loading && faqs.length > 0 && (
+            <div className="mt-12 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap gap-2" role="tablist" aria-label="질문 분류">
+                {['', ...categories].map((c) => {
+                  const active = category === c
+                  return (
+                    <button
+                      key={c || 'all'}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setCategory(c)}
+                      className={`inline-flex h-11 items-center gap-2 rounded-full border px-5 text-sm font-medium transition ${
+                        active
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-900'
+                      }`}
+                    >
+                      {c || '전체'}
+                      <span className={`text-xs ${active ? 'text-white/60' : 'text-slate-400'}`}>{countOf(c)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex h-[52px] items-stretch overflow-hidden rounded-lg bg-slate-50">
+                <input
+                  type="search"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="질문 검색"
+                  aria-label="질문 검색"
+                  className="w-44 bg-transparent pl-5 text-[0.95rem] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none sm:w-56"
+                />
+                <span className="grid w-[52px] place-items-center text-slate-900" aria-hidden>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* 질문 목록 — 위에 굵은 검정 선, 질문마다 옅은 선 */}
           {loading ? (
             <div className="mt-16">
@@ -60,9 +126,13 @@ export default function FaqPage() {
             <p className="mt-16 border-t border-slate-900 py-16 text-center text-slate-500">
               아직 등록된 질문이 없습니다. 궁금한 점은 문의하기로 남겨 주세요.
             </p>
+          ) : items.length === 0 ? (
+            <p className="mt-10 border-t border-slate-900 py-16 text-center text-slate-500">
+              &lsquo;{keyword.trim()}&rsquo;에 해당하는 질문이 없습니다.
+            </p>
           ) : (
-            <ul className="mt-12 border-t border-slate-900 sm:mt-16">
-              {faqs.map((item, i) => {
+            <ul key={`${category}-${keyword}`} className="mt-10 border-t border-slate-900">
+              {items.map((item, i) => {
                 const open = openId === item.id
                 return (
                   <Reveal as="li" key={item.id} index={i} step={50} className="border-b border-slate-200">

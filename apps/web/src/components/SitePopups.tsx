@@ -493,12 +493,13 @@ export default function SitePopups() {
           ref={footRef}
           className="mt-8 flex flex-nowrap items-center justify-center gap-2 sm:mt-20 sm:flex-wrap sm:gap-[30px]"
         >
-          <dl className="flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg bg-black px-3 text-xs font-medium text-white sm:h-12 sm:px-7 sm:text-lg">
-            <dt className="hidden sm:block">팝업건수 :</dt>
-            <dd className="sm:pl-1">
-              총 <span className="text-[#ffc80b]">{count}</span>건
-            </dd>
-          </dl>
+          {/* 게시 중인 건수 — 숫자만 짧게 보여 준다. */}
+          <p
+            aria-label={`게시 중인 팝업 ${count}건`}
+            className="flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg bg-black px-3 text-xs font-medium text-white sm:h-12 sm:px-7 sm:text-lg"
+          >
+            총 <span className="px-1 text-[#ffc80b]">{count}</span>건
+          </p>
 
           <button
             type="button"

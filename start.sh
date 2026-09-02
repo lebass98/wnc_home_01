@@ -67,6 +67,9 @@ if [ ! -f "apps/api/prisma/dev.db" ]; then
 else
   # 스키마가 바뀌었을 수 있으므로 항상 동기화한다 (기존 데이터는 유지).
   npm run db:push --silent > /dev/null 2>&1
+  # 새 표가 추가됐다면 비어 있으므로 기본 데이터를 채운다.
+  # 시드는 표마다 '비어 있을 때만' 넣으므로 기존 데이터는 건드리지 않는다.
+  npm run db:seed --silent > /dev/null 2>&1
   info "데이터베이스 확인됨"
 fi
 

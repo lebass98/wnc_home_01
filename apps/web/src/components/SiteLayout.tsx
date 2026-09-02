@@ -96,8 +96,11 @@ export default function SiteLayout() {
     }),
     ...navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title, children: [] as SubItem[] })),
   ]
-  // 2차 메뉴 판의 높이 — 가장 긴 열에 맞춘다.
+  // 2차 메뉴 판의 높이(rem) — 가장 긴 열에 맞춘다. 참고 템플릿처럼 열마다 높이가 늘어나며 아래가 드러난다.
   const megaRows = Math.max(1, ...menu.map((m) => m.children.length))
+  const megaHeight = megaRows * 2.1 + 3
+  /** 헤더 높이(rem) — 1차 메뉴 한 줄 */
+  const HEADER_H = 4.5
 
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
@@ -142,11 +145,11 @@ export default function SiteLayout() {
             : 'sticky border-b border-slate-200 bg-white/90 backdrop-blur'
         }`}
       >
-        {/* 2차 메뉴 판 — 상단 메뉴에 올리면 아래로 펼쳐진다. 열은 각 1차 메뉴 바로 아래에 놓인다. */}
+        {/* 2차 메뉴 배경 판 — 상단 메뉴에 올리면 0.2초 동안 아래로 늘어난다. (참고 템플릿의 hover dim) */}
         <div
           aria-hidden={!megaOpen}
-          style={{ height: megaOpen ? `${megaRows * 2.25 + 4.5}rem` : 0 }}
-          className={`absolute inset-x-0 top-full hidden overflow-hidden transition-[height] duration-300 ease-out md:block ${
+          style={{ height: megaOpen ? `${megaHeight}rem` : 0 }}
+          className={`absolute inset-x-0 top-full hidden overflow-hidden transition-[height] duration-200 ease-in-out md:block ${
             transparent ? 'bg-black/70 backdrop-blur-sm' : 'border-b border-slate-200 bg-white/95 shadow-lg backdrop-blur'
           }`}
         />
@@ -162,13 +165,21 @@ export default function SiteLayout() {
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-2 md:flex lg:gap-6" onMouseEnter={() => setMegaOpen(true)}>
+          {/*
+            1차 메뉴 — 참고 템플릿처럼 각 열(li)의 높이가 헤더 높이에서 판 높이만큼 늘어나며
+            아래에 있던 2차 메뉴가 드러난다. 열은 넘치는 부분을 잘라 두어 닫혀 있을 땐 보이지 않는다.
+          */}
+          <nav className="hidden h-full items-start gap-2 self-start md:flex lg:gap-6" onMouseEnter={() => setMegaOpen(true)}>
             {menu.map((item) => (
-              <div key={item.to} className="group relative">
+              <div
+                key={item.to}
+                style={{ height: `${megaOpen ? HEADER_H + megaHeight : HEADER_H}rem` }}
+                className="group relative overflow-hidden transition-[height] duration-200 ease-in-out"
+              >
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `relative block px-4 py-2 text-[1.05rem] font-semibold tracking-tight transition ${
+                    `relative flex h-[4.5rem] items-center px-4 text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
                         ? isActive
                           ? 'text-white'
@@ -180,26 +191,23 @@ export default function SiteLayout() {
                   }
                 >
                   {item.label}
-                  {/* 올린 메뉴 아래 밑줄 — 왼쪽에서 오른쪽으로 그어진다. */}
+                  {/* 올린 메뉴 아래 밑줄 */}
                   <span
                     aria-hidden
-                    className={`absolute inset-x-4 -bottom-4 h-px origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100 ${
+                    className={`absolute inset-x-4 bottom-3 h-px origin-left scale-x-0 transition-transform duration-200 ease-in-out group-hover:scale-x-100 ${
                       transparent ? 'bg-white' : 'bg-slate-900'
                     }`}
                   />
                 </NavLink>
 
-                {/* 2차 메뉴 — 판이 열릴 때 함께 나타난다. */}
+                {/* 2차 메뉴 — 열이 늘어나면서 위에서부터 드러난다. */}
                 {item.children.length > 0 && (
-                  <ul
-                    className={`absolute left-4 top-full flex w-44 flex-col gap-2.5 pt-9 transition-[opacity,transform] duration-300 ${
-                      megaOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
-                    }`}
-                  >
+                  <ul className="flex w-44 flex-col gap-2.5 px-4 pt-5">
                     {item.children.map((child) => (
                       <li key={child.label}>
                         <Link
                           to={child.to}
+                          tabIndex={megaOpen ? 0 : -1}
                           className={`block text-[0.95rem] transition ${
                             transparent
                               ? 'text-white/65 hover:text-white'
@@ -216,7 +224,7 @@ export default function SiteLayout() {
             ))}
             {/* 언어 선택 · 팝업 다시 열기 */}
             <div
-              className={`ml-5 border-l pl-5 ${transparent ? 'border-white/30' : 'border-slate-200'}`}
+              className={`ml-5 self-center border-l pl-5 ${transparent ? 'border-white/30' : 'border-slate-200'}`}
             >
               <SiteUtilMenu transparent={transparent} />
             </div>
@@ -227,7 +235,7 @@ export default function SiteLayout() {
               aria-label="사이트맵 열기"
               aria-expanded={sitemapOpen}
               title="사이트맵"
-              className={`ml-5 grid h-9 w-9 place-items-center rounded-lg transition ${
+              className={`ml-5 grid h-9 w-9 self-center place-items-center rounded-lg transition ${
                 transparent ? 'text-white hover:bg-white/15' : 'text-slate-900 hover:bg-slate-100'
               }`}
             >

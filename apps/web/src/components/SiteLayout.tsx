@@ -21,6 +21,39 @@ interface NavItem {
   children: SubItem[]
 }
 
+/** 푸터 회사 정보 — wordncode.com 하단과 같은 내용 */
+const COMPANY = {
+  address: '[08510] 서울 금천구 벚꽃로 298(가산동 50-3) 대륭포스트타워6차 2층 227호',
+  tel: '02-2261-5555',
+  fax: '02-863-5554',
+  email: 'help@wordncode.com',
+  since: '2003',
+}
+
+/** 푸터 SNS — href 가 비어 있으면 아이콘을 보이지 않는다. 계정이 생기면 주소만 채우면 된다. */
+const SOCIAL: { name: string; href: string; icon: string }[] = [
+  {
+    name: '페이스북',
+    href: '',
+    icon: 'M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.3H7.4V14h2.8v8h3.3z',
+  },
+  {
+    name: '유튜브',
+    href: '',
+    icon: 'M21.6 7.2c-.2-.9-.9-1.6-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 8.8 2 12 2 12s0 3.2.4 4.8c.2.9.9 1.6 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3L10 15z',
+  },
+  {
+    name: '블로그',
+    href: '',
+    icon: 'M4 5h16a2 2 0 012 2v9a2 2 0 01-2 2h-7l-4 3v-3H4a2 2 0 01-2-2V7a2 2 0 012-2zm3.2 4.2v5.6h2.3c1.3 0 2.1-.6 2.1-1.6 0-.7-.4-1.2-1-1.4.4-.2.7-.7.7-1.2 0-.9-.7-1.4-1.9-1.4H7.2zm1.3 1h.8c.5 0 .8.2.8.6s-.3.6-.8.6h-.8v-1.2zm0 2.2h1c.6 0 .9.2.9.7 0 .4-.3.7-.9.7h-1v-1.4zm5.3-3.2v5.6h1.3V9.2h-1.3z',
+  },
+  {
+    name: '인스타그램',
+    href: 'https://www.instagram.com/wordncode__/',
+    icon: 'M12 7.3a4.7 4.7 0 100 9.4 4.7 4.7 0 000-9.4zm0 7.7a3 3 0 110-6 3 3 0 010 6zm5.9-7.9a1.1 1.1 0 11-2.2 0 1.1 1.1 0 012.2 0zM12 2.2c-2.7 0-3 0-4.1.1-1.1.1-1.8.2-2.4.5-.7.3-1.2.6-1.8 1.2-.6.6-.9 1.1-1.2 1.8-.3.6-.4 1.3-.5 2.4C2 9.2 2 9.5 2 12s0 3 .1 4.1c.1 1.1.2 1.8.5 2.4.3.7.6 1.2 1.2 1.8.6.6 1.1.9 1.8 1.2.6.3 1.3.4 2.4.5 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c1.1-.1 1.8-.2 2.4-.5.7-.3 1.2-.6 1.8-1.2.6-.6.9-1.1 1.2-1.8.3-.6.4-1.3.5-2.4.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.1-1.1-.2-1.8-.5-2.4-.3-.7-.6-1.2-1.2-1.8-.6-.6-1.1-.9-1.8-1.2-.6-.3-1.3-.4-2.4-.5-1.1-.1-1.4-.1-4.1-.1zm0 1.8c2.6 0 2.9 0 4 .1 1 0 1.5.2 1.9.3.5.2.8.4 1.1.7.3.3.6.7.7 1.1.1.4.3.9.3 1.9.1 1.1.1 1.4.1 4s0 2.9-.1 4c0 1-.2 1.5-.3 1.9-.2.5-.4.8-.7 1.1-.3.3-.7.6-1.1.7-.4.1-.9.3-1.9.3-1.1.1-1.4.1-4 .1s-2.9 0-4-.1c-1 0-1.5-.2-1.9-.3-.5-.2-.8-.4-1.1-.7-.3-.3-.6-.7-.7-1.1-.1-.4-.3-.9-.3-1.9C4 14.9 4 14.6 4 12s0-2.9.1-4c0-1 .2-1.5.3-1.9.2-.5.4-.8.7-1.1.3-.3.7-.6 1.1-.7.4-.1.9-.3 1.9-.3 1.1-.1 1.4-.1 4-.1z',
+  },
+]
+
 /**
  * 고정 메뉴 — 2차 메뉴에는 실제로 따로 있는 화면만 올린다.
  * (같은 페이지 안의 구역은 넣지 않는다.) 제품·소식의 2차 메뉴는 서버에서 받은 분류·게시판으로 채운다.
@@ -303,59 +336,100 @@ export default function SiteLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200 bg-slate-50">
-        <div className="container-wnc grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2">
-            <span className="text-lg font-bold tracking-[0.2em] text-slate-900">WORDNCODE</span>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">
-              워드앤코드는 웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.
-            </p>
+      {/* 푸터 — 참고 디자인(THEME015)처럼 베이지 바탕 가운데 정렬. 로고 → 메뉴 다섯 열 → SNS → 약관 → 회사 정보 → 맨 위로 */}
+      <footer className="bg-[#b8aa96] text-white">
+        <div className="container-wnc py-16 text-center sm:py-20">
+          <Link to="/" className="inline-block text-xl font-bold tracking-[0.35em]">
+            WORDNCODE
+          </Link>
+
+          {/* 메뉴 — 1차 메뉴 아래 2차 메뉴를 세로로. 열 사이에 옅은 세로선 */}
+          <div className="mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-y-10 text-left sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-white/30">
+            {menu.map((item) => (
+              <div key={item.to} className="px-4 lg:px-8">
+                <Link to={item.to} className="text-base font-bold transition hover:text-white/80">
+                  {item.label}
+                </Link>
+                {item.children.length > 0 && (
+                  <ul className="mt-4 space-y-2">
+                    {item.children.map((child) => (
+                      <li key={child.label}>
+                        <Link to={child.to} className="text-sm text-white/70 transition hover:text-white">
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">바로가기</h3>
-            <ul className="mt-4 space-y-2.5">
-              {menu.map((item) => (
-                <li key={item.to}>
-                  <Link to={item.to} className="text-sm text-slate-600 hover:text-brand-700">
-                    {item.label}
-                  </Link>
+          {/* SNS — 주소가 있는 것만 보인다 */}
+          {SOCIAL.some((x) => x.href) && (
+            <ul className="mt-14 flex justify-center gap-4">
+              {SOCIAL.filter((x) => x.href).map((x) => (
+                <li key={x.name}>
+                  <a
+                    href={x.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={x.name}
+                    title={x.name}
+                    className="grid h-10 w-10 place-items-center rounded-full text-white transition hover:bg-white/15"
+                  >
+                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d={x.icon} />
+                    </svg>
+                  </a>
                 </li>
               ))}
             </ul>
-          </div>
+          )}
 
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">연락처</h3>
-            <ul className="mt-4 space-y-2.5 text-sm text-slate-600">
-              <li>서울특별시 강남구 테헤란로 123</li>
-              <li>02-1234-5678</li>
-              <li>contact@wnc.co.kr</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200">
-          <div className="container-wnc flex flex-col items-center justify-between gap-3 py-5 sm:flex-row">
-            <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-5">
-              {/* 약관·방침 — 화면 하단 메뉴로 항상 노출한다. */}
-              <nav className="flex items-center gap-4 text-xs" aria-label="약관 및 정책">
-                <Link to="/terms" className="text-slate-600 hover:text-slate-900">
-                  이용약관
-                </Link>
-                <span className="h-3 w-px bg-slate-300" aria-hidden />
-                <Link to="/privacy" className="font-semibold text-slate-800 hover:text-slate-900">
-                  개인정보처리방침
-                </Link>
-              </nav>
-              <p className="text-xs text-slate-500">
-                © {new Date().getFullYear()} Word &amp; Code. All rights reserved.
-              </p>
-            </div>
-            <Link to="/admin" className="text-xs text-slate-400 hover:text-slate-600">
+          {/* 약관·방침·사이트맵 */}
+          <nav className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm" aria-label="약관 및 정책">
+            <Link to="/terms" className="transition hover:text-white/80">
+              홈페이지 이용약관
+            </Link>
+            <span className="h-3 w-px bg-white/40" aria-hidden />
+            <Link to="/privacy" className="font-semibold transition hover:text-white/80">
+              개인정보처리방침
+            </Link>
+            <span className="h-3 w-px bg-white/40" aria-hidden />
+            <button type="button" onClick={() => setSitemapOpen(true)} className="transition hover:text-white/80">
+              사이트맵
+            </button>
+            <span className="h-3 w-px bg-white/40" aria-hidden />
+            <Link to="/admin" className="transition hover:text-white/80">
               관리자
             </Link>
-          </div>
+          </nav>
+
+          {/* 회사 정보 */}
+          <p className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-white/90">
+            <span>{COMPANY.address}</span>
+            <span className="tabular-nums">T. {COMPANY.tel}</span>
+            <span className="tabular-nums">F. {COMPANY.fax}</span>
+            <a href={`mailto:${COMPANY.email}`} className="transition hover:text-white">
+              M. {COMPANY.email}
+            </a>
+          </p>
+          <p className="mt-3 text-xs tracking-wide text-white/60">
+            {COMPANY.since}-{new Date().getFullYear()} ⓒ BY WORDNCODE. ALL RIGHTS RESERVED.
+          </p>
+
+          {/* 맨 위로 */}
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="맨 위로"
+            className="mt-10 inline-grid h-10 w-10 place-items-center text-white/80 transition hover:text-white"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
         </div>
       </footer>
     </div>

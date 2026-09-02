@@ -1,95 +1,143 @@
 import PageHero from '../../components/PageHero'
+import SectionHeading from '../../components/SectionHeading'
 import { usePageTitle } from '../../lib/seo'
 
-const HISTORY = [
-  { year: '2026', items: ['클라우드 협업 솔루션 정식 출시', '해외 파트너십 체결'] },
-  { year: '2024', items: ['올해의 IT 혁신기업 선정', '누적 프로젝트 100건 돌파'] },
-  { year: '2021', items: ['기업부설연구소 설립', '벤처기업 인증 취득'] },
-  { year: '2014', items: ['워드앤코드 설립'] },
+/** 회사소개 묶음 안에서 오갈 수 있는 페이지 */
+const TABS = [
+  { to: '/about', label: '회사 소개' },
+  { to: '/services', label: '사업분야' },
 ]
 
-const VALUES = [
-  { title: '정직한 기술', desc: '과장 없이 할 수 있는 것과 없는 것을 분명히 말합니다.' },
-  { title: '끝까지 책임', desc: '납품이 끝이 아니라 안정적으로 운영될 때까지 함께합니다.' },
-  { title: '함께 성장', desc: '고객의 성장이 곧 우리의 성장이라고 믿습니다.' },
+/** 서비스 철학 — 두 갈래로 나눠 설명한다. */
+const PHILOSOPHY = [
+  {
+    title: '누구나 편리하게 쓸 수 있는 서비스',
+    body: '화면을 만드는 사람과 쓰는 사람이 다르다는 것을 늘 염두에 둡니다. 담당자가 따로 교육을 받지 않아도 필요한 기능을 스스로 찾아 쓸 수 있도록, 흐름을 단순하게 정리하고 헷갈릴 만한 곳에는 설명을 함께 둡니다.',
+  },
+  {
+    title: '만족할 때까지 함께하는 서비스',
+    body: '납품으로 끝내지 않습니다. 실제로 쓰이기 시작한 뒤에야 드러나는 문제들이 있고, 그때 함께 있어야 제대로 고칠 수 있다고 생각합니다. 운영 중에 나오는 이야기를 듣고 다음 개선으로 이어갑니다.',
+  },
+]
+
+/** 아래쪽 카드 세 장 */
+const STRENGTHS = [
+  {
+    title: '충분한 정보 제공',
+    desc: '무엇을 어떻게 하고 있는지 숨기지 않습니다. 진행 상황과 남은 일정을 정리해 공유합니다.',
+    gradient: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
+  },
+  {
+    title: '편리한 서비스',
+    desc: '자주 하는 일일수록 손이 덜 가게 만듭니다. 반복되는 작업은 자동으로 처리합니다.',
+    gradient: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
+  },
+  {
+    title: '사용자 의견 반영',
+    desc: '쓰는 사람의 이야기를 모아 다음 개선에 반영합니다. 작은 불편도 그냥 넘기지 않습니다.',
+    gradient: 'linear-gradient(135deg, #dcd8e8 0%, #8b7fae 100%)',
+  },
 ]
 
 export default function AboutPage() {
   usePageTitle('회사소개')
+
   return (
     <>
-      <PageHero
-        title="회사소개"
-        description="워드앤코드는 2014년 설립 이래 12년간 고객의 디지털 전환을 함께해 온 IT 솔루션 기업입니다."
-      />
+      <PageHero title="회사소개" tabs={TABS} />
 
-      <section className="py-20">
-        <div className="container-wnc grid gap-12 lg:grid-cols-2 lg:gap-16">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">기술로 문제를 해결합니다</h2>
-            <div className="mt-6 space-y-4 leading-relaxed text-slate-600">
-              <p>
-                좋은 소프트웨어는 화려한 기술이 아니라 문제를 정확히 이해하는 데서 시작한다고
-                생각합니다. 워드앤코드는 고객의 업무를 먼저 이해하고, 그다음에 기술을 선택합니다.
-              </p>
-              <p>
-                기획·디자인·개발·운영을 한 팀에서 담당하기 때문에 커뮤니케이션 비용이 적고, 프로젝트
-                중간에 방향이 바뀌어도 빠르게 대응할 수 있습니다.
-              </p>
-              <p>
-                지금까지 150건이 넘는 프로젝트를 수행했고, 고객사의 98%가 다시 저희를 찾아주셨습니다.
-              </p>
+      {/* 소개 — 왼쪽 제목, 오른쪽 본문 */}
+      <section className="py-24 sm:py-28">
+        <div className="container-wnc grid gap-10 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-16">
+          <SectionHeading
+            eyebrow="Web Service Company"
+            title={['고객과 함께', '성장하는', '워드앤코드']}
+            align="left"
+          />
+
+          <div className="space-y-7 text-[0.95rem] leading-[1.9] text-slate-600">
+            <p>
+              웹 서비스의 중요성이 나날이 커지고 있지만, 전문적인 교육을 받지 않고서는 직접 운영하기
+              어려운 것이 현실입니다. 워드앤코드는 담당자가 따로 배우지 않아도 손쉽게 웹과 친숙해질 수
+              있도록 돕는 웹 전용 스마트 서비스를 만듭니다. 사이트를 만든 뒤에는 편집기로 원하는
+              디자인을 직접 고르고 고칠 수 있어, 제작이나 관리에 대한 부담 없이 운영할 수 있습니다.
+            </p>
+            <p>
+              공지사항과 멀티미디어 게시판을 기본으로 갖추고 있으며, 회원 관리와 권한 설정도 화면에서
+              바로 다룰 수 있습니다. 별도의 유지관리 지원 없이도 메뉴를 새로 만들거나 페이지를 고치는
+              일을 담당자가 직접 처리할 수 있습니다. 홈페이지 기능 외에 일정 관리와 구성원 소개 같은
+              기능을 더해, 사용자끼리 정보를 나누기 좋도록 구성했습니다.
+            </p>
+          </div>
+        </div>
+
+        {/* 이미지 두 장 — 오른쪽이 더 넓다. */}
+        <div className="container-wnc mt-16 grid gap-6 md:grid-cols-[2fr_3fr]">
+          <div
+            className="h-64 sm:h-80"
+            style={{ background: 'linear-gradient(135deg, #dfe7ec 0%, #93aab8 100%)' }}
+          />
+          <div
+            className="h-64 sm:h-80"
+            style={{ background: 'linear-gradient(135deg, #1f2a33 0%, #3a5560 60%, #6f9aa0 100%)' }}
+          />
+        </div>
+      </section>
+
+      {/* 영상 */}
+      <section className="pb-24 sm:pb-28">
+        <div className="container-wnc grid gap-10 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-16">
+          <SectionHeading
+            eyebrow="Media Video"
+            title={['워드앤코드가 만든', '서비스 홍보영상']}
+            align="left"
+          />
+          <p className="text-[0.95rem] leading-[1.9] text-slate-600">
+            말로 설명하기 어려운 부분은 화면으로 보여 드리는 편이 빠릅니다. 실제로 어떤 흐름으로
+            동작하는지, 담당자가 무엇을 직접 할 수 있는지를 짧게 담았습니다. 도입을 검토하고 계시다면
+            먼저 훑어보시길 권해 드립니다.
+          </p>
+        </div>
+
+        <div className="container-wnc mt-14">
+          <div
+            className="grid h-[22rem] place-items-center sm:h-[30rem]"
+            style={{ background: 'linear-gradient(135deg, #24333a 0%, #3b5a5e 55%, #7fa39f 100%)' }}
+          >
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 transition hover:bg-white/35">
+              <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </div>
           </div>
-
-          <div className="card divide-y divide-slate-200">
-            {[
-              ['회사명', '주식회사 워드앤코드'],
-              ['설립일', '2014년 3월 2일'],
-              ['대표이사', '홍길동'],
-              ['임직원', '45명'],
-              ['주소', '서울특별시 강남구 테헤란로 123'],
-              ['사업분야', '소프트웨어 개발 및 공급'],
-            ].map(([k, v]) => (
-              <div key={k} className="flex gap-4 px-6 py-4">
-                <dt className="w-24 shrink-0 text-sm font-medium text-slate-500">{k}</dt>
-                <dd className="text-sm text-slate-900">{v}</dd>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-slate-50 py-20">
+      {/* 서비스 철학 */}
+      <section className="pb-28">
         <div className="container-wnc">
-          <h2 className="text-center text-2xl font-bold text-slate-900">핵심 가치</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {VALUES.map((v, i) => (
-              <div key={v.title} className="card p-8">
-                <span className="text-sm font-bold text-brand-600">0{i + 1}</span>
-                <h3 className="mt-3 text-lg font-semibold text-slate-900">{v.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{v.desc}</p>
+          <SectionHeading
+            eyebrow="Service Philosophy"
+            title={['좋은 서비스로 이어지는', '워드앤코드의 생각']}
+            align="left"
+          />
+
+          <div className="mt-14 grid gap-10 md:grid-cols-2 md:gap-14">
+            {PHILOSOPHY.map((p, i) => (
+              <div key={p.title} className={i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''}>
+                <h3 className="font-semibold text-slate-900">{p.title}</h3>
+                <p className="mt-5 text-[0.95rem] leading-[1.9] text-slate-600">{p.body}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      <section className="py-20">
-        <div className="container-wnc">
-          <h2 className="text-2xl font-bold text-slate-900">연혁</h2>
-          <div className="mt-10 space-y-8">
-            {HISTORY.map((h) => (
-              <div key={h.year} className="flex flex-col gap-3 sm:flex-row sm:gap-10">
-                <div className="w-20 shrink-0 text-xl font-bold text-brand-600">{h.year}</div>
-                <ul className="flex-1 space-y-2.5 border-l border-slate-200 pl-6">
-                  {h.items.map((item) => (
-                    <li key={item} className="relative text-slate-700">
-                      <span className="absolute -left-[1.9rem] top-2 h-2 w-2 rounded-full bg-brand-500" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+          {/* 강점 카드 세 장 */}
+          <div className="mt-20 grid gap-8 md:grid-cols-3">
+            {STRENGTHS.map((s) => (
+              <div key={s.title}>
+                <div className="h-72 w-full" style={{ background: s.gradient }} />
+                <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
+                <p className="mt-3 text-sm leading-[1.9] text-slate-600">{s.desc}</p>
               </div>
             ))}
           </div>

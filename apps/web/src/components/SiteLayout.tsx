@@ -35,8 +35,11 @@ export default function SiteLayout() {
     window.scrollTo(0, 0)
   }, [pathname])
 
-  // 메인 화면에서는 헤더를 히어로 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
-  const overHero = pathname === '/'
+  // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는
+  // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
+  // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
+  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact']
+  const overHero = DARK_TOP.includes(pathname) || pathname.startsWith('/page/')
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     if (!overHero) return
@@ -64,18 +67,11 @@ export default function SiteLayout() {
         <div className="container-wnc flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <span
-              className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold ${
-                transparent ? 'bg-white/20 text-white' : 'bg-brand-600 text-white'
-              }`}
-            >
-              W
-            </span>
-            <span
-              className={`text-lg font-bold tracking-tight ${
+              className={`text-lg font-bold tracking-[0.2em] ${
                 transparent ? 'text-white' : 'text-slate-900'
               }`}
             >
-              워드앤코드
+              WORDNCODE
             </span>
           </Link>
 
@@ -158,12 +154,7 @@ export default function SiteLayout() {
       <footer className="border-t border-slate-200 bg-slate-50">
         <div className="container-wnc grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2">
-            <div className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-                W
-              </span>
-              <span className="text-lg font-bold text-slate-900">워드앤코드</span>
-            </div>
+            <span className="text-lg font-bold tracking-[0.2em] text-slate-900">WORDNCODE</span>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-600">
               워드앤코드는 웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.
             </p>

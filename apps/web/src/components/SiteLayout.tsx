@@ -179,7 +179,7 @@ export default function SiteLayout() {
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `relative flex h-[4.5rem] items-center px-[11px] text-[1.05rem] font-semibold tracking-tight transition ${
+                    `relative flex h-[4.5rem] items-center px-2 text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
                         ? isActive
                           ? 'text-white'
@@ -194,7 +194,7 @@ export default function SiteLayout() {
                   {/* 올린 메뉴 아래 밑줄 */}
                   <span
                     aria-hidden
-                    className={`absolute inset-x-[11px] bottom-3 h-px origin-left scale-x-0 transition-transform duration-200 ease-in-out group-hover:scale-x-100 ${
+                    className={`absolute inset-x-2 bottom-3 h-px origin-left scale-x-0 transition-transform duration-200 ease-in-out group-hover:scale-x-100 ${
                       transparent ? 'bg-white' : 'bg-slate-900'
                     }`}
                   />
@@ -202,7 +202,7 @@ export default function SiteLayout() {
 
                 {/* 2차 메뉴 — 열이 늘어나면서 위에서부터 드러난다. */}
                 {item.children.length > 0 && (
-                  <ul className="flex w-40 flex-col gap-2.5 px-[11px] pt-5">
+                  <ul className="flex w-40 flex-col gap-2.5 px-2 pt-5">
                     {item.children.map((child) => (
                       <li key={child.label}>
                         <Link

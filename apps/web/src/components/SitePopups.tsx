@@ -234,16 +234,17 @@ export default function SitePopups() {
     [pathname],
   )
 
-  // 이 화면에 해당하는 팝업 전부 — 닫았든 말든 상단 메뉴의 건수는 이 숫자다.
-  const onPage = useMemo(() => popups.filter(matchesPath), [popups, matchesPath])
+  // 상단 메뉴의 POPUP 건수 — 어느 화면에서든 지금 게시 중인 레이어 팝업 전부를 센다.
   useEffect(() => {
-    setPopupCount(onPage.filter((p) => p.windowType !== 'window').length)
-  }, [onPage])
+    setPopupCount(popups.filter((p) => p.windowType !== 'window').length)
+  }, [popups])
 
-  const visible = useMemo(
-    () => (closed ? [] : onPage.filter((p) => forced || !isHidden(p.id))),
-    [onPage, closed, forced],
-  )
+  const visible = useMemo(() => {
+    if (closed) return []
+    // 상단 POPUP 으로 열었으면 노출위치·닫힘 기록과 상관없이 게시 중인 레이어 팝업을 전부 보여 준다.
+    if (forced) return popups.filter((p) => p.windowType !== 'window')
+    return popups.filter((p) => matchesPath(p) && !isHidden(p.id))
+  }, [popups, matchesPath, closed, forced])
 
   // 일반 윈도우 팝업은 브라우저 창으로 연다. 팝업 차단에 막히면 조용히 넘어간다.
   useEffect(() => {

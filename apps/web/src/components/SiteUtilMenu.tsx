@@ -144,20 +144,21 @@ export default function SiteUtilMenu({ transparent }: { transparent: boolean }) 
         )}
       </div>
 
-      {/* 팝업 다시 열기 — 이 화면에 팝업이 있을 때만 보인다. */}
-      {popupCount > 0 && (
-        <button
-          type="button"
-          onClick={requestOpenPopups}
-          aria-label={`팝업 ${popupCount}건 보기`}
-          className="flex items-center gap-1.5"
-        >
-          POPUP
+      {/* 팝업 다시 열기 — 어느 화면에서든 항상 보이고, 배지에는 게시 중인 건수를 적는다. */}
+      <button
+        type="button"
+        onClick={requestOpenPopups}
+        disabled={popupCount === 0}
+        aria-label={popupCount > 0 ? `팝업 ${popupCount}건 보기` : '게시 중인 팝업 없음'}
+        className="flex items-center gap-1.5 disabled:cursor-default disabled:opacity-60"
+      >
+        POPUP
+        {popupCount > 0 && (
           <span className="grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-[#f36f21] px-1 text-[11px] font-bold text-white">
             {popupCount}
           </span>
-        </button>
-      )}
+        )}
+      </button>
     </div>
   )
 }

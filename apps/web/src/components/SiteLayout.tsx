@@ -151,10 +151,10 @@ export default function SiteLayout() {
           }`}
         />
 
-        <div className="container-wnc flex h-16 items-center justify-between">
+        <div className="flex h-[4.5rem] w-full items-center justify-between px-5 sm:px-8 lg:px-14">
           <Link to="/" className="flex items-center gap-2">
             <span
-              className={`text-lg font-bold tracking-[0.2em] ${
+              className={`text-xl font-bold tracking-[0.25em] ${
                 transparent ? 'text-white' : 'text-slate-900'
               }`}
             >
@@ -162,13 +162,13 @@ export default function SiteLayout() {
             </span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex" onMouseEnter={() => setMegaOpen(true)}>
+          <nav className="hidden items-center gap-2 md:flex lg:gap-6" onMouseEnter={() => setMegaOpen(true)}>
             {menu.map((item) => (
               <div key={item.to} className="group relative">
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `relative block px-4 py-2 text-sm font-medium transition ${
+                    `relative block px-4 py-2 text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
                         ? isActive
                           ? 'text-white'
@@ -183,7 +183,7 @@ export default function SiteLayout() {
                   {/* 올린 메뉴 아래 밑줄 — 왼쪽에서 오른쪽으로 그어진다. */}
                   <span
                     aria-hidden
-                    className={`absolute inset-x-4 -bottom-3 h-px origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100 ${
+                    className={`absolute inset-x-4 -bottom-4 h-px origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100 ${
                       transparent ? 'bg-white' : 'bg-slate-900'
                     }`}
                   />
@@ -200,7 +200,7 @@ export default function SiteLayout() {
                       <li key={child.label}>
                         <Link
                           to={child.to}
-                          className={`block text-[0.9rem] transition ${
+                          className={`block text-[0.95rem] transition ${
                             transparent
                               ? 'text-white/65 hover:text-white'
                               : 'text-slate-500 hover:text-slate-900'

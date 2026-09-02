@@ -117,7 +117,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
         }`}
       >
         {/* 닫기 — 상단 메뉴의 사이트맵 아이콘 자리에 X 를 둔다. */}
-        <div className="container-wnc flex h-16 items-center justify-end">
+        <div className="flex h-[4.5rem] items-center justify-end px-5 sm:px-8 lg:px-14">
           <button
             type="button"
             onClick={onClose}
@@ -132,7 +132,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
 
         {/* 본문 — 화면 세로 가운데에 놓는다. 내용이 담기지 않을 만큼 낮은 화면에서는 위에서부터 흐른다. */}
         <div
-          className={`flex min-h-[calc(100%-4rem)] flex-col justify-center py-16 transition-[transform,opacity] delay-100 duration-[450ms] ease-out ${
+          className={`flex min-h-[calc(100%-4.5rem)] flex-col justify-center py-16 transition-[transform,opacity] delay-100 duration-[450ms] ease-out ${
             shown ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
           }`}
         >

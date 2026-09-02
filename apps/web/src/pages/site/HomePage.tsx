@@ -7,6 +7,7 @@ import { formatDate } from '../../lib/format'
 import SectionHeading from '../../components/SectionHeading'
 import HeroSlider from '../../components/HeroSlider'
 import CardCarousel from '../../components/CardCarousel'
+import Reveal from '../../components/Reveal'
 
 /** 히어로 슬라이드 — 배경은 그라데이션으로 그려 외부 이미지 없이 동작한다. */
 const SLIDES = [
@@ -78,31 +79,31 @@ export default function HomePage() {
           <SectionHeading eyebrow="WnC About" title={['사람과 사람을 연결하는', '소통의 창 워드앤코드']} />
 
           <div className="mx-auto mt-14 grid max-w-5xl gap-10 md:grid-cols-2 md:gap-14">
-            <p className="text-[0.95rem] leading-[1.9] text-slate-600 md:border-r md:border-slate-200 md:pr-14">
+            <Reveal as="p" className="text-[0.95rem] leading-[1.9] text-slate-600 md:border-r md:border-slate-200 md:pr-14">
               웹 서비스의 중요성이 하루하루 커지고 있지만, 전문적인 교육을 받지 않고서는 직접
               운영하기 어려운 것이 현실입니다. 워드앤코드는 담당자가 따로 배우지 않아도 손쉽게 웹과
               친숙해질 수 있도록 돕는 웹 전용 스마트 서비스입니다.
-            </p>
-            <p className="text-[0.95rem] leading-[1.9] text-slate-600">
+            </Reveal>
+            <Reveal as="p" index={1} className="text-[0.95rem] leading-[1.9] text-slate-600">
               기획부터 디자인, 개발, 운영까지 서비스에 필요한 모든 단계를 한 팀에서 맡습니다. 중간에
               말이 바뀌거나 책임이 흩어지지 않도록, 처음 만난 담당자가 끝까지 함께합니다.
-            </p>
+            </Reveal>
           </div>
 
-          <div className="mt-12 text-center">
+          <Reveal index={2} className="mt-12 text-center">
             <Link
               to="/about"
               className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               자세히보기
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* 넓은 이미지 띠 */}
       <section className="container-wnc">
-        <div
+        <Reveal
           className="grid h-[22rem] place-items-center sm:h-[26rem]"
           style={{ background: 'linear-gradient(135deg, #20303b 0%, #2c4a52 60%, #3d6e71 100%)' }}
         >
@@ -111,7 +112,7 @@ export default function HomePage() {
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* 프로젝트 — 등록된 제품을 카드로 보여준다. */}
@@ -153,8 +154,9 @@ export default function HomePage() {
 
           <div className="mt-14 grid gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             {PHILOSOPHY.map((p, i) => (
-              <div
+              <Reveal
                 key={p.title}
+                index={i}
                 className="px-0 sm:px-8 lg:border-r lg:border-white/15 lg:last:border-r-0 lg:first:pl-0"
               >
                 <p className="flex items-baseline gap-2.5">
@@ -166,7 +168,7 @@ export default function HomePage() {
                   <br />
                   {p.desc[1]}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -176,18 +178,18 @@ export default function HomePage() {
       <section className="relative">
         <div className="absolute inset-x-0 top-0 h-24 bg-[#2b2b2b]" aria-hidden />
         <div className="container-wnc relative">
-          <div
+          <Reveal
             className="h-[20rem] sm:h-[26rem]"
             style={{ background: 'linear-gradient(135deg, #1f6f9e 0%, #2f93c8 55%, #8fd0e8 100%)' }}
           />
-          <div className="mt-12 text-center">
+          <Reveal index={1} className="mt-12 text-center">
             <Link
               to="/services"
               className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               자세히보기
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -200,8 +202,8 @@ export default function HomePage() {
           />
 
           <div className="mt-14 grid gap-8 md:grid-cols-3">
-            {SERVICES.map((s) => (
-              <div key={s.title}>
+            {SERVICES.map((s, i) => (
+              <Reveal key={s.title} index={i}>
                 <div className="h-56 w-full" style={{ background: s.gradient }} />
                 <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
                 <p className="mt-3 text-sm leading-[1.9] text-slate-600">
@@ -209,18 +211,18 @@ export default function HomePage() {
                   <br />
                   {s.desc[1]}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
 
-          <div className="mt-12 text-center">
+          <Reveal index={3} className="mt-12 text-center">
             <Link
               to="/services"
               className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               자세히보기
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -256,25 +258,26 @@ export default function HomePage() {
             <>
               <div className="mx-auto mt-14 grid max-w-5xl gap-10 md:grid-cols-2 md:gap-14">
                 {posts.map((post, i) => (
-                  <Link
-                    key={post.id}
-                    to={`/board/${post.id}`}
-                    className={`group block ${
-                      i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''
-                    }`}
-                  >
-                    <h3 className="font-semibold text-slate-900 transition group-hover:text-mint-500">
-                      {post.title}
-                    </h3>
-                    <p className="mt-4 text-[0.95rem] leading-[1.9] text-slate-600">
-                      {boardName(boards, post.category)} · {post.authorName}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-400">{formatDate(post.createdAt)}</p>
-                  </Link>
+                  <Reveal key={post.id} index={i}>
+                    <Link
+                      to={`/board/${post.id}`}
+                      className={`group block ${
+                        i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''
+                      }`}
+                    >
+                      <h3 className="font-semibold text-slate-900 transition group-hover:text-mint-500">
+                        {post.title}
+                      </h3>
+                      <p className="mt-4 text-[0.95rem] leading-[1.9] text-slate-600">
+                        {boardName(boards, post.category)} · {post.authorName}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">{formatDate(post.createdAt)}</p>
+                    </Link>
+                  </Reveal>
                 ))}
               </div>
 
-              <div className="mt-12 flex justify-end">
+              <Reveal index={2} className="mt-12 flex justify-end">
                 <Link
                   to="/board"
                   className="group inline-flex items-center gap-3 text-sm font-semibold text-slate-900"
@@ -282,7 +285,7 @@ export default function HomePage() {
                   전체보기
                   <span className="block h-px w-9 bg-slate-900 transition-all group-hover:w-12" />
                 </Link>
-              </div>
+              </Reveal>
             </>
           ) : (
             <p className="mt-14 text-center text-sm text-slate-500">등록된 공지가 없습니다.</p>

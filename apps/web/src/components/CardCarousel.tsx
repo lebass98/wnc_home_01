@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Reveal from './Reveal'
 
 export interface CarouselItem {
   id: number
@@ -65,22 +66,24 @@ export default function CardCarousel({
     <div className="relative">
       <div className="container-wnc">
         <div className="grid gap-6 md:grid-cols-2">
-          {shown.map((item) => (
-            <Link key={item.id} to={item.to} className="group block bg-white">
-              {item.image ? (
-                <img src={item.image} alt="" className="h-64 w-full object-cover" />
-              ) : (
-                <div className="h-64 w-full bg-slate-200" aria-hidden />
-              )}
-              <div className="px-7 py-7">
-                <h3 className="font-semibold text-slate-900 transition group-hover:text-mint-500">
-                  {item.title}
-                </h3>
-                <p className="mt-4 line-clamp-2 text-sm leading-[1.9] text-slate-500">
-                  {item.desc}
-                </p>
-              </div>
-            </Link>
+          {shown.map((item, i) => (
+            <Reveal key={item.id} index={i}>
+              <Link to={item.to} className="group block bg-white">
+                {item.image ? (
+                  <img src={item.image} alt="" className="h-64 w-full object-cover" />
+                ) : (
+                  <div className="h-64 w-full bg-slate-200" aria-hidden />
+                )}
+                <div className="px-7 py-7">
+                  <h3 className="font-semibold text-slate-900 transition group-hover:text-mint-500">
+                    {item.title}
+                  </h3>
+                  <p className="mt-4 line-clamp-2 text-sm leading-[1.9] text-slate-500">
+                    {item.desc}
+                  </p>
+                </div>
+              </Link>
+            </Reveal>
           ))}
         </div>
 

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import Reveal from './Reveal'
 
 export interface PageHeroTab {
   to: string
@@ -25,13 +26,17 @@ export default function PageHero({
       style={{ background: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)' }}
     >
       <div className="container-wnc pb-16 pt-36 text-center sm:pb-20 sm:pt-40">
-        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">{title}</h1>
+        <Reveal>
+          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">{title}</h1>
+        </Reveal>
         {description && (
-          <p className="mx-auto mt-5 max-w-3xl text-sm leading-[1.9] text-white/75">{description}</p>
+          <Reveal index={1}>
+            <p className="mx-auto mt-5 max-w-3xl text-sm leading-[1.9] text-white/75">{description}</p>
+          </Reveal>
         )}
 
         {tabs && tabs.length > 0 && (
-          <nav className="mt-8 flex justify-center gap-7">
+          <Reveal as="nav" index={2} className="mt-8 flex justify-center gap-7">
             {tabs.map((tab) => (
               <NavLink
                 key={tab.to}
@@ -46,7 +51,7 @@ export default function PageHero({
                 {tab.label}
               </NavLink>
             ))}
-          </nav>
+          </Reveal>
         )}
       </div>
     </section>

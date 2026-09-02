@@ -1,5 +1,6 @@
 import PageHero from '../../components/PageHero'
 import SectionHeading from '../../components/SectionHeading'
+import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 
 /** 회사소개 묶음 안에서 오갈 수 있는 페이지 */
@@ -56,28 +57,29 @@ export default function AboutPage() {
           />
 
           <div className="space-y-7 text-[0.95rem] leading-[1.9] text-slate-600">
-            <p>
+            <Reveal as="p">
               웹 서비스의 중요성이 나날이 커지고 있지만, 전문적인 교육을 받지 않고서는 직접 운영하기
               어려운 것이 현실입니다. 워드앤코드는 담당자가 따로 배우지 않아도 손쉽게 웹과 친숙해질 수
               있도록 돕는 웹 전용 스마트 서비스를 만듭니다. 사이트를 만든 뒤에는 편집기로 원하는
               디자인을 직접 고르고 고칠 수 있어, 제작이나 관리에 대한 부담 없이 운영할 수 있습니다.
-            </p>
-            <p>
+            </Reveal>
+            <Reveal as="p" index={1}>
               공지사항과 멀티미디어 게시판을 기본으로 갖추고 있으며, 회원 관리와 권한 설정도 화면에서
               바로 다룰 수 있습니다. 별도의 유지관리 지원 없이도 메뉴를 새로 만들거나 페이지를 고치는
               일을 담당자가 직접 처리할 수 있습니다. 홈페이지 기능 외에 일정 관리와 구성원 소개 같은
               기능을 더해, 사용자끼리 정보를 나누기 좋도록 구성했습니다.
-            </p>
+            </Reveal>
           </div>
         </div>
 
         {/* 이미지 두 장 — 오른쪽이 더 넓다. */}
         <div className="container-wnc mt-16 grid gap-6 md:grid-cols-[2fr_3fr]">
-          <div
+          <Reveal
             className="h-64 sm:h-80"
             style={{ background: 'linear-gradient(135deg, #dfe7ec 0%, #93aab8 100%)' }}
           />
-          <div
+          <Reveal
+            index={1}
             className="h-64 sm:h-80"
             style={{ background: 'linear-gradient(135deg, #1f2a33 0%, #3a5560 60%, #6f9aa0 100%)' }}
           />
@@ -92,15 +94,15 @@ export default function AboutPage() {
             title={['워드앤코드가 만든', '서비스 홍보영상']}
             align="left"
           />
-          <p className="text-[0.95rem] leading-[1.9] text-slate-600">
+          <Reveal as="p" className="text-[0.95rem] leading-[1.9] text-slate-600">
             말로 설명하기 어려운 부분은 화면으로 보여 드리는 편이 빠릅니다. 실제로 어떤 흐름으로
             동작하는지, 담당자가 무엇을 직접 할 수 있는지를 짧게 담았습니다. 도입을 검토하고 계시다면
             먼저 훑어보시길 권해 드립니다.
-          </p>
+          </Reveal>
         </div>
 
         <div className="container-wnc mt-14">
-          <div
+          <Reveal
             className="grid h-[22rem] place-items-center sm:h-[30rem]"
             style={{ background: 'linear-gradient(135deg, #24333a 0%, #3b5a5e 55%, #7fa39f 100%)' }}
           >
@@ -109,7 +111,7 @@ export default function AboutPage() {
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -124,21 +126,25 @@ export default function AboutPage() {
 
           <div className="mt-14 grid gap-10 md:grid-cols-2 md:gap-14">
             {PHILOSOPHY.map((p, i) => (
-              <div key={p.title} className={i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''}>
+              <Reveal
+                key={p.title}
+                index={i}
+                className={i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''}
+              >
                 <h3 className="font-semibold text-slate-900">{p.title}</h3>
                 <p className="mt-5 text-[0.95rem] leading-[1.9] text-slate-600">{p.body}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
 
           {/* 강점 카드 세 장 */}
           <div className="mt-20 grid gap-8 md:grid-cols-3">
-            {STRENGTHS.map((s) => (
-              <div key={s.title}>
+            {STRENGTHS.map((s, i) => (
+              <Reveal key={s.title} index={i}>
                 <div className="h-72 w-full" style={{ background: s.gradient }} />
                 <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
                 <p className="mt-3 text-sm leading-[1.9] text-slate-600">{s.desc}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>

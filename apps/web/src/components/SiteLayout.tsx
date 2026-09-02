@@ -43,7 +43,8 @@ export default function SiteLayout() {
   // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
   // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
   const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact']
-  const overHero = DARK_TOP.includes(pathname) || pathname.startsWith('/page/')
+  const overHero =
+    DARK_TOP.includes(pathname) || pathname.startsWith('/page/') || pathname.startsWith('/board/')
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     if (!overHero) return

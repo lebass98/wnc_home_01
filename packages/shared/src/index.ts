@@ -127,6 +127,8 @@ export interface PostListItem {
   id: number
   category: BoardCategory
   title: string
+  /** 본문 앞부분 — 카드형 목록의 요약에 쓴다. */
+  excerpt: string
   published: boolean
   views: number
   authorName: string

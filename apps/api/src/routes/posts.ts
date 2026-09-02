@@ -29,11 +29,18 @@ async function assertBoardExists(slug: string) {
 
 type PostWithAuthor = { author: { name: string } } & Record<string, any>
 
+/** 본문 앞부분을 한 줄로 줄인다 — 카드형 목록의 요약 */
+function excerptOf(content: string, max = 120): string {
+  const text = content.replace(/\s+/g, ' ').trim()
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
 function toListItem(post: PostWithAuthor) {
   return {
     id: post.id,
     category: post.category,
     title: post.title,
+    excerpt: excerptOf(post.content),
     published: post.published,
     views: post.views,
     authorName: post.author.name,

@@ -124,7 +124,10 @@ function save(db: DemoDb) {
 
 function toListItem(p: Post): PostListItem {
   const { id, category, title, published, views, authorName, createdAt } = p
-  return { id, category, title, published, views, authorName, createdAt }
+  // 본문 앞부분을 한 줄로 줄인다 — 카드형 목록의 요약
+  const text = p.content.replace(/\s+/g, ' ').trim()
+  const excerpt = text.length > 120 ? `${text.slice(0, 120)}…` : text
+  return { id, category, title, excerpt, published, views, authorName, createdAt }
 }
 
 function paginate<T>(items: T[], page: number, pageSize: number): Paginated<T> {

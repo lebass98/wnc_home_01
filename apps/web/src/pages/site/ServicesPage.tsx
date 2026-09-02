@@ -88,7 +88,7 @@ export default function ServicesPage() {
           <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
             {INFRA.map((card, i) => (
               <Reveal key={card.title} index={i}>
-                <p className="font-mono text-2xl font-semibold text-mint-400">{card.no}</p>
+                <p className="tabular-nums text-2xl font-semibold text-mint-400">{card.no}</p>
                 <h3 className="mt-3 text-lg font-bold text-slate-900">{card.title}</h3>
                 <p className="mt-4 min-h-[6.5rem] text-[0.95rem] leading-[1.9] text-slate-600">{card.desc}</p>
                 {/* 이미지 자리 — 외부 이미지 없이 그라데이션으로 그린다. */}

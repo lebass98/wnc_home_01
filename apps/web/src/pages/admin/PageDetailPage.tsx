@@ -111,7 +111,7 @@ export default function PageDetailPage() {
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{page.title}</h2>
-          <span className="font-mono text-sm text-slate-500 dark:text-slate-400">{page.slug}</span>
+          <span className="tabular-nums text-sm text-slate-500 dark:text-slate-400">{page.slug}</span>
           <Badge tone="blue">v{page.version}</Badge>
           <a
             href={`${import.meta.env.BASE_URL}page/${page.slug}`}

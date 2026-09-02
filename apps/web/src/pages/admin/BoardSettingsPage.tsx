@@ -77,7 +77,7 @@ export default function BoardSettingsPage() {
 function VariableHint({ variables }: { variables: readonly string[] }) {
   return (
     <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-      사용 가능한 변수: <span className="font-mono">{variables.join(', ')}</span>
+      사용 가능한 변수: <span className="tabular-nums">{variables.join(', ')}</span>
     </p>
   )
 }
@@ -113,7 +113,7 @@ function MetaGroup({
           maxLength={200}
           value={titleValue}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="input font-mono"
+          className="input tabular-nums"
         />
         <VariableHint variables={variables.filter((v) => v !== '{board_description}')} />
       </div>
@@ -128,7 +128,7 @@ function MetaGroup({
           maxLength={400}
           value={descriptionValue}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          className="input resize-y font-mono"
+          className="input resize-y tabular-nums"
         />
         <VariableHint variables={variables} />
       </div>

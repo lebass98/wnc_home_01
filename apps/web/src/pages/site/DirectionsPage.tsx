@@ -93,7 +93,7 @@ export default function DirectionsPage() {
 
           <div className="lg:col-span-8">
             <Reveal>
-              <p className="font-mono text-[1.75rem] font-semibold tracking-tight text-mint-500 sm:text-[2rem]">
+              <p className="tabular-nums text-[1.75rem] font-semibold tracking-tight text-mint-500 sm:text-[2rem]">
                 {HEAD_OFFICE.phone}
               </p>
             </Reveal>
@@ -125,7 +125,7 @@ export default function DirectionsPage() {
                   ).map(([label, value]) => (
                     <div key={label} className="flex gap-4">
                       <dt className="w-12 shrink-0 font-medium text-mint-500">{label}</dt>
-                      <dd className="font-mono text-slate-700">{value}</dd>
+                      <dd className="tabular-nums text-slate-700">{value}</dd>
                     </div>
                   ))}
                 </dl>

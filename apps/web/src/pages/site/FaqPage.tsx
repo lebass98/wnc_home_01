@@ -152,7 +152,7 @@ export default function FaqPage() {
                       aria-expanded={open}
                       className="group flex w-full items-center gap-4 py-6 text-left sm:gap-6 sm:py-7"
                     >
-                      <span className="w-8 shrink-0 font-mono text-lg font-semibold text-mint-500">Q.</span>
+                      <span className="w-8 shrink-0 tabular-nums text-lg font-semibold text-mint-500">Q.</span>
                       <span className="flex flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
                         {item.category && (
                           <span className="shrink-0 text-xs font-medium text-slate-400 sm:w-20">{item.category}</span>

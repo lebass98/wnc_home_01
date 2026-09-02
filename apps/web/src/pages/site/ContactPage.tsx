@@ -100,7 +100,7 @@ export default function ContactPage() {
           <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
             {STEPS.map((s, i) => (
               <Reveal key={s.no} index={i} className="border-t border-slate-900 pt-6">
-                <p className="font-mono text-2xl font-semibold text-mint-400">{s.no}</p>
+                <p className="tabular-nums text-2xl font-semibold text-mint-400">{s.no}</p>
                 <h3 className="mt-3 font-bold text-slate-900">{s.title}</h3>
                 <p className="mt-3 text-[0.95rem] leading-[1.8] text-slate-600">{s.desc}</p>
               </Reveal>

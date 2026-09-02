@@ -206,7 +206,7 @@ export default function BoardEditPage() {
                     onChange={(e) => set('slug', e.target.value)}
                     maxLength={40}
                     placeholder={t('board.form.slugPlaceholder')}
-                    className="input font-mono"
+                    className="input tabular-nums"
                   />
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
                     URL 및 테이블명으로 사용됩니다 (영문, 숫자, 하이픈만 가능)
@@ -236,13 +236,13 @@ export default function BoardEditPage() {
                     <ul className="mt-2.5 space-y-1.5 pl-6 text-sm text-slate-600 dark:text-slate-400">
                       <li className="flex flex-wrap items-center gap-2">
                         <span>• 관리자 메뉴 경로:</span>
-                        <code className="rounded border border-slate-200 bg-white px-2 py-0.5 font-mono text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <code className="rounded border border-slate-200 bg-white px-2 py-0.5 tabular-nums text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
                           /admin/board/{slugPreview}
                         </code>
                       </li>
                       <li className="flex flex-wrap items-center gap-2">
                         <span>• 사용자 메뉴 경로:</span>
-                        <code className="rounded border border-slate-200 bg-white px-2 py-0.5 font-mono text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        <code className="rounded border border-slate-200 bg-white px-2 py-0.5 tabular-nums text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
                           /board/{slugPreview}
                         </code>
                       </li>

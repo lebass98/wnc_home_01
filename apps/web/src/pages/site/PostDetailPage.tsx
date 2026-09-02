@@ -96,10 +96,10 @@ export default function PostDetailPage() {
                     작성자 <span className="ml-1 text-slate-900">{post.authorName}</span>
                   </span>
                   <span>
-                    등록일 <span className="ml-1 font-mono text-slate-900">{formatDate(post.createdAt)}</span>
+                    등록일 <span className="ml-1 tabular-nums text-slate-900">{formatDate(post.createdAt)}</span>
                   </span>
                   <span>
-                    조회 <span className="ml-1 font-mono text-slate-900">{post.views}</span>
+                    조회 <span className="ml-1 tabular-nums text-slate-900">{post.views}</span>
                   </span>
                 </Reveal>
               </header>
@@ -131,7 +131,7 @@ export default function PostDetailPage() {
                         className="flex min-w-0 flex-1 items-center justify-between gap-6 text-slate-700 transition hover:text-mint-700"
                       >
                         <span className="line-clamp-1">{item.title}</span>
-                        <span className="hidden shrink-0 font-mono text-sm text-slate-400 sm:inline">
+                        <span className="hidden shrink-0 tabular-nums text-sm text-slate-400 sm:inline">
                           {formatDate(item.createdAt)}
                         </span>
                       </Link>

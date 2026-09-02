@@ -287,7 +287,7 @@ export default function PageListPage() {
                       </Link>
                       <span className="text-xs text-slate-400">/page/{item.slug}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">{item.slug}</td>
+                    <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-400">{item.slug}</td>
                     <td className="px-4 py-3">
                       {item.published ? <Badge tone="green">발행</Badge> : <Badge tone="slate">미발행</Badge>}
                     </td>

@@ -63,7 +63,7 @@ function BasicTable({
               onClick={() => onOpen(post.id)}
               className="group h-20 cursor-pointer border-b border-slate-200 font-light text-slate-800 transition hover:bg-slate-50"
             >
-              <td className="font-mono text-slate-500">{data.total - ((data.page - 1) * data.pageSize + i)}</td>
+              <td className="tabular-nums text-slate-500">{data.total - ((data.page - 1) * data.pageSize + i)}</td>
               {showBoard && <td className="text-sm text-mint-600">{boardName(boards, post.category)}</td>}
               <td className="text-left">
                 <span className="line-clamp-1 font-normal text-slate-900 transition group-hover:text-mint-700">
@@ -71,8 +71,8 @@ function BasicTable({
                 </span>
               </td>
               <td className="text-slate-600">{post.authorName}</td>
-              <td className="font-mono text-slate-500">{formatDate(post.createdAt)}</td>
-              <td className="font-mono text-slate-500">{post.views}</td>
+              <td className="tabular-nums text-slate-500">{formatDate(post.createdAt)}</td>
+              <td className="tabular-nums text-slate-500">{post.views}</td>
             </tr>
           ))}
         </tbody>
@@ -104,7 +104,7 @@ function CardList({ items, boards, showBoard }: ListProps) {
                 {post.title}
               </h3>
               <p className="mt-3 line-clamp-2 text-[0.95rem] leading-[1.8] text-slate-600">{post.excerpt}</p>
-              <div className="mt-auto flex items-center gap-4 pt-5 font-mono text-sm text-slate-400">
+              <div className="mt-auto flex items-center gap-4 pt-5 tabular-nums text-sm text-slate-400">
                 <span>{formatDate(post.createdAt)}</span>
                 <span>조회 {post.views}</span>
               </div>
@@ -139,7 +139,7 @@ function GalleryList({ items, boards, showBoard }: ListProps) {
             <h3 className="mt-2 line-clamp-1 font-semibold text-slate-900 transition group-hover:text-mint-700">
               {post.title}
             </h3>
-            <p className="mt-1.5 font-mono text-sm text-slate-400">{formatDate(post.createdAt)}</p>
+            <p className="mt-1.5 tabular-nums text-sm text-slate-400">{formatDate(post.createdAt)}</p>
           </Link>
         </Reveal>
       ))}

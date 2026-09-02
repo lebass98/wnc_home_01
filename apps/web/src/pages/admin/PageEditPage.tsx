@@ -195,7 +195,7 @@ export default function PageEditPage() {
                 maxLength={80}
                 value={form.slug ?? ''}
                 onChange={(e) => set('slug', e.target.value)}
-                className="input font-mono"
+                className="input tabular-nums"
                 placeholder="비우면 제목에서 자동 생성"
               />
               <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">

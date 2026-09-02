@@ -466,7 +466,7 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
                   maxLength={20}
                   value={form.ogLocale ?? ''}
                   onChange={(e) => set('ogLocale', e.target.value)}
-                  className="input font-mono"
+                  className="input tabular-nums"
                   placeholder="ko_KR"
                 />
               </div>
@@ -530,7 +530,7 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
                 maxLength={200}
                 value={form.googleVerification ?? ''}
                 onChange={(e) => set('googleVerification', e.target.value)}
-                className="input font-mono"
+                className="input tabular-nums"
                 placeholder="google-site-verification 값"
               />
             </div>
@@ -544,7 +544,7 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
                 maxLength={200}
                 value={form.naverVerification ?? ''}
                 onChange={(e) => set('naverVerification', e.target.value)}
-                className="input font-mono"
+                className="input tabular-nums"
                 placeholder="naver-site-verification 값"
               />
             </div>
@@ -559,7 +559,7 @@ function SeoForm({ setting }: { setting: SiteSetting }) {
               maxLength={50}
               value={form.gaId ?? ''}
               onChange={(e) => set('gaId', e.target.value)}
-              className="input font-mono sm:w-64"
+              className="input tabular-nums sm:w-64"
               placeholder="G-XXXXXXXXXX"
             />
           </div>

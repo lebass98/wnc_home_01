@@ -115,7 +115,7 @@ export default function PostEditPage() {
               rows={16}
               value={form.content}
               onChange={(e) => set('content', e.target.value)}
-              className="input resize-y font-mono text-sm leading-relaxed"
+              className="input resize-y tabular-nums text-sm leading-relaxed"
               placeholder="내용을 입력하세요"
             />
           </div>

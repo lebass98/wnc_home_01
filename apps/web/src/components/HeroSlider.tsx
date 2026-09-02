@@ -14,9 +14,6 @@ const SPEED = 2000
 /** 배경이 슬라이드보다 늦게 따라오는 시간(ms) — 패럴랙스 느낌을 낸다. */
 const DRIFT = 3000
 
-/** 01, 02 … 처럼 두 자리로 맞춘다. */
-const pad = (n: number) => String(n).padStart(2, '0')
-
 /** 하단 조작 막대의 작은 아이콘 버튼 */
 function ControlButton({
   onClick,
@@ -32,9 +29,18 @@ function ControlButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-6 w-6 place-items-center text-white/80 transition hover:text-white"
+      className="grid h-6 w-6 place-items-center text-white/85 transition hover:text-white"
     >
-      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <svg
+        className="h-4 w-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
         {children}
       </svg>
     </button>
@@ -72,6 +78,15 @@ export default function HeroSlider({
     const timer = setTimeout(() => go(-1), interval)
     return () => clearTimeout(timer)
   }, [playing, moving, count, interval, index, go])
+
+  /** 점을 눌러 이동 — 바로 옆 장이면 밀어서, 멀면 바로 바꾼다. */
+  const jump = (target: number) => {
+    if (moving || target === index) return
+    const diff = (target - index + count) % count
+    if (diff === 1) go(-1)
+    else if (diff === count - 1) go(1)
+    else setIndex(target)
+  }
 
   /** 밀림이 끝나면 현재 장을 바꾸고, 전환 없이 제자리로 되돌린다. */
   const onTransitionEnd = (e: TransitionEvent<HTMLDivElement>) => {
@@ -159,35 +174,42 @@ export default function HeroSlider({
         })}
       </div>
 
-      {/* 왼쪽 아래 조작 막대 — 현재 장 번호와 이전·재생/정지·다음 */}
+      {/* 아래 가운데 조작 알약 — 점(현재 장)과 이전·정지/재생·다음 */}
       {count > 1 && (
-        <div className="absolute bottom-0 left-0 z-10 flex items-center gap-4 rounded-tr-2xl bg-[rgba(3,11,20,0.7)] px-4 py-2 sm:gap-5 sm:px-6 sm:py-3">
-          <div className="flex items-center text-sm font-bold text-white sm:text-2xl" aria-live="polite">
-            {pad(index + 1)}
-            <span className="flex items-center text-[#a3a3a5]">
-              <i className="mx-2 inline-block h-3 w-px bg-[#a3a3a5] sm:mx-3 sm:h-4" aria-hidden />
-              {pad(count)}
-            </span>
+        <div
+          className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-5 rounded-full bg-black/40 px-6 py-2.5 backdrop-blur-sm sm:bottom-8"
+          aria-label={`${index + 1} / ${count}`}
+        >
+          <div className="flex items-center gap-4">
+            {slides.map((s, i) => (
+              <button
+                key={s.title.join()}
+                type="button"
+                onClick={() => jump(i)}
+                aria-label={`${i + 1}번째 배너 보기`}
+                aria-current={i === index}
+                className={`h-2 w-2 rounded-full transition ${
+                  i === index ? 'bg-white' : 'bg-white/45 hover:bg-white/80'
+                }`}
+              />
+            ))}
           </div>
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="ml-1 flex items-center gap-2.5">
             <ControlButton onClick={() => go(1)} label="이전 배너">
-              <path d="M15.5 4 7.5 12l8 8V4z" />
+              <path d="M15 5l-7 7 7 7" />
             </ControlButton>
             <ControlButton
               onClick={() => setPlaying((p) => !p)}
               label={playing ? '자동 넘김 정지' : '자동 넘김 재생'}
             >
               {playing ? (
-                <>
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </>
+                <path d="M9 5v14M15 5v14" />
               ) : (
-                <path d="M7 4v16l13-8z" />
+                <path d="M8 5v14l11-7z" fill="currentColor" />
               )}
             </ControlButton>
             <ControlButton onClick={() => go(-1)} label="다음 배너">
-              <path d="M8.5 4v16l8-8z" />
+              <path d="M9 5l7 7-7 7" />
             </ControlButton>
           </div>
         </div>

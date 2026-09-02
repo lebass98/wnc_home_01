@@ -1,22 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import type { Board, BoardInput, BoardType } from '@wnc/shared'
-import { BOARD_TYPE_DESCRIPTION, BOARD_TYPE_LABEL } from '@wnc/shared'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import type { Board, BoardType } from '@wnc/shared'
+import { BOARD_TYPE_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { clearBoardCache } from '../../lib/boards'
 import { formatDateTime } from '../../lib/format'
-import { EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination } from '../../components/ui'
+import { EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
 
-const EMPTY: BoardInput = {
-  name: '',
-  slug: '',
-  type: 'basic',
-  description: '',
-  published: true,
-  sortOrder: 0,
-}
-
-const TYPES: BoardType[] = ['basic', 'gallery', 'card']
 const PAGE_SIZE = 10
 
 /** 유형별 뱃지 색상 */
@@ -27,15 +17,13 @@ const TYPE_TONE: Record<BoardType, string> = {
 }
 
 export default function BoardListPage() {
+  const navigate = useNavigate()
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [keyword, setKeyword] = useState('')
   const [page, setPage] = useState(1)
   const [menuFor, setMenuFor] = useState<number | null>(null)
-
-  /** 편집 중인 게시판. null 이면 닫힌 상태, 'new' 면 추가 */
-  const [editing, setEditing] = useState<Board | 'new' | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -128,7 +116,7 @@ export default function BoardListPage() {
                 />
               </svg>
             </button>
-            <button type="button" onClick={() => setEditing('new')} className="btn-primary">
+            <button type="button" onClick={() => navigate('/admin/boards/new')} className="btn-primary">
               <span className="text-base leading-none">+</span> 게시판 추가
             </button>
           </div>
@@ -285,7 +273,7 @@ export default function BoardListPage() {
                             type="button"
                             onClick={() => {
                               setMenuFor(null)
-                              setEditing(board)
+                              navigate(`/admin/boards/${board.id}`)
                             }}
                             className="block w-full px-3.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50
                                        dark:text-slate-200 dark:hover:bg-slate-700"
@@ -318,190 +306,6 @@ export default function BoardListPage() {
         )}
       </div>
 
-      {editing && (
-        <BoardForm
-          board={editing === 'new' ? null : editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null)
-            clearBoardCache()
-            load()
-          }}
-        />
-      )}
     </>
-  )
-}
-
-/** 게시판 추가·수정 대화상자 */
-function BoardForm({
-  board,
-  onClose,
-  onSaved,
-}: {
-  board: Board | null
-  onClose: () => void
-  onSaved: () => void
-}) {
-  const [form, setForm] = useState<BoardInput>(
-    board
-      ? {
-          name: board.name,
-          slug: board.slug,
-          type: board.type,
-          description: board.description ?? '',
-          published: board.published,
-          sortOrder: board.sortOrder,
-        }
-      : EMPTY,
-  )
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  function set<K extends keyof BoardInput>(key: K, value: BoardInput[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      if (board) {
-        await api(`/boards/${board.id}`, { method: 'PUT', body: form, auth: true })
-      } else {
-        await api('/boards', { method: 'POST', body: form, auth: true })
-      }
-      onSaved()
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Modal
-      title={board ? '게시판 수정' : '게시판 추가'}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="submit" form="board-form" disabled={saving} className="btn-primary">
-            {saving ? '저장 중...' : '저장'}
-          </button>
-          <button type="button" onClick={onClose} className="btn-secondary">
-            취소
-          </button>
-        </>
-      }
-    >
-      <form id="board-form" onSubmit={handleSubmit} className="space-y-5">
-        {error && <ErrorMessage message={error} />}
-
-        <div>
-          <label htmlFor="board-name" className="label">
-            게시판 이름 <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="board-name"
-            required
-            maxLength={60}
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            className="input"
-            placeholder="예: 공지사항"
-          />
-        </div>
-
-        {/* 게시판 유형 */}
-        <div>
-          <span className="label">게시판 유형</span>
-          <div className="space-y-2">
-            {TYPES.map((t) => (
-              <label
-                key={t}
-                className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition ${
-                  form.type === t
-                    ? 'border-brand-500 bg-brand-50 dark:border-brand-500 dark:bg-brand-500/10'
-                    : 'border-slate-200 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="board-type"
-                  value={t}
-                  checked={form.type === t}
-                  onChange={() => set('type', t)}
-                  className="mt-0.5 h-4 w-4 shrink-0 border-slate-300 text-brand-600 focus:ring-brand-500"
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {BOARD_TYPE_LABEL[t]}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                    {BOARD_TYPE_DESCRIPTION[t]}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="board-slug" className="label">
-            슬러그
-          </label>
-          <input
-            id="board-slug"
-            maxLength={40}
-            value={form.slug ?? ''}
-            onChange={(e) => set('slug', e.target.value)}
-            className="input"
-            placeholder="비우면 이름으로 자동 생성됩니다"
-          />
-          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-            주소에 쓰이는 영문 이름입니다. 바꾸면 이 게시판의 글도 함께 옮겨집니다.
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="board-desc" className="label">
-            설명
-          </label>
-          <input
-            id="board-desc"
-            maxLength={200}
-            value={form.description ?? ''}
-            onChange={(e) => set('description', e.target.value)}
-            className="input"
-            placeholder="게시판 상단과 검색 결과에 쓰입니다."
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="board-order" className="label">
-              정렬 순서
-            </label>
-            <input
-              id="board-order"
-              type="number"
-              value={form.sortOrder ?? 0}
-              onChange={(e) => set('sortOrder', Number(e.target.value))}
-              className="input"
-            />
-          </div>
-          <label className="flex cursor-pointer items-center gap-2.5 sm:mt-7">
-            <input
-              type="checkbox"
-              checked={form.published}
-              onChange={(e) => set('published', e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-300">홈페이지에 노출</span>
-          </label>
-        </div>
-      </form>
-    </Modal>
   )
 }

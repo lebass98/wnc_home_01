@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useAuth } from '../lib/auth'
 import ThemeToggle from './ThemeToggle'
 import { useEnableDarkMode } from '../lib/theme'
+import { useBoards } from '../lib/boards'
 
 /** 하위 메뉴가 없는 항목 */
 interface NavLeaf {
@@ -101,6 +102,22 @@ const NAV_IDLE =
 
 export default function AdminLayout() {
   useEnableDarkMode()
+  // '관리자 메뉴에 표시'를 켠 게시판은 [게시판 관리] 아래에 바로가기로 붙인다.
+  const boards = useBoards(true)
+
+  // 정적 메뉴에 게시판 바로가기를 합친다. (원본 NAV 는 건드리지 않는다)
+  const nav: NavItem[] = NAV.map((item) => {
+    if (!isGroup(item) || item.label !== '게시판 관리') return item
+    const shortcuts: NavLeaf[] = boards
+      .filter((b) => b.showInAdminMenu)
+      .map((b) => ({
+        to: `/admin/posts/list?category=${encodeURIComponent(b.slug)}`,
+        label: b.name,
+        end: false,
+        icon: 'M4 6h16M4 12h16M4 18h16',
+      }))
+    return { ...item, children: [...item.children, ...shortcuts] }
+  })
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -126,7 +143,7 @@ export default function AdminLayout() {
       </div>
 
       <nav className="flex-1 space-y-0.5 px-4 py-5">
-        {NAV.map((item) =>
+        {nav.map((item) =>
           isGroup(item) ? (
             <div key={item.label}>
               <button

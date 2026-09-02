@@ -12,9 +12,16 @@ function loadBoards(includeHidden: boolean): Promise<Board[]> {
   return publicPromise
 }
 
-/** 관리자 화면에서 게시판을 고치면 공개 목록 캐시를 버린다. */
+/** 게시판 목록이 바뀌었을 때 다시 불러오도록 알리는 구독자들 */
+const listeners = new Set<() => void>()
+
+/**
+ * 관리자 화면에서 게시판을 고치면 캐시를 버리고,
+ * 목록을 쓰고 있는 화면(사이드바 등)에 다시 받아오라고 알린다.
+ */
 export function clearBoardCache() {
   publicPromise = null
+  for (const notify of listeners) notify()
 }
 
 /**
@@ -26,11 +33,18 @@ export function useBoards(includeHidden = false) {
 
   useEffect(() => {
     let alive = true
-    loadBoards(includeHidden)
-      .then((list) => alive && setBoards(list))
-      .catch(() => alive && setBoards([]))
+    const fetchBoards = () => {
+      loadBoards(includeHidden)
+        .then((list) => alive && setBoards(list))
+        .catch(() => alive && setBoards([]))
+    }
+    fetchBoards()
+
+    // 게시판이 추가·수정되면 즉시 다시 받는다.
+    listeners.add(fetchBoards)
     return () => {
       alive = false
+      listeners.delete(fetchBoards)
     }
   }, [includeHidden])
 

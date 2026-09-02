@@ -363,6 +363,13 @@ export interface DemoBoard {
   slug: string
   type: 'basic' | 'gallery' | 'card'
   description: string | null
+  nameI18n: Record<string, string>
+  descriptionI18n: Record<string, string>
+  showInAdminMenu: boolean
+  categories: string[]
+  secretMode: 'off' | 'optional' | 'always'
+  showViews: boolean
+  useReport: boolean
   published: boolean
   sortOrder: number
   createdAt: string
@@ -381,6 +388,13 @@ export function createDemoBoards(): DemoBoard[] {
     slug,
     type,
     description,
+    nameI18n: { ko: name },
+    descriptionI18n: { ko: description },
+    showInAdminMenu: false,
+    categories: [],
+    secretMode: 'off' as const,
+    showViews: true,
+    useReport: false,
     published: true,
     sortOrder: i,
     createdAt: isoDaysAgo(30),

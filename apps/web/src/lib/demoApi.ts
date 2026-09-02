@@ -254,10 +254,17 @@ export function handleDemoRequest(
     const now = new Date().toISOString()
     const board: DemoBoard = {
       id: db.nextBoardId++,
-      name: body.name,
+      name: body.nameI18n?.ko?.trim() || body.name,
       slug,
       type: body.type ?? 'basic',
-      description: body.description || null,
+      description: body.descriptionI18n?.ko || body.description || null,
+      nameI18n: body.nameI18n ?? {},
+      descriptionI18n: body.descriptionI18n ?? {},
+      showInAdminMenu: Boolean(body.showInAdminMenu),
+      categories: body.categories ?? [],
+      secretMode: body.secretMode ?? 'off',
+      showViews: body.showViews ?? true,
+      useReport: Boolean(body.useReport),
       published: Boolean(body.published),
       sortOrder: body.sortOrder ?? 0,
       createdAt: now,
@@ -275,6 +282,11 @@ export function handleDemoRequest(
     if (idx === -1) throw new DemoError('게시판을 찾을 수 없습니다.', 404)
     const board = db.boards[idx]
 
+    // 설정 화면에서 게시판 하나를 불러온다.
+    if (method === 'GET') {
+      return { ...board, postCount: db.posts.filter((p) => p.category === board.slug).length }
+    }
+
     if (method === 'PUT') {
       const slug = demoBoardSlug(db, body.slug?.trim() ? body.slug : body.name, id)
       // slug 가 바뀌면 이 게시판 글의 category 도 함께 옮긴다.
@@ -286,7 +298,14 @@ export function handleDemoRequest(
         name: body.name,
         slug,
         type: body.type ?? board.type,
-        description: body.description || null,
+        description: body.descriptionI18n?.ko || body.description || null,
+        nameI18n: body.nameI18n ?? board.nameI18n,
+        descriptionI18n: body.descriptionI18n ?? board.descriptionI18n,
+        showInAdminMenu: Boolean(body.showInAdminMenu),
+        categories: body.categories ?? board.categories,
+        secretMode: body.secretMode ?? board.secretMode,
+        showViews: body.showViews ?? board.showViews,
+        useReport: Boolean(body.useReport),
         published: Boolean(body.published),
         sortOrder: body.sortOrder ?? board.sortOrder,
         updatedAt: new Date().toISOString(),

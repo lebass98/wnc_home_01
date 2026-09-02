@@ -45,6 +45,28 @@ export const BOARD_TYPE_DESCRIPTION: Record<BoardType, string> = {
   card: '이미지와 요약을 카드로 보여줍니다. 뉴스나 소식에 적합합니다.',
 }
 
+/** 관리자에서 입력받는 언어 */
+export const BOARD_LOCALES = ['ko', 'en', 'ja'] as const
+export type BoardLocale = (typeof BOARD_LOCALES)[number]
+
+export const BOARD_LOCALE_LABEL: Record<BoardLocale, string> = {
+  ko: '한국어',
+  en: 'English',
+  ja: '日本語',
+}
+
+/** 언어별 텍스트. 기본 언어(ko)는 항상 채워져 있어야 한다. */
+export type LocalizedText = Partial<Record<BoardLocale, string>>
+
+/** 비밀글 모드 */
+export type SecretMode = 'off' | 'optional' | 'always'
+
+export const SECRET_MODE_LABEL: Record<SecretMode, string> = {
+  off: '사용 안 함',
+  optional: '작성자 선택',
+  always: '항상 비밀글',
+}
+
 export interface Board {
   id: number
   name: string
@@ -53,6 +75,17 @@ export interface Board {
   /** 목록 표시 방식 */
   type: BoardType
   description: string | null
+  /** 언어별 게시판명 */
+  nameI18n: LocalizedText
+  /** 언어별 설명 */
+  descriptionI18n: LocalizedText
+  /** 관리자 사이드바에 바로가기를 노출할지 */
+  showInAdminMenu: boolean
+  /** 글 분류 목록 */
+  categories: string[]
+  secretMode: SecretMode
+  showViews: boolean
+  useReport: boolean
   /** 끄면 홈페이지에서 감춘다 */
   published: boolean
   sortOrder: number
@@ -66,6 +99,13 @@ export interface BoardInput {
   slug?: string
   type: BoardType
   description?: string | null
+  nameI18n?: LocalizedText
+  descriptionI18n?: LocalizedText
+  showInAdminMenu?: boolean
+  categories?: string[]
+  secretMode?: SecretMode
+  showViews?: boolean
+  useReport?: boolean
   published: boolean
   sortOrder?: number
 }

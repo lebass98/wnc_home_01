@@ -225,16 +225,38 @@ model BoardSetting {
 
 /// 게시판 — 글이 속하는 묶음. Post.category 가 이 slug 를 가리킨다.
 model Board {
-  id          Int     @id @default(autoincrement())
-  name        String
+  id   Int    @id @default(autoincrement())
+  /// 기본 언어(ko) 게시판명. 목록·검색에서 대표 이름으로 쓴다.
+  name String
   /// 글의 category 값으로 쓰인다.
-  slug        String  @unique
+  slug String @unique
   /// 목록 표시 방식: basic(기본형) | gallery(갤러리형) | card(카드형)
-  type        String  @default("basic")
+  type String @default("basic")
+  /// 기본 언어(ko) 설명
   description String?
+
+  /// 언어별 게시판명 {"ko":"공지사항","en":"Notice"} — JSON 문자열
+  nameI18n        String @default("{}")
+  /// 언어별 설명
+  descriptionI18n String @default("{}")
+
   /// 끄면 홈페이지 소식 화면에서 감춘다.
-  published   Boolean @default(true)
-  sortOrder   Int     @default(0)
+  published Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  /// 관리자 사이드바 [게시판 관리] 아래에 바로가기를 노출한다.
+  showInAdminMenu Boolean @default(false)
+
+  /// 글 분류 목록 ["공지","안내"] — JSON 문자열
+  categories String @default("[]")
+
+  /// 비밀글 모드: off(사용 안 함) | optional(작성자 선택) | always(항상 비밀글)
+  secretMode String @default("off")
+
+  /// 목록·상세에 조회수를 표시한다.
+  showViews Boolean @default(true)
+  /// 부적절한 글·댓글 신고 기능을 쓴다.
+  useReport Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

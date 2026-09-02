@@ -6,6 +6,7 @@ import DemoBanner from './components/DemoBanner'
 import SiteLayout from './components/SiteLayout'
 import HomePage from './pages/site/HomePage'
 import AboutPage from './pages/site/AboutPage'
+import DirectionsPage from './pages/site/DirectionsPage'
 import ServicesPage from './pages/site/ServicesPage'
 import BoardPage from './pages/site/BoardPage'
 import ProductsPage from './pages/site/ProductsPage'
@@ -61,6 +62,7 @@ export default function App() {
           <Route element={<SiteLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/about/directions" element={<DirectionsPage />} />
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />

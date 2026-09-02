@@ -4,9 +4,11 @@ import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 
 /** 회사소개 묶음 안에서 오갈 수 있는 페이지 */
-const TABS = [
+/** 회사소개 묶음 안에서 오갈 수 있는 페이지 — 사업분야·찾아오시는 길에서도 같은 탭을 쓴다. */
+export const ABOUT_TABS = [
   { to: '/about', label: '회사 소개' },
   { to: '/services', label: '사업분야' },
+  { to: '/about/directions', label: '찾아오시는 길' },
 ]
 
 /** 서비스 철학 — 두 갈래로 나눠 설명한다. */
@@ -45,7 +47,7 @@ export default function AboutPage() {
 
   return (
     <>
-      <PageHero title="회사소개" tabs={TABS} />
+      <PageHero title="회사소개" tabs={ABOUT_TABS} />
 
       {/* 소개 — 왼쪽 제목, 오른쪽 본문 */}
       <section className="py-24 sm:py-28">

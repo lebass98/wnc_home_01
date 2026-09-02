@@ -4,11 +4,7 @@ import SectionHeading from '../../components/SectionHeading'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 
-/** 회사소개 묶음 안에서 오갈 수 있는 페이지 */
-const TABS = [
-  { to: '/about', label: '회사 소개' },
-  { to: '/services', label: '사업분야' },
-]
+import { ABOUT_TABS } from './AboutPage'
 
 /** 위쪽 소개 — 작은 제목과 본문 두 묶음 */
 const INTRO = [
@@ -49,7 +45,7 @@ export default function ServicesPage() {
 
   return (
     <>
-      <PageHero title="사업분야" tabs={TABS} />
+      <PageHero title="사업분야" tabs={ABOUT_TABS} />
 
       {/* 소개 — 왼쪽 제목, 오른쪽에 작은 제목을 단 본문 두 묶음 */}
       <section className="py-24 sm:py-28">

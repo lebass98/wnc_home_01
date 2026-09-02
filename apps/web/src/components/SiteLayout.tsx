@@ -33,6 +33,7 @@ const NAV: NavItem[] = [
     children: [
       { to: '/about', label: '회사 소개' },
       { to: '/services', label: '사업분야' },
+      { to: '/about/directions', label: '찾아오시는 길' },
     ],
   },
   // 사업분야는 한 화면뿐이라 2차 메뉴가 없다.
@@ -113,6 +114,7 @@ export default function SiteLayout() {
   const overHero =
     DARK_TOP.includes(pathname) ||
     pathname.startsWith('/page/') ||
+    pathname.startsWith('/about/') ||
     pathname.startsWith('/board/') ||
     pathname.startsWith('/contact/')
   const [scrolled, setScrolled] = useState(false)

@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -166,12 +167,26 @@ function CloseIcon() {
  * 팝업 한 장 — 이미지와 본문을 담는다.
  * 크기는 관리자가 정한 가로·세로를 그대로 쓴다. 내용이 짧으면 아래가 비고,
  * 길면 스크롤바 설정에 따라 스크롤되거나 잘린다.
+ *
+ * 화면이 좁아 그대로 담을 수 없으면 scale 만큼 통째로 줄인다.
+ * 글자·이미지가 함께 줄어들어 원래 비율 그대로 작아진다.
  */
-function PopupCard({ popup }: { popup: Popup }) {
+function PopupCard({ popup, scale = 1 }: { popup: Popup; scale?: number }) {
   return (
-    <div style={{ width: popup.width, maxWidth: '100%' }} className="overflow-hidden bg-white shadow-2xl">
+    <div
+      style={{ width: popup.width * scale, height: popup.height * scale }}
+      className="overflow-hidden bg-white shadow-2xl"
+    >
       <MaybeLink popup={popup}>
-        <div style={{ height: popup.height, overflowY: overflowOf(popup.scrollbar) }}>
+        <div
+          style={{
+            width: popup.width,
+            height: popup.height,
+            transform: scale === 1 ? undefined : `scale(${scale})`,
+            transformOrigin: 'top left',
+            overflowY: overflowOf(popup.scrollbar),
+          }}
+        >
           {popup.image && <img src={popup.image} alt="" className="w-full" />}
           {popup.content?.trim() && (
             <div className="px-6 py-6">
@@ -336,6 +351,48 @@ export default function SitePopups() {
     }
   }, [count])
 
+  // 가장 큰 팝업 기준으로 자리를 잡는다.
+  const widest = count > 0 ? Math.max(...layers.map((p) => p.width)) : 0
+  const tallest = count > 0 ? Math.max(...layers.map((p) => p.height)) : 0
+  /** 한 화면에 실제로 놓는 장수 */
+  const cols = Math.min(Math.max(count, 1), perView)
+
+  /**
+   * 화면을 넘지 않도록 비율 그대로 줄일 배율.
+   * 좌우는 슬라이드 칸의 실제 폭에서, 위아래는 제목·버튼을 뺀 남은 높이에서 구한다.
+   */
+  const stageRef = useRef<HTMLDivElement>(null)
+  const headRef = useRef<HTMLHeadingElement>(null)
+  const footRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+
+  useLayoutEffect(() => {
+    if (count === 0) return
+    const fit = () => {
+      const stage = stageRef.current
+      if (!stage || widest === 0 || tallest === 0) return
+      const wide = window.innerWidth >= 640
+      // 좌우 화살표가 차지하는 자리 (px-12 / sm:px-[70px])
+      const arrows = sliding ? (wide ? 70 : 48) * 2 : 0
+      const availWidth = stage.clientWidth - arrows
+      const needWidth = cols * widest + (cols - 1) * GAP
+
+      // 제목·버튼과 위아래 여백(py-10)을 뺀 나머지가 팝업이 쓸 수 있는 높이다.
+      const headHeight = headRef.current?.offsetHeight ?? 0
+      const footHeight = footRef.current?.offsetHeight ?? 0
+      const footMargin = wide ? 80 : 48
+      const dots = sliding ? 42 : 0
+      const availHeight = window.innerHeight - headHeight - footHeight - footMargin - dots - 80
+
+      const next = Math.min(1, availWidth / needWidth, availHeight / tallest)
+      // 너무 작아지면 읽을 수 없으므로 여기서 멈추고, 넘치는 만큼은 덮개가 스크롤된다.
+      setScale(Number.isFinite(next) && next > 0 ? Math.max(0.35, Math.min(1, Number(next.toFixed(3)))) : 1)
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [count, cols, perView, sliding, widest, tallest])
+
   if (count === 0) return null
 
   // 표시기간은 팝업마다 다를 수 있어, 여러 개면 가장 짧은 쪽에 맞춰 안내한다.
@@ -345,9 +402,8 @@ export default function SitePopups() {
       ? '다시 열지 않기'
       : '오늘 하루 열지 않기'
 
-  // 슬라이드 폭 — 가장 넓은 팝업 기준으로 perView 장이 딱 들어가게 잡는다.
-  const widest = Math.max(...layers.map((p) => p.width))
-  const viewportWidth = perView * widest + (perView - 1) * GAP
+  // 슬라이드 폭 — 줄어든 크기 기준으로 perView 장이 딱 들어가게 잡는다.
+  const viewportWidth = perView * widest * scale + (perView - 1) * GAP
 
   // 보이는 칸의 양옆에 한 칸씩 더 깔아 두어 밀려 들어올 장을 미리 준비한다.
   const slots = Array.from({ length: perView + 2 }, (_, k) => layers[(index - 1 + k + count) % count])
@@ -360,11 +416,14 @@ export default function SitePopups() {
       className="fixed inset-0 z-[70] overflow-y-auto bg-black/85"
     >
       <div className="flex min-h-full flex-col items-center justify-center px-5 py-10 sm:px-10">
-        <h2 className="pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:pb-20 sm:text-5xl">
+        <h2
+          ref={headRef}
+          className="pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:pb-20 sm:text-5xl"
+        >
           팝업자료
         </h2>
 
-        <div className="relative w-full max-w-site">
+        <div ref={stageRef} className="relative w-full max-w-site">
           {sliding ? (
             <>
               <div className="px-12 sm:px-[70px]">
@@ -390,7 +449,7 @@ export default function SitePopups() {
                           style={{ width: `calc(${100 / perView}% - ${((perView - 1) * GAP) / perView}px)` }}
                           aria-hidden={!shown}
                         >
-                          <PopupCard popup={popup} />
+                          <PopupCard popup={popup} scale={scale} />
                         </div>
                       )
                     })}
@@ -424,14 +483,14 @@ export default function SitePopups() {
             // 한두 장이면 가운데에 나란히 놓는다.
             <div className="flex flex-wrap items-start justify-center" style={{ gap: GAP }}>
               {layers.map((popup) => (
-                <PopupCard key={popup.id} popup={popup} />
+                <PopupCard key={popup.id} popup={popup} scale={scale} />
               ))}
             </div>
           )}
         </div>
 
         {/* 건수 · 닫기 */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:mt-20 sm:gap-[30px]">
+        <div ref={footRef} className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:mt-20 sm:gap-[30px]">
           <dl className="flex h-12 items-center rounded-lg bg-black px-7 text-base font-medium text-white sm:text-lg">
             <dt>팝업건수 :</dt>
             <dd className="pl-1">

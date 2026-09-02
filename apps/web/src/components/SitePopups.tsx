@@ -157,7 +157,14 @@ function ArrowButton({
 /** 닫기 계열 버튼 오른쪽에 붙는 X 아이콘 */
 function CloseIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+    <svg
+      className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      viewBox="0 0 24 24"
+      aria-hidden
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   )
@@ -380,7 +387,7 @@ export default function SitePopups() {
       // 제목·버튼과 위아래 여백(py-10)을 뺀 나머지가 팝업이 쓸 수 있는 높이다.
       const headHeight = headRef.current?.offsetHeight ?? 0
       const footHeight = footRef.current?.offsetHeight ?? 0
-      const footMargin = wide ? 80 : 48
+      const footMargin = wide ? 80 : 32
       const dots = sliding ? 42 : 0
       const availHeight = window.innerHeight - headHeight - footHeight - footMargin - dots - 80
 
@@ -396,11 +403,12 @@ export default function SitePopups() {
   if (count === 0) return null
 
   // 표시기간은 팝업마다 다를 수 있어, 여러 개면 가장 짧은 쪽에 맞춰 안내한다.
-  const hideLabel = layers.every((p) => p.hidePeriod === 'session')
-    ? '이 브라우저를 닫을 때까지 열지 않기'
+  // 좁은 화면에서는 버튼이 한 줄에 들어가도록 짧은 문구를 쓴다.
+  const [hideLabel, hideLabelShort] = layers.every((p) => p.hidePeriod === 'session')
+    ? ['이 브라우저를 닫을 때까지 열지 않기', '브라우저 닫을 때까지']
     : layers.every((p) => p.hidePeriod === 'never')
-      ? '다시 열지 않기'
-      : '오늘 하루 열지 않기'
+      ? ['다시 열지 않기', '다시 안 보기']
+      : ['오늘 하루 열지 않기', '오늘 안 보기']
 
   // 슬라이드 폭 — 줄어든 크기 기준으로 perView 장이 딱 들어가게 잡는다.
   const viewportWidth = perView * widest * scale + (perView - 1) * GAP
@@ -416,9 +424,10 @@ export default function SitePopups() {
       className="fixed inset-0 z-[70] overflow-y-auto bg-black/85"
     >
       <div className="flex min-h-full flex-col items-center justify-center px-5 py-10 sm:px-10">
+        {/* 제목 — 좁은 화면에서는 자리를 아끼려고 감춘다. */}
         <h2
           ref={headRef}
-          className="pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:pb-20 sm:text-5xl"
+          className="hidden pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:block sm:pb-20 sm:text-5xl"
         >
           팝업자료
         </h2>
@@ -490,10 +499,13 @@ export default function SitePopups() {
         </div>
 
         {/* 건수 · 닫기 */}
-        <div ref={footRef} className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:mt-20 sm:gap-[30px]">
-          <dl className="flex h-12 items-center rounded-lg bg-black px-7 text-base font-medium text-white sm:text-lg">
-            <dt>팝업건수 :</dt>
-            <dd className="pl-1">
+        <div
+          ref={footRef}
+          className="mt-8 flex flex-nowrap items-center justify-center gap-2 sm:mt-20 sm:flex-wrap sm:gap-[30px]"
+        >
+          <dl className="flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg bg-black px-3 text-xs font-medium text-white sm:h-12 sm:px-7 sm:text-lg">
+            <dt className="hidden sm:block">팝업건수 :</dt>
+            <dd className="sm:pl-1">
               총 <span className="text-[#ffc80b]">{count}</span>건
             </dd>
           </dl>
@@ -501,7 +513,7 @@ export default function SitePopups() {
           <button
             type="button"
             onClick={() => closeAll(false)}
-            className="flex h-12 items-center gap-3 rounded-lg bg-[#26a112] px-6 font-medium text-white transition hover:brightness-110 sm:px-[38px]"
+            className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#26a112] px-3 text-xs font-medium text-white transition hover:brightness-110 sm:h-12 sm:gap-3 sm:px-[38px] sm:text-base"
           >
             닫기
             <CloseIcon />
@@ -510,9 +522,10 @@ export default function SitePopups() {
           <button
             type="button"
             onClick={() => closeAll(true)}
-            className="flex h-12 items-center gap-3 rounded-lg bg-[#f36f21] px-6 font-medium text-white transition hover:brightness-110 sm:px-[38px]"
+            className="flex h-9 min-w-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#f36f21] px-3 text-xs font-medium text-white transition hover:brightness-110 sm:h-12 sm:min-w-fit sm:gap-3 sm:px-[38px] sm:text-base"
           >
-            {hideLabel}
+            <span className="truncate sm:hidden">{hideLabelShort}</span>
+            <span className="hidden sm:inline">{hideLabel}</span>
             <CloseIcon />
           </button>
         </div>

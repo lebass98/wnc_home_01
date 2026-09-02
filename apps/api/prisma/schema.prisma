@@ -315,3 +315,20 @@ model Popup {
 
   @@index([enabled, startAt, endAt])
 }
+
+model Faq {
+  id Int @id @default(autoincrement())
+  /// 분류 — 홈페이지 목록에서 질문 앞에 작게 보여 준다 (예: 서비스, 견적·계약). 비워 둘 수 있다.
+  category String @default("")
+  question String
+  /// 답변 — 평문으로 저장하고 줄바꿈만 유지해 보여 준다.
+  answer String
+  /// 끄면 홈페이지 자주 묻는 질문에서 감춘다.
+  published Boolean @default(true)
+  /// 목록 순서. 작을수록 위에 온다.
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+}

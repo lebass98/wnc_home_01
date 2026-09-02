@@ -95,6 +95,12 @@ const NAV: NavItem[] = [
     icon: 'M4 5a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V5z M9 10a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9z',
   },
   {
+    to: '/admin/faqs',
+    label: '자주 묻는 질문',
+    end: false,
+    icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+  },
+  {
     to: '/admin/contacts',
     label: '문의 관리',
     end: false,
@@ -127,6 +133,7 @@ export default function AdminLayout() {
       '제품 카테고리': 'nav.productCategories',
       '페이지 관리': 'nav.pages',
       '팝업 관리': 'nav.popups',
+      '자주 묻는 질문': 'nav.faqs',
       '문의 관리': 'nav.contacts',
     }
     const key = keys[label]

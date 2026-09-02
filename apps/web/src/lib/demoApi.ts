@@ -18,6 +18,7 @@ import {
   createDemoBoardSetting,
   createDemoBoards,
   createDemoPopups,
+  createDemoFaqs,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -28,6 +29,7 @@ import {
   type DemoBoardSetting,
   type DemoBoard,
   type DemoPopup,
+  type DemoFaq,
 } from './demoData'
 
 /**
@@ -49,8 +51,10 @@ interface DemoDb {
   boardSetting: DemoBoardSetting
   boards: DemoBoard[]
   popups: DemoPopup[]
+  faqs: DemoFaq[]
   nextBoardId: number
   nextPopupId: number
+  nextFaqId: number
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -66,6 +70,7 @@ function seed(): DemoDb {
   const products = createDemoProducts(leaves)
   const { pages, versions } = createDemoPages()
   const popups = createDemoPopups()
+  const faqs = createDemoFaqs()
   return {
     posts,
     contacts,
@@ -77,8 +82,10 @@ function seed(): DemoDb {
     boardSetting: createDemoBoardSetting(),
     boards: createDemoBoards(),
     popups,
+    faqs,
     nextBoardId: 4,
     nextPopupId: popups.length + 1,
+    nextFaqId: faqs.length + 1,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -101,7 +108,8 @@ function load(): DemoDb {
         parsed.setting &&
         parsed.boardSetting &&
         Array.isArray(parsed.boards) &&
-        Array.isArray(parsed.popups)
+        Array.isArray(parsed.popups) &&
+        Array.isArray(parsed.faqs)
       ) {
         return parsed
       }
@@ -374,6 +382,93 @@ export function handleDemoRequest(
     height: p.height,
     hidePeriod: p.hidePeriod,
   })
+
+
+  // --- 자주 묻는 질문 ---
+  if (rawPath === '/faqs' && method === 'GET') {
+    return db.faqs
+      .filter((f) => f.published)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+  }
+
+  if (rawPath === '/faqs/admin' && method === 'GET') {
+    const q = params.get('q')?.toLowerCase()
+    let items = [...db.faqs].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    if (q) {
+      items = items.filter(
+        (f) =>
+          f.question.toLowerCase().includes(q) ||
+          f.answer.toLowerCase().includes(q) ||
+          f.category.toLowerCase().includes(q),
+      )
+    }
+    return paginate(items, num('page', 1), num('pageSize', 20))
+  }
+
+  if (rawPath === '/faqs' && method === 'POST') {
+    const now = new Date().toISOString()
+    const last = Math.max(-1, ...db.faqs.map((f) => f.sortOrder))
+    const faq: DemoFaq = {
+      id: db.nextFaqId++,
+      category: body.category ?? '',
+      question: body.question,
+      answer: body.answer,
+      published: body.published ?? true,
+      sortOrder: body.sortOrder ?? last + 1,
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.faqs.push(faq)
+    save(db)
+    return faq
+  }
+
+  if (rawPath === '/faqs/bulk-delete' && method === 'POST') {
+    const ids: number[] = body.ids ?? []
+    const before = db.faqs.length
+    db.faqs = db.faqs.filter((f) => !ids.includes(f.id))
+    save(db)
+    return { deleted: before - db.faqs.length }
+  }
+
+  const faqPublishedMatch = rawPath.match(/^\/faqs\/(\d+)\/published$/)
+  if (faqPublishedMatch && method === 'PATCH') {
+    const faq = db.faqs.find((f) => f.id === Number(faqPublishedMatch[1]))
+    if (!faq) throw new DemoError('질문을 찾을 수 없습니다.', 404)
+    faq.published = Boolean(body.published)
+    faq.updatedAt = new Date().toISOString()
+    save(db)
+    return faq
+  }
+
+  const faqMatch = rawPath.match(/^\/faqs\/(\d+)$/)
+  if (faqMatch) {
+    const idx = db.faqs.findIndex((f) => f.id === Number(faqMatch[1]))
+    if (idx === -1) throw new DemoError('질문을 찾을 수 없습니다.', 404)
+    const faq = db.faqs[idx]
+
+    if (method === 'GET') return faq
+
+    if (method === 'PUT') {
+      db.faqs[idx] = {
+        ...faq,
+        category: body.category ?? '',
+        question: body.question,
+        answer: body.answer,
+        published: body.published ?? faq.published,
+        sortOrder: body.sortOrder ?? faq.sortOrder,
+        updatedAt: new Date().toISOString(),
+      }
+      save(db)
+      return db.faqs[idx]
+    }
+
+    if (method === 'DELETE') {
+      db.faqs.splice(idx, 1)
+      save(db)
+      return null
+    }
+  }
 
   if (rawPath === '/popups/active' && method === 'GET') {
     const now = Date.now()

@@ -595,3 +595,26 @@ export const POPUP_SORT_LABEL: Record<PopupSort, string> = {
   startAt: '시작일순',
   name: '이름순',
 }
+
+/* --------------------------- 자주 묻는 질문 --------------------------- */
+
+export interface Faq {
+  id: number
+  /** 분류 — 비어 있을 수 있다 */
+  category: string
+  question: string
+  /** 평문 답변. 줄바꿈만 유지해 보여 준다. */
+  answer: string
+  published: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FaqInput {
+  category?: string
+  question: string
+  answer: string
+  published: boolean
+  sortOrder?: number
+}

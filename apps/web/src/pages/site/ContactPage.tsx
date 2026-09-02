@@ -1,35 +1,33 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { ContactInput } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
+import Reveal from '../../components/Reveal'
 import { ErrorMessage } from '../../components/ui'
 import { usePageTitle } from '../../lib/seo'
+import { CONTACT_TABS } from './FaqPage'
 
 const EMPTY: ContactInput = { name: '', email: '', phone: '', company: '', message: '' }
 
+/** 왼쪽 연락처 — 작은 제목과 값 */
 const INFO = [
-  {
-    label: '주소',
-    value: '서울특별시 강남구 테헤란로 123, 8층',
-    icon: 'M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z',
-  },
-  {
-    label: '전화',
-    value: '02-1234-5678',
-    icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z',
-  },
-  {
-    label: '이메일',
-    value: 'contact@wnc.co.kr',
-    icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
-  },
-  {
-    label: '운영시간',
-    value: '평일 09:00 - 18:00 (점심 12:00 - 13:00)',
-    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-  },
+  { label: 'ADDRESS', value: ['서울특별시 강남구 테헤란로 123, 8층'] },
+  { label: 'TEL', value: ['02-1234-5678'] },
+  { label: 'E-MAIL', value: ['contact@wnc.co.kr'] },
+  { label: 'HOURS', value: ['평일 09:00 - 18:00', '점심 12:00 - 13:00 · 주말·공휴일 휴무'] },
 ]
+
+/** 문의 절차 — 접수 뒤 어떻게 진행되는지 세 단계로 */
+const STEPS = [
+  { no: '1', title: '문의 접수', desc: '아래 양식으로 남겨 주시면 담당자에게 바로 전달됩니다.' },
+  { no: '2', title: '담당자 연락', desc: '1영업일 내에 이메일이나 전화로 범위와 일정을 확인합니다.' },
+  { no: '3', title: '견적·제안', desc: '확인한 내용을 바탕으로 항목별 견적과 진행 방식을 드립니다.' },
+]
+
+/** 밑줄만 있는 입력칸 — 참고 템플릿처럼 단순하게 */
+const FIELD =
+  'w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-[0.95rem] text-slate-900 placeholder:text-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-0'
 
 export default function ContactPage() {
   usePageTitle('문의하기')
@@ -68,56 +66,104 @@ export default function ContactPage() {
 
   return (
     <>
-      <PageHero
-        title="문의하기"
-        description="프로젝트 문의나 궁금하신 점을 남겨주시면 담당자가 1영업일 내에 연락드립니다."
-      />
+      <PageHero title="문의하기" tabs={CONTACT_TABS} />
 
-      <section className="py-16">
-        <div className="container-wnc grid gap-12 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
+      {/* 소개 — 왼쪽 제목, 오른쪽 문의 절차 세 단계 */}
+      <section className="pt-24 sm:pt-28">
+        <div className="container-wnc grid gap-10 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-16">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">연락처 안내</h2>
-            <ul className="mt-8 space-y-6">
-              {INFO.map((item) => (
-                <li key={item.label} className="flex gap-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">{item.label}</p>
-                    <p className="mt-0.5 text-slate-900">{item.value}</p>
-                  </div>
-                </li>
+            <Reveal>
+              <p className="text-[0.95rem] font-medium tracking-wide text-mint-400">Contact Us</p>
+            </Reveal>
+            <h2 className="mt-3 text-[1.75rem] font-bold leading-[1.4] tracking-tight text-slate-900 sm:text-[2rem]">
+              {['무엇이든', '편하게 물어보세요'].map((line, i) => (
+                <Reveal key={line} as="span" index={i + 1} className="block">
+                  {line}
+                </Reveal>
               ))}
-            </ul>
+            </h2>
+            <Reveal index={3} className="mt-7 h-px w-14 bg-slate-900" />
+            <Reveal as="p" index={4} className="mt-7 text-[0.95rem] leading-[1.9] text-slate-600">
+              프로젝트 문의나 궁금하신 점을 남겨 주시면 담당자가 1영업일 내에 연락드립니다. 자주 묻는 질문에서
+              먼저 답을 찾아보실 수도 있습니다.
+            </Reveal>
+            <Reveal index={5} className="mt-6">
+              <Link to="/contact/faq" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900 transition hover:text-mint-700">
+                자주 묻는 질문 보기
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </Reveal>
           </div>
 
-          <div className="card p-8">
+          <div className="grid gap-8 sm:grid-cols-3 sm:gap-6">
+            {STEPS.map((s, i) => (
+              <Reveal key={s.no} index={i} className="border-t border-slate-900 pt-6">
+                <p className="font-mono text-2xl font-semibold text-mint-400">{s.no}</p>
+                <h3 className="mt-3 font-bold text-slate-900">{s.title}</h3>
+                <p className="mt-3 text-[0.95rem] leading-[1.8] text-slate-600">{s.desc}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 연락처 · 문의 양식 */}
+      <section className="py-20 sm:py-24">
+        <div className="container-wnc grid gap-14 lg:grid-cols-[minmax(0,20rem)_1fr] lg:gap-16">
+          <div>
+            <Reveal>
+              <h3 className="text-xl font-bold text-slate-900">연락처</h3>
+            </Reveal>
+            <dl className="mt-8 space-y-7">
+              {INFO.map((item, i) => (
+                <Reveal key={item.label} index={i + 1} className="border-b border-slate-200 pb-6">
+                  <dt className="text-xs font-semibold tracking-[0.2em] text-mint-500">{item.label}</dt>
+                  <dd className="mt-2 text-[0.95rem] leading-[1.8] text-slate-900">
+                    {item.value.map((line) => (
+                      <span key={line} className="block">
+                        {line}
+                      </span>
+                    ))}
+                  </dd>
+                </Reveal>
+              ))}
+            </dl>
+            {/* 지도 자리 — 외부 이미지 없이 그라데이션으로 그린다. */}
+            <Reveal
+              index={5}
+              className="mt-8 h-52"
+              style={{ background: 'linear-gradient(135deg, #dfe7ec 0%, #93aab8 100%)' }}
+            />
+          </div>
+
+          <Reveal index={1} className="border-t border-slate-900 pt-8">
             {done ? (
-              <div className="py-12 text-center">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-green-100 text-green-600">
+              <div className="py-16 text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-mint-50 text-mint-600">
                   <svg className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="mt-5 text-lg font-bold text-slate-900">문의가 접수되었습니다</h3>
-                <p className="mt-2 text-sm text-slate-600">
-                  담당자가 확인 후 1영업일 내에 연락드리겠습니다.
-                </p>
-                <button type="button" onClick={() => setDone(false)} className="btn-secondary mt-6">
+                <h3 className="mt-6 text-xl font-bold text-slate-900">문의가 접수되었습니다</h3>
+                <p className="mt-3 text-[0.95rem] text-slate-600">담당자가 확인 후 1영업일 내에 연락드리겠습니다.</p>
+                <button
+                  type="button"
+                  onClick={() => setDone(false)}
+                  className="mt-8 inline-flex border border-slate-900 px-8 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-900 hover:text-white"
+                >
                   새 문의 작성
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {error && <ErrorMessage message={error} />}
 
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="name" className="label">
-                      이름 <span className="text-red-500">*</span>
+                    <label htmlFor="name" className="text-sm font-semibold text-slate-900">
+                      이름 <span className="text-mint-500">*</span>
                     </label>
                     <input
                       id="name"
@@ -125,13 +171,13 @@ export default function ContactPage() {
                       maxLength={50}
                       value={form.name}
                       onChange={(e) => set('name', e.target.value)}
-                      className="input"
+                      className={FIELD}
                       placeholder="홍길동"
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="label">
-                      이메일 <span className="text-red-500">*</span>
+                    <label htmlFor="email" className="text-sm font-semibold text-slate-900">
+                      이메일 <span className="text-mint-500">*</span>
                     </label>
                     <input
                       id="email"
@@ -139,63 +185,70 @@ export default function ContactPage() {
                       required
                       value={form.email}
                       onChange={(e) => set('email', e.target.value)}
-                      className="input"
+                      className={FIELD}
                       placeholder="name@example.com"
                     />
                   </div>
                   <div>
-                    <label htmlFor="phone" className="label">
+                    <label htmlFor="phone" className="text-sm font-semibold text-slate-900">
                       연락처
                     </label>
                     <input
                       id="phone"
                       value={form.phone}
                       onChange={(e) => set('phone', e.target.value)}
-                      className="input"
+                      className={FIELD}
                       placeholder="010-0000-0000"
                     />
                   </div>
                   <div>
-                    <label htmlFor="company" className="label">
+                    <label htmlFor="company" className="text-sm font-semibold text-slate-900">
                       회사명
                     </label>
                     <input
                       id="company"
                       value={form.company}
                       onChange={(e) => set('company', e.target.value)}
-                      className="input"
+                      className={FIELD}
                       placeholder="(주)워드앤코드"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="label">
-                    문의 내용 <span className="text-red-500">*</span>
+                  <label htmlFor="message" className="text-sm font-semibold text-slate-900">
+                    문의 내용 <span className="text-mint-500">*</span>
                   </label>
                   <textarea
                     id="message"
                     required
-                    rows={7}
+                    rows={6}
                     maxLength={5000}
                     value={form.message}
                     onChange={(e) => set('message', e.target.value)}
-                    className="input resize-none"
+                    className={`${FIELD} resize-none`}
                     placeholder="문의하실 내용을 자유롭게 작성해 주세요."
                   />
                 </div>
 
-                <p className="text-xs leading-relaxed text-slate-500">
-                  입력하신 정보는 문의 응대 목적으로만 사용되며, 처리 완료 후 관련 법령에 따라
-                  보관·파기됩니다.
-                </p>
-
-                <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
-                  {submitting ? '전송 중...' : '문의 보내기'}
-                </button>
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    입력하신 정보는 문의 응대 목적으로만 사용되며, 처리 완료 후 관련 법령에 따라 보관·파기됩니다.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex shrink-0 items-center gap-2 bg-slate-900 px-10 py-3.5 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? '전송 중...' : '문의 보내기'}
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </form>
             )}
-          </div>
+          </Reveal>
         </div>
       </section>
     </>

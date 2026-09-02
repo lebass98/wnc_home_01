@@ -12,6 +12,7 @@ import ProductsPage from './pages/site/ProductsPage'
 import ProductDetailPage from './pages/site/ProductDetailPage'
 import PostDetailPage from './pages/site/PostDetailPage'
 import ContactPage from './pages/site/ContactPage'
+import FaqPage from './pages/site/FaqPage'
 import CustomPage from './pages/site/CustomPage'
 
 import AdminLayout from './components/AdminLayout'
@@ -33,6 +34,8 @@ import BoardSettingsPage from './pages/admin/BoardSettingsPage'
 import BoardReportsPage from './pages/admin/BoardReportsPage'
 import PopupListPage from './pages/admin/PopupListPage'
 import PopupEditPage from './pages/admin/PopupEditPage'
+import FaqListPage from './pages/admin/FaqListPage'
+import FaqEditPage from './pages/admin/FaqEditPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -64,6 +67,7 @@ export default function App() {
             <Route path="/board" element={<BoardPage />} />
             <Route path="/board/:id" element={<PostDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/contact/faq" element={<FaqPage />} />
             {/* 관리자가 만든 일반 페이지 */}
             <Route path="/page/:slug" element={<CustomPage />} />
           </Route>
@@ -98,6 +102,9 @@ export default function App() {
             <Route path="popups" element={<PopupListPage />} />
             <Route path="popups/new" element={<PopupEditPage />} />
             <Route path="popups/:id" element={<PopupEditPage />} />
+            <Route path="faqs" element={<FaqListPage />} />
+            <Route path="faqs/new" element={<FaqEditPage />} />
+            <Route path="faqs/:id" element={<FaqEditPage />} />
             <Route path="contacts" element={<ContactListPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

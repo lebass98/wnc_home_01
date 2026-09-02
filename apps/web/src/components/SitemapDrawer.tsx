@@ -92,7 +92,10 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
     {
       title: '문의하기',
       to: '/contact',
-      items: [{ to: '/contact', label: '상담 신청' }],
+      items: [
+        { to: '/contact', label: '상담 신청' },
+        { to: '/contact/faq', label: '자주 묻는 질문' },
+      ],
     },
   ]
 

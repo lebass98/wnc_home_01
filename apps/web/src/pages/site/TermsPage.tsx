@@ -223,7 +223,7 @@ export default function TermsPage() {
           </Reveal>
 
           {/* 본문 */}
-          {CHAPTERS.map((chapter, ci) => (
+          {CHAPTERS.map((chapter) => (
             <div key={chapter.title} className="mt-14 sm:mt-16">
               <Reveal>
                 <h2 className="border-b-2 border-slate-900 pb-4 text-2xl font-bold tracking-tight text-slate-900">
@@ -232,14 +232,8 @@ export default function TermsPage() {
               </Reveal>
 
               {chapter.articles.map((a, ai) => (
-                <Reveal
-                  key={a.no}
-                  index={ai}
-                  step={60}
-                  as="article"
-                  id={`article-${a.no}`}
-                  className="scroll-mt-28 border-b border-slate-200 py-8"
-                >
+                <article key={a.no} id={`article-${a.no}`} className="scroll-mt-28 border-b border-slate-200 py-8">
+                <Reveal index={ai} step={60}>
                   <h3 className="text-lg font-bold text-slate-900">
                     제{a.no}조 <span className="font-semibold">({a.title})</span>
                   </h3>
@@ -270,8 +264,8 @@ export default function TermsPage() {
                     </ol>
                   )}
                 </Reveal>
+                </article>
               ))}
-              {ci === CHAPTERS.length - 1 && null}
             </div>
           ))}
 

@@ -20,6 +20,7 @@ import {
   createDemoPopups,
   createDemoFaqs,
   createDemoFaqCategories,
+  createDemoPrivacyRevisions,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -32,6 +33,7 @@ import {
   type DemoPopup,
   type DemoFaq,
   type DemoFaqCategory,
+  type DemoPrivacyRevision,
 } from './demoData'
 
 /**
@@ -55,10 +57,12 @@ interface DemoDb {
   popups: DemoPopup[]
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
+  privacyRevisions: DemoPrivacyRevision[]
   nextBoardId: number
   nextPopupId: number
   nextFaqId: number
   nextFaqCategoryId: number
+  nextPrivacyRevisionId: number
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -76,6 +80,7 @@ function seed(): DemoDb {
   const popups = createDemoPopups()
   const faqs = createDemoFaqs()
   const faqCategories = createDemoFaqCategories()
+  const privacyRevisions = createDemoPrivacyRevisions()
   return {
     posts,
     contacts,
@@ -89,10 +94,12 @@ function seed(): DemoDb {
     popups,
     faqs,
     faqCategories,
+    privacyRevisions,
     nextBoardId: 4,
     nextPopupId: popups.length + 1,
     nextFaqId: faqs.length + 1,
     nextFaqCategoryId: faqCategories.length + 1,
+    nextPrivacyRevisionId: privacyRevisions.length + 1,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -117,7 +124,8 @@ function load(): DemoDb {
         Array.isArray(parsed.boards) &&
         Array.isArray(parsed.popups) &&
         Array.isArray(parsed.faqs) &&
-        Array.isArray(parsed.faqCategories)
+        Array.isArray(parsed.faqCategories) &&
+        Array.isArray(parsed.privacyRevisions)
       ) {
         return parsed
       }
@@ -391,6 +399,53 @@ export function handleDemoRequest(
     hidePeriod: p.hidePeriod,
   })
 
+
+  // --- 개인정보처리방침 개정 이력 ---
+  const revisionItem = ({ content: _c, ...rest }: DemoPrivacyRevision) => rest
+  const revisionsSorted = () => [...db.privacyRevisions].sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt) || b.id - a.id)
+
+  if (rawPath === '/privacy-revisions' && method === 'GET') return revisionsSorted().map(revisionItem)
+
+  if (rawPath === '/privacy-revisions' && method === 'POST') {
+    const now = new Date().toISOString()
+    const rev: DemoPrivacyRevision = {
+      id: db.nextPrivacyRevisionId++,
+      title: body.title,
+      effectiveAt: new Date(body.effectiveAt).toISOString(),
+      summary: body.summary ?? '',
+      content: body.content,
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.privacyRevisions.push(rev)
+    save(db)
+    return rev
+  }
+
+  const revisionMatch = rawPath.match(/^\/privacy-revisions\/(\d+)$/)
+  if (revisionMatch) {
+    const idx = db.privacyRevisions.findIndex((r) => r.id === Number(revisionMatch[1]))
+    if (idx === -1) throw new DemoError('개정 이력을 찾을 수 없습니다.', 404)
+    const rev = db.privacyRevisions[idx]
+    if (method === 'GET') return rev
+    if (method === 'PUT') {
+      db.privacyRevisions[idx] = {
+        ...rev,
+        title: body.title,
+        effectiveAt: new Date(body.effectiveAt).toISOString(),
+        summary: body.summary ?? '',
+        content: body.content,
+        updatedAt: new Date().toISOString(),
+      }
+      save(db)
+      return db.privacyRevisions[idx]
+    }
+    if (method === 'DELETE') {
+      db.privacyRevisions.splice(idx, 1)
+      save(db)
+      return null
+    }
+  }
 
   // --- 자주 묻는 질문 분류 ---
   const faqCategoryList = () =>

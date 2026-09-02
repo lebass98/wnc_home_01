@@ -550,3 +550,32 @@ export function createDemoFaqCategories(): DemoFaqCategory[] {
     updatedAt: isoDaysAgo(21),
   }))
 }
+
+/* --------------------------- 개인정보처리방침 개정 이력 --------------------------- */
+
+export interface DemoPrivacyRevision {
+  id: number
+  title: string
+  effectiveAt: string
+  summary: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
+export function createDemoPrivacyRevisions(): DemoPrivacyRevision[] {
+  const seed: [string, string, string, string][] = [
+    ['개인정보처리방침 v1.0', '2024-01-01', '최초 제정', '워드앤코드는 「개인정보 보호법」에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보 처리방침을 수립·공개합니다.\n\n1. 수집하는 개인정보 항목\n문의 접수 시 이름, 이메일, 연락처를 수집합니다.\n\n2. 개인정보의 처리 목적\n문의 응대와 상담 이력 관리에 이용합니다.\n\n3. 보유 및 이용 기간\n문의 처리 완료 후 1년간 보관한 뒤 파기합니다.\n\n4. 개인정보 보호책임자\n경영지원팀장 · 02-1234-5678'],
+    ['개인정보처리방침 v1.1', '2025-03-01', '처리 위탁 항목 추가, 보유 기간을 3년으로 변경', '워드앤코드는 「개인정보 보호법」에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 다음과 같이 개인정보 처리방침을 수립·공개합니다.\n\n1. 수집하는 개인정보 항목\n문의 접수 시 이름, 이메일, 연락처를 수집하며, 회사명은 선택 항목입니다.\n\n2. 개인정보의 처리 목적\n문의 응대, 견적·계약 진행, 서비스 개선에 이용합니다.\n\n3. 보유 및 이용 기간\n문의 처리 완료 후 3년간 보관한 뒤 파기합니다.\n\n4. 개인정보 처리의 위탁\n클라우드 호스팅 사업자에게 서버·데이터 보관을 위탁합니다.\n\n5. 개인정보 보호책임자\n경영지원팀장 · 02-1234-5678 · privacy@wnc.co.kr'],
+    ['개인정보처리방침 v1.2', '2026-01-01', '주요 처리표시(라벨링) 도입, 권익 침해 구제 기관 안내 추가', '현재 시행 중인 방침입니다. 본문은 개인정보처리방침 페이지에서 확인하실 수 있습니다.'],
+  ]
+  return seed.map(([title, date, summary, content], i) => ({
+    id: i + 1,
+    title,
+    effectiveAt: new Date(`${date}T00:00:00`).toISOString(),
+    summary,
+    content,
+    createdAt: new Date(`${date}T09:00:00`).toISOString(),
+    updatedAt: new Date(`${date}T09:00:00`).toISOString(),
+  }))
+}

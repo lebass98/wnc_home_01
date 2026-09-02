@@ -342,3 +342,20 @@ model FaqCategory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+/// 개인정보처리방침 개정 이력 — 홈페이지 방침 하단의 '개정이력' 표에 보이고, 자세히보기로 당시 본문을 연다.
+model PrivacyRevision {
+  id Int @id @default(autoincrement())
+  /// 표에 보이는 제목 (예: 개인정보처리방침 v1.2)
+  title String
+  /// 시행일
+  effectiveAt DateTime
+  /// 변경 요약 — 표 아래 한 줄로 보인다. 비워 둘 수 있다.
+  summary String @default("")
+  /// 당시 방침 본문 (평문, 줄바꿈 유지)
+  content String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([effectiveAt])
+}

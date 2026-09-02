@@ -14,6 +14,7 @@ import { settingsRouter } from './routes/settings.js'
 import { boardSettingsRouter } from './routes/boardSettings.js'
 import { popupsRouter } from './routes/popups.js'
 import { faqsRouter } from './routes/faqs.js'
+import { privacyRevisionsRouter } from './routes/privacyRevisions.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
 
 const app = express()
@@ -38,6 +39,7 @@ app.use('/api/settings', settingsRouter)
 app.use('/api/board-settings', boardSettingsRouter)
 app.use('/api/popups', popupsRouter)
 app.use('/api/faqs', faqsRouter)
+app.use('/api/privacy-revisions', privacyRevisionsRouter)
 app.use('/api/uploads', uploadsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))

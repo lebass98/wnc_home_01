@@ -634,3 +634,27 @@ export interface FaqCategoryInput {
   name: string
   sortOrder?: number
 }
+
+/* --------------------------- 개인정보처리방침 개정 이력 --------------------------- */
+
+export interface PrivacyRevisionListItem {
+  id: number
+  title: string
+  /** 시행일 (ISO) */
+  effectiveAt: string
+  summary: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PrivacyRevision extends PrivacyRevisionListItem {
+  /** 당시 방침 본문 (평문) */
+  content: string
+}
+
+export interface PrivacyRevisionInput {
+  title: string
+  effectiveAt: string
+  summary?: string
+  content: string
+}

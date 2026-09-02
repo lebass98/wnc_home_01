@@ -104,16 +104,6 @@ export default function SiteLayout() {
                 {item.label}
               </NavLink>
             ))}
-            <Link
-              to="/contact"
-              className={`btn ml-2 ${
-                transparent
-                  ? 'bg-mint-400 text-white hover:bg-mint-500'
-                  : 'btn-primary'
-              }`}
-            >
-              상담 신청
-            </Link>
             {/* 언어 선택 · 팝업 다시 열기 */}
             <div
               className={`ml-5 border-l pl-5 ${transparent ? 'border-white/30' : 'border-slate-200'}`}

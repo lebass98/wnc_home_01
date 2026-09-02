@@ -242,7 +242,6 @@ export interface DemoPageVersion {
 }
 
 const PAGE_SEED: [string, string, string, string, boolean][] = [
-  ['about', '워드앤코드 소개', '회사의 비전과 걸어온 길을 소개합니다.', '<h2>회사 소개</h2><p>워드앤코드는 웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.</p><h3>우리가 하는 일</h3><ul><li>기업 홈페이지와 관리자 시스템 구축</li><li>업무 자동화 솔루션 개발</li><li>클라우드 인프라 설계와 운영</li></ul>', true],
   ['terms', '이용약관', '서비스 이용에 관한 기본 약관입니다.', '<h2>제1조 (목적)</h2><p>본 약관은 회사가 제공하는 서비스의 이용 조건과 절차를 정함을 목적으로 합니다.</p><h2>제2조 (정의)</h2><p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>', true],
   ['privacy', '개인정보처리방침', '수집하는 개인정보 항목과 이용 목적을 안내합니다.', '<h2>1. 수집하는 개인정보 항목</h2><p>회사는 문의 접수를 위해 이름, 이메일, 연락처를 수집합니다.</p><h2>2. 보유 및 이용 기간</h2><p>수집한 정보는 문의 처리 완료 후 3년간 보관 뒤 파기합니다.</p>', true],
   ['refund', '취소·환불 정책', '계약 해지와 환불 기준을 안내합니다.', '<h2>환불 기준</h2><p>착수 전 해지 시 전액 환불되며, 착수 후에는 진행 단계에 따라 정산합니다.</p>', true],
@@ -264,7 +263,7 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
       content,
       published,
       publishedAt: published ? createdAt : null,
-      showInNav: slug === 'about' || slug === 'faq',
+      showInNav: false,
       sortOrder: i,
       views: published ? (i + 1) * 37 : 0,
       version: 1,
@@ -279,7 +278,7 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
       description,
       content,
       published,
-      showInNav: slug === 'about' || slug === 'faq',
+      showInNav: false,
       note: '최초 생성',
       authorName: DEMO_USER.name,
       createdAt,

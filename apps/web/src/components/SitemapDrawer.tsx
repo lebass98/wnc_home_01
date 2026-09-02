@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useDrawerTransition } from '../lib/drawer'
 import { Link } from 'react-router-dom'
 import { isExternalUrl, pickMenu, useSiteMenu, type SiteMenuLink } from '../lib/menus'
 
@@ -45,21 +46,8 @@ const DURATION = 450
  */
 export default function SitemapDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   // 닫힐 때도 밀려 나가는 동작이 보이도록, DOM 은 애니메이션이 끝난 뒤 떼어 낸다.
-  const [mounted, setMounted] = useState(open)
-  const [shown, setShown] = useState(false)
+  const { mounted, shown, panelRef } = useDrawerTransition(open, DURATION)
   const siteMenu = useSiteMenu()
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true)
-      // 붙인 직후 한 프레임 뒤에 켜야 transition 이 동작한다.
-      const raf = requestAnimationFrame(() => setShown(true))
-      return () => cancelAnimationFrame(raf)
-    }
-    setShown(false)
-    const timer = setTimeout(() => setMounted(false), DURATION)
-    return () => clearTimeout(timer)
-  }, [open])
 
   // 열려 있는 동안 ESC 로 닫고, 뒤쪽 화면이 스크롤되지 않게 한다.
   useEffect(() => {
@@ -85,6 +73,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal aria-label="사이트맵">
       {/* 검정 반투명 덮개 — 오른쪽에서 밀려 들어오며 서서히 나타난다. */}
       <div
+        ref={panelRef}
         className={`absolute inset-0 overflow-y-auto bg-black/90 transition-[transform,opacity] duration-[450ms] ease-out ${
           shown ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         }`}

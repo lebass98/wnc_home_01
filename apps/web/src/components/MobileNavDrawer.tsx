@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { useDrawerTransition } from '../lib/drawer'
 import { Link } from 'react-router-dom'
 import { changeLanguage, currentLanguage, LANGUAGES, LANGUAGE_LABEL, type Language } from '../lib/i18n'
 import { isExternalUrl, type SiteMenuLink } from '../lib/menus'
@@ -63,22 +64,9 @@ export default function MobileNavDrawer({
   onOpenSitemap: () => void
 }) {
   // 닫힐 때도 밀려 나가는 동작이 보이도록, DOM 은 애니메이션이 끝난 뒤 떼어 낸다.
-  const [mounted, setMounted] = useState(open)
-  const [shown, setShown] = useState(false)
+  const { mounted, shown, panelRef } = useDrawerTransition(open, DURATION)
   const [lang, setLang] = useState<Language>(() => currentLanguage())
   const popupCount = usePopupCount()
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true)
-      // 붙인 직후 한 프레임 뒤에 켜야 transition 이 동작한다.
-      const raf = requestAnimationFrame(() => setShown(true))
-      return () => cancelAnimationFrame(raf)
-    }
-    setShown(false)
-    const timer = setTimeout(() => setMounted(false), DURATION)
-    return () => clearTimeout(timer)
-  }, [open])
 
   // 열려 있는 동안 ESC 로 닫고, 뒤쪽 화면이 스크롤되지 않게 한다.
   useEffect(() => {
@@ -101,6 +89,7 @@ export default function MobileNavDrawer({
     <div className="fixed inset-0 z-[65] md:hidden" role="dialog" aria-modal aria-label="메뉴">
       {/* 색이 깔린 판 — 오른쪽에서 밀려 들어오며 서서히 나타난다. */}
       <div
+        ref={panelRef}
         className={`absolute inset-0 overflow-y-auto bg-mint-700 transition-[transform,opacity] duration-[400ms] ease-out ${
           shown ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         }`}

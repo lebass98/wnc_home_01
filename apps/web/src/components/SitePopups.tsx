@@ -162,12 +162,16 @@ function CloseIcon() {
   )
 }
 
-/** 팝업 한 장 — 이미지와 본문을 담는다. */
+/**
+ * 팝업 한 장 — 이미지와 본문을 담는다.
+ * 크기는 관리자가 정한 가로·세로를 그대로 쓴다. 내용이 짧으면 아래가 비고,
+ * 길면 스크롤바 설정에 따라 스크롤되거나 잘린다.
+ */
 function PopupCard({ popup }: { popup: Popup }) {
   return (
     <div style={{ width: popup.width, maxWidth: '100%' }} className="overflow-hidden bg-white shadow-2xl">
       <MaybeLink popup={popup}>
-        <div style={{ maxHeight: popup.height, overflowY: overflowOf(popup.scrollbar) }}>
+        <div style={{ height: popup.height, overflowY: overflowOf(popup.scrollbar) }}>
           {popup.image && <img src={popup.image} alt="" className="w-full" />}
           {popup.content?.trim() && (
             <div className="px-6 py-6">
@@ -382,7 +386,7 @@ export default function SitePopups() {
                       return (
                         <div
                           key={slot}
-                          className="flex flex-none justify-center"
+                          className="flex flex-none items-start justify-center"
                           style={{ width: `calc(${100 / perView}% - ${((perView - 1) * GAP) / perView}px)` }}
                           aria-hidden={!shown}
                         >

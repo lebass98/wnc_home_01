@@ -287,7 +287,10 @@ export default function PopupEditPage() {
             />
           </Row>
 
-          <Row label="팝업창 크기">
+          <Row
+            label="팝업창 크기"
+            description="정한 크기 그대로 노출됩니다. 내용이 크기보다 길면 아래 스크롤바 설정에 따라 스크롤되거나 잘립니다."
+          >
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
               <span>가로</span>
               <input

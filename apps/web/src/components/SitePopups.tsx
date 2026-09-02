@@ -262,7 +262,9 @@ export default function SitePopups() {
       const image = popup.image ? `<img src="${popup.image}" alt="" style="width:100%">` : ''
       win.document.write(
         `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${popup.name}</title>` +
-          `<style>body{margin:0;font-family:system-ui,-apple-system,'Malgun Gothic',sans-serif;color:#1e293b}` +
+          // 새 창은 우리 번들을 못 쓰므로 프리텐다드를 CDN 에서 따로 읽는다.
+          `<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">` +
+          `<style>body{margin:0;font-family:'Pretendard Variable',Pretendard,system-ui,-apple-system,sans-serif;color:#1e293b}` +
           `.body{padding:16px;line-height:1.6}img{max-width:100%}</style></head>` +
           `<body>${image}<div class="body">${popup.content}</div></body></html>`,
       )

@@ -263,3 +263,55 @@ model Board {
 
   @@index([published, sortOrder])
 }
+
+/// 홈페이지 방문자에게 띄우는 팝업 — 게시기간 안에서만 노출된다.
+model Popup {
+  id   Int    @id @default(autoincrement())
+  /// 관리자 목록에서 구분하는 이름. 방문자에게는 보이지 않는다.
+  name String
+
+  /// 노출 위치: main(메인페이지만) | path(특정 페이지)
+  placement String @default("main")
+  /// placement 가 path 일 때 노출할 페이지 주소 (예: /products)
+  placementPath String?
+
+  /// 팝업창 형태: window(일반 윈도우) | fixed(고정 레이어) | draggable(이동 가능한 레이어)
+  windowType String @default("fixed")
+  /// 스크롤바: auto(자동) | none(없음) | always(있음)
+  scrollbar String @default("none")
+
+  /// 팝업 본문 (TipTap 이 생성한 HTML)
+  content String @default("")
+  /// 이미지형 팝업일 때 쓰는 이미지 — 업로드 경로(/uploads/..) 또는 외부 URL
+  image String?
+  /// 팝업(또는 이미지)을 눌렀을 때 이동할 주소. 비우면 링크를 걸지 않는다.
+  linkUrl String?
+  /// 링크를 새 창으로 열지 여부
+  linkNewTab Boolean @default(false)
+
+  /// 게시 시작·종료 일시. 이 구간 밖에서는 노출하지 않는다.
+  startAt DateTime
+  endAt   DateTime
+
+  /// 관리자가 직접 끄고 켜는 스위치. 끄면 기간 안이어도 노출하지 않는다.
+  enabled Boolean @default(true)
+
+  /// 화면에서의 위치 — 상단/좌측 기준 픽셀
+  positionTop  Int @default(120)
+  positionLeft Int @default(120)
+  /// 팝업창 크기
+  width  Int @default(400)
+  height Int @default(500)
+
+  /// 표시기간(다시 보지 않기) 옵션:
+  /// day(하루동안 열지 않음) | never(다시 열지 않음) | session(브라우저 닫을 때까지)
+  hidePeriod String @default("day")
+
+  /// 여러 개가 동시에 뜰 때의 순서. 작을수록 먼저 나온다.
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, startAt, endAt])
+}

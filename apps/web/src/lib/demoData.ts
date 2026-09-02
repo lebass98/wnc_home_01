@@ -401,3 +401,68 @@ export function createDemoBoards(): DemoBoard[] {
     updatedAt: isoDaysAgo(30),
   }))
 }
+
+export interface DemoPopup {
+  id: number
+  name: string
+  placement: 'main' | 'path'
+  placementPath: string | null
+  windowType: 'window' | 'fixed' | 'draggable'
+  scrollbar: 'auto' | 'none' | 'always'
+  content: string
+  image: string | null
+  linkUrl: string | null
+  linkNewTab: boolean
+  startAt: string
+  endAt: string
+  enabled: boolean
+  positionTop: number
+  positionLeft: number
+  width: number
+  height: number
+  hidePeriod: 'day' | 'never' | 'session'
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 진행중·진행대기·종료 상태를 한 번에 볼 수 있도록 기간을 다르게 잡는다. */
+export function createDemoPopups(): DemoPopup[] {
+  const daysFromNow = (n: number): string => {
+    const d = new Date()
+    d.setDate(d.getDate() + n)
+    return d.toISOString()
+  }
+
+  const seed: [string, DemoPopup['windowType'], number, number, boolean, string][] = [
+    ['신규 제품 출시 안내', 'fixed', -3, 14, true, '<h3>신규 제품이 출시되었습니다</h3><p>워드앤코드의 새로운 제품 라인업을 확인해 보세요.</p>'],
+    ['설 연휴 배송 안내', 'draggable', -1, 7, true, '<p>설 연휴 기간에는 배송이 하루 이틀 늦어질 수 있습니다.</p>'],
+    ['정기 점검 예정 안내', 'fixed', 5, 12, true, '<p>서비스 점검이 예정되어 있습니다. 이용에 참고해 주세요.</p>'],
+    ['지난 이벤트 안내', 'fixed', -30, -10, true, '<p>종료된 이벤트입니다.</p>'],
+    ['임시 중지된 팝업', 'fixed', -5, 20, false, '<p>관리자가 잠시 꺼 둔 팝업입니다.</p>'],
+  ]
+
+  return seed.map(([name, windowType, startDays, endDays, enabled, content], i) => ({
+    id: i + 1,
+    name,
+    placement: 'main' as const,
+    placementPath: null,
+    windowType,
+    scrollbar: 'none' as const,
+    content,
+    image: null,
+    linkUrl: null,
+    linkNewTab: false,
+    startAt: daysFromNow(startDays),
+    endAt: daysFromNow(endDays),
+    enabled,
+    positionTop: 120,
+    positionLeft: 120 + i * 30,
+    width: 400,
+    height: 500,
+    hidePeriod: 'day' as const,
+    sortOrder: i,
+    createdAt: isoDaysAgo(10 - i),
+    updatedAt: isoDaysAgo(10 - i),
+  }))
+}

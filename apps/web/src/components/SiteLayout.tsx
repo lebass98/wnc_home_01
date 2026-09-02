@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import type { PageListItem } from '@wnc/shared'
 import { api } from '../lib/api'
 import { useSiteSeo } from '../lib/seo'
+import SitePopups from './SitePopups'
 
 const NAV = [
   { to: '/about', label: '회사소개' },
@@ -36,6 +37,7 @@ export default function SiteLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <SitePopups />
       <header style={{ top: 'var(--demo-banner-h)' }} className="sticky z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="container-wnc flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">

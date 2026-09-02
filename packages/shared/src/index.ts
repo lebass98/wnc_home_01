@@ -474,3 +474,122 @@ export function fillTemplate(template: string, vars: Record<string, string | und
     .replace(/\s{2,}/g, ' ')
     .trim()
 }
+
+/* ------------------------------------------------------------------ *
+ *  팝업
+ * ------------------------------------------------------------------ */
+
+/** 팝업을 띄울 위치 */
+export const POPUP_PLACEMENTS = ['main', 'path'] as const
+export type PopupPlacement = (typeof POPUP_PLACEMENTS)[number]
+
+export const POPUP_PLACEMENT_LABEL: Record<PopupPlacement, string> = {
+  main: '메인페이지',
+  path: '특정페이지',
+}
+
+/** 팝업창 형태 */
+export const POPUP_WINDOW_TYPES = ['window', 'fixed', 'draggable'] as const
+export type PopupWindowType = (typeof POPUP_WINDOW_TYPES)[number]
+
+export const POPUP_WINDOW_LABEL: Record<PopupWindowType, string> = {
+  window: '일반 윈도우 팝업창',
+  fixed: '고정 레이어 팝업',
+  draggable: '이동 가능한 레이어 팝업',
+}
+
+/** 팝업창 스크롤바 */
+export const POPUP_SCROLLBARS = ['auto', 'none', 'always'] as const
+export type PopupScrollbar = (typeof POPUP_SCROLLBARS)[number]
+
+export const POPUP_SCROLLBAR_LABEL: Record<PopupScrollbar, string> = {
+  auto: '자동',
+  none: '없음',
+  always: '있음',
+}
+
+/** 팝업창 표시기간 — 방문자가 '다시 보지 않기'를 골랐을 때 얼마나 감출지 */
+export const POPUP_HIDE_PERIODS = ['day', 'never', 'session'] as const
+export type PopupHidePeriod = (typeof POPUP_HIDE_PERIODS)[number]
+
+export const POPUP_HIDE_PERIOD_LABEL: Record<PopupHidePeriod, string> = {
+  day: '하루동안 열지 않음',
+  never: '다시 열지 않음',
+  session: '이 브라우저 닫을 때까지 다시 안보임',
+}
+
+/**
+ * 게시기간과 사용여부로 계산되는 진행 상태.
+ * - waiting  게시 시작 전
+ * - ongoing  게시 중
+ * - ended    게시 종료
+ * - stopped  사용 안 함(관리자가 끔)
+ */
+export const POPUP_STATUSES = ['waiting', 'ongoing', 'ended', 'stopped'] as const
+export type PopupStatus = (typeof POPUP_STATUSES)[number]
+
+export const POPUP_STATUS_LABEL: Record<PopupStatus, string> = {
+  waiting: '진행대기',
+  ongoing: '진행중',
+  ended: '종료',
+  stopped: '중지',
+}
+
+export interface PopupListItem {
+  id: number
+  name: string
+  placement: PopupPlacement
+  placementPath: string | null
+  windowType: PopupWindowType
+  image: string | null
+  linkUrl: string | null
+  linkNewTab: boolean
+  startAt: string
+  endAt: string
+  enabled: boolean
+  status: PopupStatus
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Popup extends PopupListItem {
+  content: string
+  scrollbar: PopupScrollbar
+  positionTop: number
+  positionLeft: number
+  width: number
+  height: number
+  hidePeriod: PopupHidePeriod
+}
+
+export interface PopupInput {
+  name: string
+  placement: PopupPlacement
+  placementPath?: string | null
+  windowType: PopupWindowType
+  scrollbar: PopupScrollbar
+  content: string
+  image?: string | null
+  linkUrl?: string | null
+  linkNewTab: boolean
+  startAt: string
+  endAt: string
+  enabled: boolean
+  positionTop: number
+  positionLeft: number
+  width: number
+  height: number
+  hidePeriod: PopupHidePeriod
+  sortOrder?: number
+}
+
+/** 목록 검색 조건 */
+export type PopupSort = 'latest' | 'oldest' | 'startAt' | 'name'
+
+export const POPUP_SORT_LABEL: Record<PopupSort, string> = {
+  latest: '최근 등록순',
+  oldest: '오래된순',
+  startAt: '시작일순',
+  name: '이름순',
+}

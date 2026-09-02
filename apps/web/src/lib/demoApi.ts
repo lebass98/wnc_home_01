@@ -17,6 +17,7 @@ import {
   createDemoSetting,
   createDemoBoardSetting,
   createDemoBoards,
+  createDemoPopups,
   DEMO_CREDENTIALS,
   DEMO_USER,
   type DemoCategory,
@@ -26,6 +27,7 @@ import {
   type DemoSetting,
   type DemoBoardSetting,
   type DemoBoard,
+  type DemoPopup,
 } from './demoData'
 
 /**
@@ -46,7 +48,9 @@ interface DemoDb {
   setting: DemoSetting
   boardSetting: DemoBoardSetting
   boards: DemoBoard[]
+  popups: DemoPopup[]
   nextBoardId: number
+  nextPopupId: number
   nextPostId: number
   nextContactId: number
   nextCategoryId: number
@@ -71,7 +75,9 @@ function seed(): DemoDb {
     setting: createDemoSetting(),
     boardSetting: createDemoBoardSetting(),
     boards: createDemoBoards(),
+    popups: createDemoPopups(),
     nextBoardId: 4,
+    nextPopupId: 6,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,
@@ -93,7 +99,8 @@ function load(): DemoDb {
         Array.isArray(parsed.pages) &&
         parsed.setting &&
         parsed.boardSetting &&
-        Array.isArray(parsed.boards)
+        Array.isArray(parsed.boards) &&
+        Array.isArray(parsed.popups)
       ) {
         return parsed
       }
@@ -323,6 +330,181 @@ export function handleDemoRequest(
         )
       }
       db.boards.splice(idx, 1)
+      save(db)
+      return undefined
+    }
+  }
+
+  // --- 팝업 ---
+  /** 사용여부와 게시기간으로 지금 상태를 계산한다. (실제 API 와 같은 규칙) */
+  const popupStatus = (p: DemoPopup, now: number) => {
+    if (!p.enabled) return 'stopped'
+    if (now < new Date(p.startAt).getTime()) return 'waiting'
+    if (now > new Date(p.endAt).getTime()) return 'ended'
+    return 'ongoing'
+  }
+  const popupItem = (p: DemoPopup, now: number) => ({
+    id: p.id,
+    name: p.name,
+    placement: p.placement,
+    placementPath: p.placementPath,
+    windowType: p.windowType,
+    image: p.image,
+    linkUrl: p.linkUrl,
+    linkNewTab: p.linkNewTab,
+    startAt: p.startAt,
+    endAt: p.endAt,
+    enabled: p.enabled,
+    status: popupStatus(p, now),
+    sortOrder: p.sortOrder,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  })
+  const popupDetail = (p: DemoPopup, now: number) => ({
+    ...popupItem(p, now),
+    content: p.content,
+    scrollbar: p.scrollbar,
+    positionTop: p.positionTop,
+    positionLeft: p.positionLeft,
+    width: p.width,
+    height: p.height,
+    hidePeriod: p.hidePeriod,
+  })
+
+  if (rawPath === '/popups/active' && method === 'GET') {
+    const now = Date.now()
+    return db.popups
+      .filter(
+        (p) =>
+          p.enabled &&
+          new Date(p.startAt).getTime() <= now &&
+          new Date(p.endAt).getTime() >= now,
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      .map((p) => popupDetail(p, now))
+  }
+
+  if (rawPath === '/popups' && method === 'GET') {
+    const now = Date.now()
+    const page = Number(params.get('page') ?? 1)
+    const pageSize = Number(params.get('pageSize') ?? 10)
+    const sort = params.get('sort') ?? 'latest'
+    const q = params.get('q')?.toLowerCase()
+    const wanted = params.get('status')?.split(',').filter(Boolean) ?? []
+    const from = params.get('from')
+    const to = params.get('to')
+
+    let items = [...db.popups]
+    if (q) items = items.filter((p) => p.name.toLowerCase().includes(q))
+    // 게시기간이 검색 구간과 조금이라도 겹치면 결과에 넣는다.
+    if (from) items = items.filter((p) => new Date(p.endAt).getTime() >= new Date(from).getTime())
+    if (to) {
+      const end = new Date(`${to.slice(0, 10)}T23:59:59`).getTime()
+      items = items.filter((p) => new Date(p.startAt).getTime() <= end)
+    }
+    if (wanted.length > 0) items = items.filter((p) => wanted.includes(popupStatus(p, now)))
+
+    items.sort((a, b) =>
+      sort === 'oldest'
+        ? a.createdAt.localeCompare(b.createdAt)
+        : sort === 'startAt'
+          ? b.startAt.localeCompare(a.startAt)
+          : sort === 'name'
+            ? a.name.localeCompare(b.name, 'ko')
+            : b.createdAt.localeCompare(a.createdAt),
+    )
+
+    const paged = paginate(items, page, pageSize)
+    return { ...paged, items: paged.items.map((p) => popupItem(p, now)) }
+  }
+
+  if (rawPath === '/popups' && method === 'POST') {
+    const now = new Date().toISOString()
+    const popup: DemoPopup = {
+      id: db.nextPopupId++,
+      name: body.name,
+      placement: body.placement ?? 'main',
+      placementPath: body.placement === 'path' ? body.placementPath || null : null,
+      windowType: body.windowType ?? 'fixed',
+      scrollbar: body.scrollbar ?? 'none',
+      content: body.content ?? '',
+      image: body.image || null,
+      linkUrl: body.linkUrl || null,
+      linkNewTab: Boolean(body.linkNewTab),
+      startAt: body.startAt,
+      endAt: body.endAt,
+      enabled: Boolean(body.enabled),
+      positionTop: body.positionTop ?? 120,
+      positionLeft: body.positionLeft ?? 120,
+      width: body.width ?? 400,
+      height: body.height ?? 500,
+      hidePeriod: body.hidePeriod ?? 'day',
+      sortOrder: body.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.popups.push(popup)
+    save(db)
+    return popupDetail(popup, Date.now())
+  }
+
+  if (rawPath === '/popups/bulk-delete' && method === 'POST') {
+    const ids: number[] = body.ids ?? []
+    const before = db.popups.length
+    db.popups = db.popups.filter((p) => !ids.includes(p.id))
+    save(db)
+    return { deleted: before - db.popups.length }
+  }
+
+  const popupEnabledMatch = rawPath.match(/^\/popups\/(\d+)\/enabled$/)
+  if (popupEnabledMatch && method === 'PATCH') {
+    const id = Number(popupEnabledMatch[1])
+    const popup = db.popups.find((p) => p.id === id)
+    if (!popup) throw new DemoError('팝업을 찾을 수 없습니다.', 404)
+    popup.enabled = Boolean(body.enabled)
+    popup.updatedAt = new Date().toISOString()
+    save(db)
+    return popupItem(popup, Date.now())
+  }
+
+  const popupMatch = rawPath.match(/^\/popups\/(\d+)$/)
+  if (popupMatch) {
+    const id = Number(popupMatch[1])
+    const idx = db.popups.findIndex((p) => p.id === id)
+    if (idx === -1) throw new DemoError('팝업을 찾을 수 없습니다.', 404)
+    const popup = db.popups[idx]
+
+    if (method === 'GET') return popupDetail(popup, Date.now())
+
+    if (method === 'PUT') {
+      db.popups[idx] = {
+        ...popup,
+        name: body.name,
+        placement: body.placement ?? popup.placement,
+        placementPath: body.placement === 'path' ? body.placementPath || null : null,
+        windowType: body.windowType ?? popup.windowType,
+        scrollbar: body.scrollbar ?? popup.scrollbar,
+        content: body.content ?? '',
+        image: body.image || null,
+        linkUrl: body.linkUrl || null,
+        linkNewTab: Boolean(body.linkNewTab),
+        startAt: body.startAt,
+        endAt: body.endAt,
+        enabled: Boolean(body.enabled),
+        positionTop: body.positionTop ?? popup.positionTop,
+        positionLeft: body.positionLeft ?? popup.positionLeft,
+        width: body.width ?? popup.width,
+        height: body.height ?? popup.height,
+        hidePeriod: body.hidePeriod ?? popup.hidePeriod,
+        sortOrder: body.sortOrder ?? popup.sortOrder,
+        updatedAt: new Date().toISOString(),
+      }
+      save(db)
+      return popupDetail(db.popups[idx], Date.now())
+    }
+
+    if (method === 'DELETE') {
+      db.popups.splice(idx, 1)
       save(db)
       return undefined
     }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Board, BoardType } from '@wnc/shared'
 import { BOARD_TYPE_LABEL } from '@wnc/shared'
@@ -17,6 +18,7 @@ const TYPE_TONE: Record<BoardType, string> = {
 }
 
 export default function BoardListPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [boards, setBoards] = useState<Board[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,7 +85,7 @@ export default function BoardListPage() {
   }
 
   async function handleDelete(board: Board) {
-    if (!confirm(`'${board.name}' 게시판을 삭제할까요?\n담긴 글이 있으면 삭제할 수 없습니다.`)) return
+    if (!confirm(t('board.deleteConfirm', { name: board.name }))) return
     try {
       await api(`/boards/${board.id}`, { method: 'DELETE', auth: true })
       clearBoardCache()
@@ -96,15 +98,15 @@ export default function BoardListPage() {
   return (
     <>
       <PageHeader
-        title="게시판 관리"
-        description="게시판 목록을 관리합니다"
+        title={t('board.title')}
+        description={t('board.description')}
         action={
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={load}
-              title="새로고침"
-              aria-label="새로고침"
+              title={t('common.refresh')}
+              aria-label={t('common.refresh')}
               className="grid h-10 w-10 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100
                          dark:text-slate-400 dark:hover:bg-slate-700"
             >
@@ -117,7 +119,7 @@ export default function BoardListPage() {
               </svg>
             </button>
             <button type="button" onClick={() => navigate('/admin/boards/new')} className="btn-primary">
-              <span className="text-base leading-none">+</span> 게시판 추가
+              <span className="text-base leading-none">+</span> {t('board.addBoard')}
             </button>
           </div>
         }
@@ -149,9 +151,9 @@ export default function BoardListPage() {
                 setKeyword(e.target.value)
                 setPage(1)
               }}
-              placeholder="게시판 검색..."
+              placeholder={t('board.searchPlaceholder')}
               className="input pl-9"
-              aria-label="게시판 검색"
+              aria-label={t('board.searchPlaceholder')}
             />
           </div>
         </div>
@@ -162,8 +164,8 @@ export default function BoardListPage() {
           <EmptyState
             label={
               keyword
-                ? `'${keyword}'에 대한 검색 결과가 없습니다.`
-                : "게시판이 없습니다. 오른쪽 위 '게시판 추가'로 만들어 보세요."
+                ? t('board.noSearchResult', { keyword })
+                : t('board.empty')
             }
           />
         ) : (
@@ -195,11 +197,11 @@ export default function BoardListPage() {
 
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                       <span>
-                        게시글: <span className="text-slate-700 dark:text-slate-300">{board.postCount}</span>
+                        {t('board.postCount')}: <span className="text-slate-700 dark:text-slate-300">{board.postCount}</span>
                       </span>
                       <span className="text-slate-300 dark:text-slate-600">·</span>
                       <span>
-                        생성일:{' '}
+                        {t('common.createdAt')}:{' '}
                         <span className="text-slate-700 dark:text-slate-300">
                           {formatDateTime(board.createdAt)}
                         </span>
@@ -267,7 +269,7 @@ export default function BoardListPage() {
                             className="block px-3.5 py-2 text-sm text-slate-700 hover:bg-slate-50
                                        dark:text-slate-200 dark:hover:bg-slate-700"
                           >
-                            글 목록 보기
+                            {t('board.viewPosts')}
                           </Link>
                           <button
                             type="button"
@@ -278,7 +280,7 @@ export default function BoardListPage() {
                             className="block w-full px-3.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50
                                        dark:text-slate-200 dark:hover:bg-slate-700"
                           >
-                            수정
+                            {t('common.edit')}
                           </button>
                           <button
                             type="button"
@@ -289,7 +291,7 @@ export default function BoardListPage() {
                             className="block w-full px-3.5 py-2 text-left text-sm text-red-600 hover:bg-red-50
                                        dark:text-red-400 dark:hover:bg-red-500/10"
                           >
-                            삭제
+                            {t('common.delete')}
                           </button>
                         </div>
                       )}

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import ThemeToggle from './ThemeToggle'
+import LanguageSwitcher from './LanguageSwitcher'
 import { useEnableDarkMode } from '../lib/theme'
 import { useBoards } from '../lib/boards'
 
@@ -103,9 +105,27 @@ const NAV_IDLE =
 export default function AdminLayout() {
   useEnableDarkMode()
   // '관리자 메뉴에 표시'를 켠 게시판은 [게시판 관리] 아래에 바로가기로 붙인다.
+  const { t } = useTranslation()
   const boards = useBoards(true)
 
   // 정적 메뉴에 게시판 바로가기를 합친다. (원본 NAV 는 건드리지 않는다)
+  /** 메뉴 라벨을 언어팩에서 찾는다. 키가 없으면 원래 한글 라벨을 쓴다. */
+  const navLabel = (label: string) => {
+    const keys: Record<string, string> = {
+      '대시보드': 'nav.dashboard',
+      '환경설정': 'nav.settings',
+      '게시판 관리': 'nav.boardManage',
+      '게시판 목록': 'nav.boardList',
+      '게시판 신고현황': 'nav.boardReports',
+      '제품 관리': 'nav.products',
+      '제품 카테고리': 'nav.productCategories',
+      '페이지 관리': 'nav.pages',
+      '문의 관리': 'nav.contacts',
+    }
+    const key = keys[label]
+    return key ? t(key) : label
+  }
+
   const nav: NavItem[] = NAV.map((item) => {
     if (!isGroup(item) || item.label !== '게시판 관리') return item
     const shortcuts: NavLeaf[] = boards
@@ -159,7 +179,7 @@ export default function AdminLayout() {
                 <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                {item.label}
+                {navLabel(item.label)}
                 <svg
                   className={`ml-auto h-4 w-4 transition ${openGroup === item.label ? '' : '-rotate-90'}`}
                   fill="none"
@@ -208,7 +228,7 @@ export default function AdminLayout() {
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d={child.icon} />
                         </svg>
-                        {child.label}
+                        {navLabel(child.label)}
                       </NavLink>
                     </div>
                     )
@@ -226,7 +246,7 @@ export default function AdminLayout() {
               <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
               </svg>
-              {item.label}
+              {navLabel(item.label)}
             </NavLink>
           ),
         )}
@@ -244,7 +264,7 @@ export default function AdminLayout() {
               d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
             />
           </svg>
-          홈페이지 보기
+          {t('nav.viewSite')}
         </Link>
       </div>
     </div>
@@ -286,6 +306,7 @@ export default function AdminLayout() {
           </button>
 
           <div className="ml-auto flex items-center gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             <div className="text-right">
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{user?.name}</p>
@@ -294,7 +315,7 @@ export default function AdminLayout() {
               </p>
             </div>
             <button type="button" onClick={handleLogout} className="btn-secondary">
-              로그아웃
+              {t('nav.logout')}
             </button>
           </div>
         </header>

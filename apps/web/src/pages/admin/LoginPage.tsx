@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { DEMO_CREDENTIALS } from '../../lib/demoData'
 import { useEnableDarkMode } from '../../lib/theme'
+import LanguageSwitcher from '../../components/LanguageSwitcher'
 import { ErrorMessage } from '../../components/ui'
 
 export default function LoginPage() {
   useEnableDarkMode()
+  const { t } = useTranslation()
   const { user, loading, login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -39,14 +42,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-5">
+    <div className="relative flex min-h-screen items-center justify-center bg-slate-900 px-5">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-white">
             W
           </span>
-          <h1 className="mt-5 text-xl font-bold text-white">워드앤코드 관리자</h1>
-          <p className="mt-1.5 text-sm text-slate-400">계정 정보를 입력해 주세요.</p>
+          <h1 className="mt-5 text-xl font-bold text-white">{t('login.title')}</h1>
+          <p className="mt-1.5 text-sm text-slate-400">{t('login.subtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 rounded-xl bg-white p-8 shadow-xl">
@@ -54,7 +60,7 @@ export default function LoginPage() {
 
           <div>
             <label htmlFor="email" className="label">
-              이메일
+              {t('login.email')}
             </label>
             <input
               id="email"
@@ -70,7 +76,7 @@ export default function LoginPage() {
 
           <div>
             <label htmlFor="password" className="label">
-              비밀번호
+              {t('login.password')}
             </label>
             <input
               id="password"
@@ -85,19 +91,19 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" disabled={submitting} className="btn-primary w-full py-3">
-            {submitting ? '로그인 중...' : '로그인'}
+            {submitting ? t('login.submitting') : t('login.submit')}
           </button>
 
           {/* 데모 계정 안내 — 버튼 한 번으로 입력란을 채운다. */}
           <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">데모 계정</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{t('login.demoAccount')}</p>
             <dl className="mt-2.5 space-y-1 text-sm text-brand-700">
               <div className="flex gap-2">
-                <dt className="text-slate-600 dark:text-slate-400">아이디:</dt>
+                <dt className="text-slate-600 dark:text-slate-400">{t('login.demoId')}:</dt>
                 <dd className="font-medium">{DEMO_CREDENTIALS.email}</dd>
               </div>
               <div className="flex gap-2">
-                <dt className="text-slate-600 dark:text-slate-400">비밀번호:</dt>
+                <dt className="text-slate-600 dark:text-slate-400">{t('login.demoPassword')}:</dt>
                 <dd className="font-medium">{DEMO_CREDENTIALS.password}</dd>
               </div>
             </dl>
@@ -106,7 +112,7 @@ export default function LoginPage() {
               onClick={fillDemoAccount}
               className="mt-3 w-full rounded-lg bg-brand-100 py-2.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
             >
-              자동 입력
+              {t('login.autofill')}
             </button>
           </div>
         </form>

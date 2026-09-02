@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Board, BoardInput, BoardType, LocalizedText, SecretMode } from '@wnc/shared'
 import { BOARD_TYPE_LABEL, SECRET_MODE_LABEL } from '@wnc/shared'
@@ -8,7 +9,7 @@ import LocalizedInput from '../../components/LocalizedInput'
 import TagInput from '../../components/TagInput'
 import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
-const TABS = ['기본 설정', '권한 설정', '목록 설정', '게시글 설정', '알림 설정'] as const
+const TABS = ['basic', 'permission', 'list', 'post', 'notification'] as const
 type Tab = (typeof TABS)[number]
 
 const TYPES: BoardType[] = ['basic', 'gallery', 'card']
@@ -75,7 +76,8 @@ export default function BoardEditPage() {
   const isNew = !id
   const navigate = useNavigate()
 
-  const [tab, setTab] = useState<Tab>('기본 설정')
+  const { t } = useTranslation()
+  const [tab, setTab] = useState<Tab>('basic')
   const [form, setForm] = useState<FormState>(EMPTY)
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
@@ -116,8 +118,8 @@ export default function BoardEditPage() {
     e.preventDefault()
     const koName = form.nameI18n.ko?.trim()
     if (!koName) {
-      setError('게시판명(한국어)을 입력하세요.')
-      setTab('기본 설정')
+      setError(t('board.form.nameRequired'))
+      setTab('basic')
       return
     }
     setSaving(true)
@@ -146,28 +148,28 @@ export default function BoardEditPage() {
   return (
     <>
       <PageHeader
-        title={isNew ? '게시판 추가' : '게시판 설정'}
-        description="게시판의 이름과 동작 방식을 설정합니다."
+        title={isNew ? t('board.addBoard') : t('board.editBoard')}
+        description={t('board.form.pageDescription')}
       />
 
       <form onSubmit={handleSubmit}>
         {/* 탭 */}
         <div className="mb-5 border-b border-slate-200 dark:border-slate-700">
           <nav className="-mb-px flex gap-1 overflow-x-auto" role="tablist">
-            {TABS.map((t) => (
+            {TABS.map((tabKey) => (
               <button
-                key={t}
+                key={tabKey}
                 type="button"
                 role="tab"
-                aria-selected={tab === t}
-                onClick={() => setTab(t)}
+                aria-selected={tab === tabKey}
+                onClick={() => setTab(tabKey)}
                 className={`whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-                  tab === t
+                  tab === tabKey
                     ? 'border-brand-600 text-brand-600 dark:text-brand-400'
                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
-                {t}
+                {t(`board.tabs.${tabKey}`)}
               </button>
             ))}
           </nav>
@@ -180,30 +182,30 @@ export default function BoardEditPage() {
         )}
 
         <div className="card p-6">
-          {tab === '기본 설정' ? (
+          {tab === 'basic' ? (
             <>
-              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">기본 설정</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('board.tabs.basic')}</h2>
 
               <div className="mt-2">
                 <Row
-                  title="활성화"
-                  description="비활성화된 게시판은 사용자 페이지에 표시되지 않습니다"
+                  title={t('board.form.enabled')}
+                  description={t('board.form.enabledHint')}
                   control={
                     <ToggleSwitch
                       checked={form.published}
                       onChange={(v) => set('published', v)}
-                      label="게시판 활성화"
+                      label={t('board.form.enabled')}
                     />
                   }
                 />
 
-                <Row title="슬러그 *">
+                <Row title={`${t('board.form.slug')} *`}>
                   <input
                     id="slug"
                     value={form.slug ?? ''}
                     onChange={(e) => set('slug', e.target.value)}
                     maxLength={40}
-                    placeholder="예: notice (영문, 숫자, 하이픈만 가능)"
+                    placeholder={t('board.form.slugPlaceholder')}
                     className="input font-mono"
                   />
                   <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
@@ -259,28 +261,28 @@ export default function BoardEditPage() {
                       <ToggleSwitch
                         checked={form.showInAdminMenu}
                         onChange={(v) => set('showInAdminMenu', v)}
-                        label="관리자 메뉴에 표시"
+                        label={t('board.form.showInAdminMenu')}
                       />
                     </div>
                   </div>
                 </Row>
 
-                <Row title="게시판명 *">
+                <Row title={`${t('board.form.name')} *`}>
                   <LocalizedInput
                     id="board-name"
                     value={form.nameI18n}
                     onChange={(v) => set('nameI18n', v)}
-                    placeholder="예: 공지사항"
+                    placeholder={t('board.form.namePlaceholder')}
                     maxLength={60}
                   />
                 </Row>
 
-                <Row title="게시판 설명">
+                <Row title={t('board.form.boardDescription')}>
                   <LocalizedInput
                     id="board-desc"
                     value={form.descriptionI18n}
                     onChange={(v) => set('descriptionI18n', v)}
-                    placeholder="게시판의 용도를 간략하게 설명하세요"
+                    placeholder={t('board.form.boardDescriptionPlaceholder')}
                     multiline
                     rows={3}
                   />
@@ -289,7 +291,7 @@ export default function BoardEditPage() {
                   </p>
                 </Row>
 
-                <Row title="게시판 유형">
+                <Row title={t('board.form.type')}>
                   <select
                     id="board-type"
                     value={form.type}
@@ -307,7 +309,7 @@ export default function BoardEditPage() {
                   </p>
                 </Row>
 
-                <Row title="분류" description="게시글 분류를 관리합니다">
+                <Row title={t('board.form.categories')} description={t('board.form.categoriesHint')}>
                   <TagInput
                     id="board-categories"
                     value={form.categories}
@@ -320,13 +322,13 @@ export default function BoardEditPage() {
                 </Row>
 
                 <Row
-                  title="비밀글 모드"
+                  title={t('board.form.secretMode')}
                   control={
                     <select
                       value={form.secretMode}
                       onChange={(e) => set('secretMode', e.target.value as SecretMode)}
                       className="input w-40"
-                      aria-label="비밀글 모드"
+                      aria-label={t('board.form.secretMode')}
                     >
                       {SECRET_MODES.map((m) => (
                         <option key={m} value={m}>
@@ -338,25 +340,25 @@ export default function BoardEditPage() {
                 />
 
                 <Row
-                  title="조회수 표시"
-                  description="게시글 목록 및 상세에서 조회수를 표시합니다"
+                  title={t('board.form.showViews')}
+                  description={t('board.form.showViewsHint')}
                   control={
                     <ToggleSwitch
                       checked={form.showViews}
                       onChange={(v) => set('showViews', v)}
-                      label="조회수 표시"
+                      label={t('board.form.showViews')}
                     />
                   }
                 />
 
                 <Row
-                  title="신고 사용"
-                  description="부적절한 게시글/댓글 신고 기능을 활성화합니다"
+                  title={t('board.form.useReport')}
+                  description={t('board.form.useReportHint')}
                   control={
                     <ToggleSwitch
                       checked={form.useReport}
                       onChange={(v) => set('useReport', v)}
-                      label="신고 사용"
+                      label={t('board.form.useReport')}
                     />
                   }
                 />
@@ -365,7 +367,7 @@ export default function BoardEditPage() {
           ) : (
             <div className="py-16 text-center">
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {tab}은 아직 준비 중입니다.
+                {t('board.form.comingSoon', { tab: t(`board.tabs.${tab}`) })}
               </p>
             </div>
           )}
@@ -373,10 +375,10 @@ export default function BoardEditPage() {
 
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? '저장 중...' : '저장'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
           <button type="button" onClick={() => navigate('/admin/posts')} className="btn-secondary">
-            취소
+            {t('common.cancel')}
           </button>
         </div>
       </form>

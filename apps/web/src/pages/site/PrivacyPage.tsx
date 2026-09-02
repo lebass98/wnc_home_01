@@ -304,7 +304,7 @@ export default function PrivacyPage() {
       <PageHero title="개인정보처리방침" tabs={POLICY_TABS} />
 
       <section className="pb-24 pt-20 sm:pt-24">
-        <div className="container-wnc max-w-5xl">
+        <div className="container-wnc">
           {/* 제목 · 시행일 */}
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">개인정보처리방침</h2>

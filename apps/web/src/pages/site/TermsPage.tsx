@@ -193,7 +193,7 @@ export default function TermsPage() {
       <PageHero title="이용약관" tabs={POLICY_TABS} />
 
       <section className="pb-24 pt-20 sm:pt-24">
-        <div className="container-wnc max-w-5xl">
+        <div className="container-wnc">
           {/* 안내 상자 */}
           <Reveal className="border border-slate-200 bg-slate-50 px-6 py-6 sm:px-8">
             <ul className="space-y-2 text-[0.95rem] leading-[1.8] text-slate-700">

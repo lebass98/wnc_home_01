@@ -154,7 +154,7 @@ export default function SiteLayout() {
           }`}
         />
 
-        <div className="flex h-[4.5rem] w-full items-center justify-between px-5 sm:px-8 lg:px-14">
+        <div className="flex h-[4.5rem] w-full items-center justify-between px-3 sm:px-4 lg:px-7">
           <Link to="/" className="flex items-center gap-2">
             <span
               className={`text-xl font-bold tracking-[0.25em] ${

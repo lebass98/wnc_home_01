@@ -117,7 +117,7 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
         }`}
       >
         {/* 닫기 — 상단 메뉴의 사이트맵 아이콘 자리에 X 를 둔다. */}
-        <div className="flex h-[4.5rem] items-center justify-end px-5 sm:px-8 lg:px-14">
+        <div className="flex h-[4.5rem] items-center justify-end px-3 sm:px-4 lg:px-7">
           <button
             type="button"
             onClick={onClose}

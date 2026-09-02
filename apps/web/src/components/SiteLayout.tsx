@@ -35,16 +35,46 @@ export default function SiteLayout() {
     window.scrollTo(0, 0)
   }, [pathname])
 
+  // 메인 화면에서는 헤더를 히어로 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
+  const overHero = pathname === '/'
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    if (!overHero) return
+    const onScroll = () => setScrolled(window.scrollY > 40)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [overHero])
+
+  // 투명 상태에서는 글자를 흰색으로 뒤집는다. (모바일 메뉴가 열리면 흰 배경이므로 제외)
+  const transparent = overHero && !scrolled && !open
+
   return (
     <div className="flex min-h-screen flex-col">
       <SitePopups />
-      <header style={{ top: 'var(--demo-banner-h)' }} className="sticky z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <header
+        style={{ top: 'var(--demo-banner-h)' }}
+        className={`z-40 transition-colors ${
+          transparent
+            ? // 히어로 위에 겹쳐 얹는다 — 자리를 차지하지 않도록 fixed 로 띄운다.
+              'fixed inset-x-0 border-b border-transparent bg-transparent'
+            : 'sticky border-b border-slate-200 bg-white/90 backdrop-blur'
+        }`}
+      >
         <div className="container-wnc flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+            <span
+              className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold ${
+                transparent ? 'bg-white/20 text-white' : 'bg-brand-600 text-white'
+              }`}
+            >
               W
             </span>
-            <span className="text-lg font-bold tracking-tight text-slate-900">
+            <span
+              className={`text-lg font-bold tracking-tight ${
+                transparent ? 'text-white' : 'text-slate-900'
+              }`}
+            >
               워드앤코드
             </span>
           </Link>
@@ -56,14 +86,27 @@ export default function SiteLayout() {
                 to={item.to}
                 className={({ isActive }) =>
                   `rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    isActive ? 'text-brand-700' : 'text-slate-600 hover:text-slate-900'
+                    transparent
+                      ? isActive
+                        ? 'text-white'
+                        : 'text-white/80 hover:text-white'
+                      : isActive
+                        ? 'text-brand-700'
+                        : 'text-slate-600 hover:text-slate-900'
                   }`
                 }
               >
                 {item.label}
               </NavLink>
             ))}
-            <Link to="/contact" className="btn-primary ml-2">
+            <Link
+              to="/contact"
+              className={`btn ml-2 ${
+                transparent
+                  ? 'bg-mint-400 text-white hover:bg-mint-500'
+                  : 'btn-primary'
+              }`}
+            >
               상담 신청
             </Link>
           </nav>
@@ -71,7 +114,9 @@ export default function SiteLayout() {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
+            className={`rounded-lg p-2 md:hidden ${
+              transparent ? 'text-white hover:bg-white/15' : 'text-slate-600 hover:bg-slate-100'
+            }`}
             aria-label="메뉴 열기"
             aria-expanded={open}
           >

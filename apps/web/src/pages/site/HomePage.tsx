@@ -1,168 +1,292 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { Paginated, PostListItem } from '@wnc/shared'
-import { boardName, useBoards } from '../../lib/boards'
+import type { Paginated, PostListItem, ProductListItem } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
+import { boardName, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
-import { Badge } from '../../components/ui'
+import SectionHeading from '../../components/SectionHeading'
+import HeroSlider from '../../components/HeroSlider'
+import CardCarousel from '../../components/CardCarousel'
 
-const FEATURES = [
+/** 히어로 슬라이드 — 배경은 그라데이션으로 그려 외부 이미지 없이 동작한다. */
+const SLIDES = [
   {
-    title: '웹·모바일 개발',
-    desc: '기획부터 디자인, 개발, 운영까지 서비스의 전 과정을 함께합니다.',
-    icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+    title: ['고객과 우리의 생각을', '함께 구현하다'],
+    desc: ['필요한 것을 정확히 짚어내는 설계로', '비즈니스가 다음 단계로 나아가도록 돕습니다'],
+    gradient: 'linear-gradient(135deg, #1b2a3a 0%, #24404a 55%, #2f5f63 100%)',
   },
   {
-    title: '클라우드 전환',
-    desc: '안정적이고 확장 가능한 클라우드 인프라로 비즈니스를 이전합니다.',
-    icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z',
+    title: ['기획부터 운영까지', '한 팀이 책임집니다'],
+    desc: ['흩어진 과정을 하나로 묶어', '더 빠르고 단단하게 만들어 냅니다'],
+    gradient: 'linear-gradient(135deg, #21243a 0%, #2f3557 55%, #3f5f7a 100%)',
   },
   {
-    title: '데이터 분석',
-    desc: '흩어진 데이터를 모아 의사결정에 필요한 인사이트로 만듭니다.',
-    icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-  },
-  {
-    title: '기술 컨설팅',
-    desc: '현재 시스템을 진단하고 가장 현실적인 개선 방향을 제안합니다.',
-    icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+    title: ['오래 쓸 수 있는', '서비스를 만듭니다'],
+    desc: ['눈에 보이는 화면 뒤의 구조까지', '길게 쓰일 것을 생각하며 짓습니다'],
+    gradient: 'linear-gradient(135deg, #1d2b26 0%, #2b4a41 55%, #3d6e71 100%)',
   },
 ]
 
-const STATS = [
-  { value: '150+', label: '누적 프로젝트' },
-  { value: '12년', label: '업력' },
-  { value: '98%', label: '고객 재계약률' },
-  { value: '45명', label: '전문 인력' },
+/** 개발 철학 — 번호를 붙여 네 칸으로 늘어놓는다. */
+const PHILOSOPHY = [
+  { title: '혁신성', desc: ['익숙한 방식에 머무르지 않고', '더 나은 길을 먼저 찾습니다'] },
+  { title: '창의성', desc: ['같은 문제도 다르게 바라보며', '고객에게 맞는 답을 만듭니다'] },
+  { title: '트렌디', desc: ['새로운 기술을 빠르게 익혀', '지금에 맞는 서비스를 만듭니다'] },
+  { title: '견고성', desc: ['눈에 보이지 않는 구조까지', '오래 버티도록 설계합니다'] },
+]
+
+/** 서비스 카드 */
+const SERVICES = [
+  {
+    title: '쉽고 편리한 최적의 서비스',
+    desc: ['복잡한 과정을 덜어내고 꼭 필요한 것만 남겨', '누구나 어렵지 않게 쓸 수 있게 만듭니다.'],
+    gradient: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
+  },
+  {
+    title: '디지털 트랜스포메이션 혁신',
+    desc: ['흩어진 업무와 데이터를 한곳으로 모아', '일하는 방식 자체를 바꿔 드립니다.'],
+    gradient: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
+  },
+  {
+    title: '플랫폼 중심의 커뮤니케이션',
+    desc: ['고객과 사용자가 만나는 자리를 만들어', '이야기가 오래 이어지도록 돕습니다.'],
+    gradient: 'linear-gradient(135deg, #dcd8e8 0%, #8b7fae 100%)',
+  },
 ]
 
 export default function HomePage() {
   const boards = useBoards()
   const [posts, setPosts] = useState<PostListItem[]>([])
+  const [products, setProducts] = useState<ProductListItem[]>([])
 
   useEffect(() => {
-    api<Paginated<PostListItem>>(`/posts${qs({ pageSize: 3 })}`)
+    api<Paginated<PostListItem>>(`/posts${qs({ pageSize: 2 })}`)
       .then((res) => setPosts(res.items))
       .catch(() => setPosts([]))
+    api<Paginated<ProductListItem>>(`/products${qs({ pageSize: 8 })}`)
+      .then((res) => setProducts(res.items))
+      .catch(() => setProducts([]))
   }, [])
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-slate-900">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 20% 30%, #3b82f6 0, transparent 45%), radial-gradient(circle at 80% 70%, #1d4ed8 0, transparent 45%)',
-          }}
-          aria-hidden
-        />
-        <div className="container-wnc relative py-24 sm:py-32">
-          <div className="max-w-3xl">
-            <span className="inline-flex rounded-full bg-brand-600/20 px-3 py-1 text-xs font-semibold text-brand-300 ring-1 ring-inset ring-brand-500/30">
-              Word &amp; Code
-            </span>
-            <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-              기술로 비즈니스의
-              <br />
-              다음 단계를 만듭니다
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-slate-300">
-              워드앤코드는 웹·모바일 서비스 개발과 클라우드 전환을 통해 고객의 디지털 전환을 돕는 IT
-              솔루션 기업입니다.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/contact" className="btn-primary px-6 py-3">
-                프로젝트 상담하기
-              </Link>
-              <Link
-                to="/services"
-                className="btn border border-slate-600 px-6 py-3 text-white hover:bg-slate-800"
-              >
-                사업분야 보기
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSlider slides={SLIDES} />
 
-      {/* 통계 */}
-      <section className="border-b border-slate-200 bg-white">
-        <div className="container-wnc grid grid-cols-2 gap-8 py-12 lg:grid-cols-4">
-          {STATS.map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-3xl font-bold text-brand-600">{s.value}</p>
-              <p className="mt-1.5 text-sm text-slate-600">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 서비스 */}
-      <section className="py-20 sm:py-24">
+      {/* 소개 */}
+      <section className="py-24 sm:py-28">
         <div className="container-wnc">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">우리가 하는 일</h2>
-            <p className="mt-4 text-slate-600">
-              기획부터 운영까지, 서비스에 필요한 모든 단계를 한 팀에서 책임집니다.
+          <SectionHeading eyebrow="WnC About" title={['사람과 사람을 연결하는', '소통의 창 워드앤코드']} />
+
+          <div className="mx-auto mt-14 grid max-w-5xl gap-10 md:grid-cols-2 md:gap-14">
+            <p className="text-[0.95rem] leading-[1.9] text-slate-600 md:border-r md:border-slate-200 md:pr-14">
+              웹 서비스의 중요성이 하루하루 커지고 있지만, 전문적인 교육을 받지 않고서는 직접
+              운영하기 어려운 것이 현실입니다. 워드앤코드는 담당자가 따로 배우지 않아도 손쉽게 웹과
+              친숙해질 수 있도록 돕는 웹 전용 스마트 서비스입니다.
+            </p>
+            <p className="text-[0.95rem] leading-[1.9] text-slate-600">
+              기획부터 디자인, 개발, 운영까지 서비스에 필요한 모든 단계를 한 팀에서 맡습니다. 중간에
+              말이 바뀌거나 책임이 흩어지지 않도록, 처음 만난 담당자가 끝까지 함께합니다.
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="card p-6 transition hover:shadow-md">
-                <div className="grid h-11 w-11 place-items-center rounded-lg bg-brand-50 text-brand-600">
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d={f.icon} />
-                  </svg>
-                </div>
-                <h3 className="mt-5 font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.desc}</p>
+          <div className="mt-12 text-center">
+            <Link
+              to="/about"
+              className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              자세히보기
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 넓은 이미지 띠 */}
+      <section className="container-wnc">
+        <div
+          className="grid h-[22rem] place-items-center sm:h-[26rem]"
+          style={{ background: 'linear-gradient(135deg, #20303b 0%, #2c4a52 60%, #3d6e71 100%)' }}
+        >
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:bg-white/35">
+            <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      {/* 프로젝트 — 등록된 제품을 카드로 보여준다. */}
+      {products.length > 0 && (
+        <section className="relative mt-24 sm:mt-28">
+          {/* 카드 아래쪽 절반에 깔리는 어두운 띠 */}
+          <div className="absolute inset-x-0 bottom-0 top-56 bg-[#2b2b2b]" aria-hidden />
+
+          <div className="relative">
+            <SectionHeading
+              eyebrow="WnC Project"
+              title={['시각적 아름다움을 구현하는', '워드앤코드 프로젝트']}
+            />
+
+            <div className="mt-14">
+              <CardCarousel
+                items={products.map((p) => ({
+                  id: p.id,
+                  to: `/products/${p.id}`,
+                  image: p.thumbnail,
+                  title: p.name,
+                  desc: p.summary ?? '',
+                }))}
+                moreTo="/products"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 개발 철학 */}
+      <section className="bg-[#2b2b2b] pb-24 pt-20 sm:pb-28">
+        <div className="container-wnc">
+          <SectionHeading
+            eyebrow="WnC Philosophy"
+            title={['워드앤코드가 일하는 방식']}
+            tone="dark"
+          />
+
+          <div className="mt-14 grid gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+            {PHILOSOPHY.map((p, i) => (
+              <div
+                key={p.title}
+                className="px-0 sm:px-8 lg:border-r lg:border-white/15 lg:last:border-r-0 lg:first:pl-0"
+              >
+                <p className="flex items-baseline gap-2.5">
+                  <span className="text-sm font-medium text-mint-400">{i + 1}</span>
+                  <span className="font-semibold text-white">{p.title}</span>
+                </p>
+                <p className="mt-4 text-sm leading-[1.9] text-white/60">
+                  {p.desc[0]}
+                  <br />
+                  {p.desc[1]}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 최근 소식 */}
-      {posts.length > 0 && (
-        <section className="border-t border-slate-200 bg-slate-50 py-20">
-          <div className="container-wnc">
-            <div className="flex items-end justify-between">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">최근 소식</h2>
-              <Link to="/board" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                전체 보기 →
-              </Link>
-            </div>
+      {/* 철학 아래 넓은 이미지 — 어두운 띠에 절반 걸치게 둔다. */}
+      <section className="relative">
+        <div className="absolute inset-x-0 top-0 h-24 bg-[#2b2b2b]" aria-hidden />
+        <div className="container-wnc relative">
+          <div
+            className="h-[20rem] sm:h-[26rem]"
+            style={{ background: 'linear-gradient(135deg, #1f6f9e 0%, #2f93c8 55%, #8fd0e8 100%)' }}
+          />
+          <div className="mt-12 text-center">
+            <Link
+              to="/services"
+              className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              자세히보기
+            </Link>
+          </div>
+        </div>
+      </section>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {posts.map((p) => (
-                <Link key={p.id} to={`/board/${p.id}`} className="card p-6 transition hover:shadow-md">
-                  <Badge tone="blue">{boardName(boards, p.category)}</Badge>
-                  <h3 className="mt-3 line-clamp-2 font-semibold leading-snug text-slate-900">
-                    {p.title}
-                  </h3>
-                  <p className="mt-4 text-xs text-slate-500">{formatDate(p.createdAt)}</p>
+      {/* 서비스 */}
+      <section className="py-24 sm:py-28">
+        <div className="container-wnc">
+          <SectionHeading
+            eyebrow="WnC Service"
+            title={['고객님을 위한 든든한 파트너', '워드앤코드 플랫폼 서비스']}
+          />
+
+          <div className="mt-14 grid gap-8 md:grid-cols-3">
+            {SERVICES.map((s) => (
+              <div key={s.title}>
+                <div className="h-56 w-full" style={{ background: s.gradient }} />
+                <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
+                <p className="mt-3 text-sm leading-[1.9] text-slate-600">
+                  {s.desc[0]}
+                  <br />
+                  {s.desc[1]}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link
+              to="/services"
+              className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              자세히보기
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 영상 — 뒤에 민트 블록을 어긋나게 깔아 입체감을 준다. */}
+      <section className="relative overflow-hidden pb-24 sm:pb-28">
+        <SectionHeading
+          eyebrow="WnC Video"
+          title={['시각적 아름다움을 구현하는', '워드앤코드 프로젝트 영상']}
+        />
+
+        <div className="relative mt-14">
+          {/* 오른쪽 아래로 어긋나게 깔리는 민트 블록 */}
+          <div className="absolute inset-y-16 right-0 left-56 bg-mint-400" aria-hidden />
+          <div
+            className="relative mr-24 grid h-[22rem] place-items-center sm:h-[30rem]"
+            style={{ background: 'linear-gradient(135deg, #2a3b3f 0%, #44646a 55%, #7d9ea3 100%)' }}
+          >
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:bg-white/35">
+              <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 공지 */}
+      <section className="pb-28">
+        <div className="container-wnc">
+          <SectionHeading eyebrow="WnC Notice" title={['사람과 사람을 연결하는', '워드앤코드 공지안내']} />
+
+          {posts.length > 0 ? (
+            <>
+              <div className="mx-auto mt-14 grid max-w-5xl gap-10 md:grid-cols-2 md:gap-14">
+                {posts.map((post, i) => (
+                  <Link
+                    key={post.id}
+                    to={`/board/${post.id}`}
+                    className={`group block ${
+                      i === 0 ? 'md:border-r md:border-slate-200 md:pr-14' : ''
+                    }`}
+                  >
+                    <h3 className="font-semibold text-slate-900 transition group-hover:text-mint-500">
+                      {post.title}
+                    </h3>
+                    <p className="mt-4 text-[0.95rem] leading-[1.9] text-slate-600">
+                      {boardName(boards, post.category)} · {post.authorName}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">{formatDate(post.createdAt)}</p>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-12 flex justify-end">
+                <Link
+                  to="/board"
+                  className="group inline-flex items-center gap-3 text-sm font-semibold text-slate-900"
+                >
+                  전체보기
+                  <span className="block h-px w-9 bg-slate-900 transition-all group-hover:w-12" />
                 </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CTA */}
-      <section className="bg-brand-600 py-16">
-        <div className="container-wnc flex flex-col items-center justify-between gap-6 text-center sm:flex-row sm:text-left">
-          <div>
-            <h2 className="text-2xl font-bold text-white">프로젝트를 준비 중이신가요?</h2>
-            <p className="mt-2 text-brand-100">
-              간단한 문의만 남겨주시면 담당자가 1영업일 내에 연락드립니다.
-            </p>
-          </div>
-          <Link to="/contact" className="btn bg-white px-6 py-3 text-brand-700 hover:bg-brand-50">
-            문의하기
-          </Link>
+              </div>
+            </>
+          ) : (
+            <p className="mt-14 text-center text-sm text-slate-500">등록된 공지가 없습니다.</p>
+          )}
         </div>
       </section>
     </>

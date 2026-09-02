@@ -169,7 +169,7 @@ export default function SiteLayout() {
             1차 메뉴 — 참고 템플릿처럼 각 열(li)의 높이가 헤더 높이에서 판 높이만큼 늘어나며
             아래에 있던 2차 메뉴가 드러난다. 열은 넘치는 부분을 잘라 두어 닫혀 있을 땐 보이지 않는다.
           */}
-          <nav className="hidden h-full items-start gap-2 self-start md:flex lg:gap-6" onMouseEnter={() => setMegaOpen(true)}>
+          <nav className="hidden h-full items-start gap-0 self-start md:flex lg:gap-1" onMouseEnter={() => setMegaOpen(true)}>
             {menu.map((item) => (
               <div
                 key={item.to}
@@ -179,7 +179,7 @@ export default function SiteLayout() {
                 <NavLink
                   to={item.to}
                   className={({ isActive }) =>
-                    `relative flex h-[4.5rem] items-center px-4 text-[1.05rem] font-semibold tracking-tight transition ${
+                    `relative flex h-[4.5rem] items-center px-3.5 text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
                         ? isActive
                           ? 'text-white'
@@ -194,7 +194,7 @@ export default function SiteLayout() {
                   {/* 올린 메뉴 아래 밑줄 */}
                   <span
                     aria-hidden
-                    className={`absolute inset-x-4 bottom-3 h-px origin-left scale-x-0 transition-transform duration-200 ease-in-out group-hover:scale-x-100 ${
+                    className={`absolute inset-x-3.5 bottom-3 h-px origin-left scale-x-0 transition-transform duration-200 ease-in-out group-hover:scale-x-100 ${
                       transparent ? 'bg-white' : 'bg-slate-900'
                     }`}
                   />
@@ -202,7 +202,7 @@ export default function SiteLayout() {
 
                 {/* 2차 메뉴 — 열이 늘어나면서 위에서부터 드러난다. */}
                 {item.children.length > 0 && (
-                  <ul className="flex w-44 flex-col gap-2.5 px-4 pt-5">
+                  <ul className="flex w-40 flex-col gap-2.5 px-3.5 pt-5">
                     {item.children.map((child) => (
                       <li key={child.label}>
                         <Link

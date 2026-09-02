@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type TransitionEvent,
+} from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import type { Popup } from '@wnc/shared'
 import { api } from '../lib/api'
@@ -13,8 +21,10 @@ const STORAGE_KEY = 'wnc_popup_hidden'
 /** '이 브라우저 닫을 때까지'는 탭을 닫으면 지워지는 sessionStorage 에 담는다. */
 const SESSION_KEY = 'wnc_popup_hidden_session'
 
-/** 한 화면에 나란히 보여줄 최대 개수. 이보다 많으면 슬라이드로 넘긴다. */
-const PER_PAGE = 3
+/** 팝업 사이 간격(px) */
+const GAP = 20
+/** 한 칸 넘어가는 데 걸리는 시간(ms) */
+const SPEED = 600
 
 type HiddenMap = Record<string, number>
 
@@ -100,26 +110,38 @@ function overflowOf(scrollbar: Popup['scrollbar']): 'auto' | 'hidden' | 'scroll'
   return 'auto'
 }
 
-/** 좌우 이동 버튼 */
+/** 화면 폭에 따라 한 화면에 몇 장을 나란히 둘지 정한다. 좁은 화면은 한 장씩. */
+function usePerView(): number {
+  const [perView, setPerView] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches ? 2 : 1,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)')
+    const update = () => setPerView(mq.matches ? 2 : 1)
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return perView
+}
+
+/** 좌우 이동 버튼 — 흰 테두리 원 안에 화살표 */
 function ArrowButton({
   onClick,
   label,
   direction,
-  className,
 }: {
   onClick: () => void
   label: string
   direction: 'prev' | 'next'
-  className: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`absolute top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full border border-white/50 text-white transition hover:bg-white/15 ${className}`}
+      className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full border border-white text-white transition hover:bg-white/15 sm:h-[60px] sm:w-[60px]"
     >
-      <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+      <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -130,13 +152,19 @@ function ArrowButton({
   )
 }
 
+/** 닫기 계열 버튼 오른쪽에 붙는 X 아이콘 */
+function CloseIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
 /** 팝업 한 장 — 이미지와 본문을 담는다. */
 function PopupCard({ popup }: { popup: Popup }) {
   return (
-    <div
-      style={{ width: popup.width, maxWidth: '100%' }}
-      className="overflow-hidden bg-white shadow-2xl"
-    >
+    <div style={{ width: popup.width, maxWidth: '100%' }} className="overflow-hidden bg-white shadow-2xl">
       <MaybeLink popup={popup}>
         <div style={{ maxHeight: popup.height, overflowY: overflowOf(popup.scrollbar) }}>
           {popup.image && <img src={popup.image} alt="" className="w-full" />}
@@ -156,12 +184,17 @@ function PopupCard({ popup }: { popup: Popup }) {
  * 게시기간 안이고 사용 중인 팝업만 서버가 내려주며,
  * 팝업위치가 맞지 않거나 방문자가 닫은 것은 여기서 걸러진다.
  *
- * 세 장까지는 한 화면에 나란히 놓고, 네 장부터는 좌우로 넘겨 본다.
+ * 두 장까지는 가운데에 나란히 놓고, 세 장부터는 두 장씩 보이며 좌우로 넘긴다.
+ * 마지막 장 다음에는 첫 장이 이어진다(무한 루프).
  */
 export default function SitePopups() {
   const { pathname } = useLocation()
   const [popups, setPopups] = useState<Popup[]>([])
-  const [page, setPage] = useState(0)
+  const perView = usePerView()
+  // 슬라이드의 현재 위치. 화면 왼쪽 첫 칸에 오는 팝업의 순번이다.
+  const [index, setIndex] = useState(0)
+  // -1 이면 다음으로, 1 이면 이전으로 밀리는 중. 0 이면 멈춰 있다.
+  const [offset, setOffset] = useState<-1 | 0 | 1>(0)
   // 창으로 여는 팝업은 한 번만 열어야 하므로 이미 연 id 를 기억한다.
   const opened = useRef(new Set<number>())
 
@@ -212,19 +245,37 @@ export default function SitePopups() {
   }, [visible])
 
   // 레이어로 띄울 팝업만 겹쳐서 보여준다.
-  const layers = visible.filter((p) => p.windowType !== 'window')
-  const pages = Math.max(1, Math.ceil(layers.length / PER_PAGE))
-  // 화살표는 네 장 이상일 때만 쓴다. (세 장까지는 한 화면에 다 들어간다)
-  const sliding = layers.length > PER_PAGE
+  const layers = useMemo(() => visible.filter((p) => p.windowType !== 'window'), [visible])
+  const count = layers.length
+  // 한 화면에 다 들어가면 슬라이드가 필요 없다.
+  const sliding = count > perView
+  const moving = offset !== 0
 
-  // 팝업이 줄어 현재 쪽이 사라지면 첫 쪽으로 되돌린다.
+  // 팝업이 줄어 현재 위치가 범위를 벗어나면 처음으로 되돌린다.
   useEffect(() => {
-    if (page > pages - 1) setPage(0)
-  }, [page, pages])
+    if (count > 0 && index >= count) setIndex(0)
+  }, [index, count])
 
-  const go = (next: number) => setPage((next + pages) % pages)
+  // 이미 움직이는 중이면 무시한다 — 연타해도 한 칸씩만 넘어간다.
+  const go = useCallback((dir: -1 | 1) => setOffset((o) => (o !== 0 ? o : dir)), [])
 
-  /** 전부 닫는다. remember 를 켜면 표시기간만큼 다시 뜨지 않는다. */
+  /** 점을 눌러 이동 — 바로 옆 칸이면 밀어서, 멀면 바로 바꾼다. */
+  const jump = (target: number) => {
+    if (moving || target === index) return
+    const diff = (target - index + count) % count
+    if (diff === 1) go(-1)
+    else if (diff === count - 1) go(1)
+    else setIndex(target)
+  }
+
+  /** 밀림이 끝나면 위치를 바꾸고, 전환 없이 제자리로 되돌린다. */
+  const onTransitionEnd = (e: TransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget || !moving) return
+    setIndex((i) => (i - offset + count) % count)
+    setOffset(0)
+  }
+
+  /** 전부 닫는다. keep 을 켜면 표시기간만큼 다시 뜨지 않는다. */
   const closeAll = useCallback(
     (keep: boolean) => {
       if (keep) for (const p of layers) remember(p)
@@ -235,27 +286,25 @@ export default function SitePopups() {
 
   // ESC 로 닫는다.
   useEffect(() => {
-    if (layers.length === 0) return
+    if (count === 0) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeAll(false)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [layers.length, closeAll])
+  }, [count, closeAll])
 
   // 팝업이 떠 있는 동안에는 뒤쪽 화면이 스크롤되지 않게 한다.
   useEffect(() => {
-    if (layers.length === 0) return
+    if (count === 0) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
     }
-  }, [layers.length])
+  }, [count])
 
-  if (layers.length === 0) return null
-
-  const shown = sliding ? layers.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE) : layers
+  if (count === 0) return null
 
   // 표시기간은 팝업마다 다를 수 있어, 여러 개면 가장 짧은 쪽에 맞춰 안내한다.
   const hideLabel = layers.every((p) => p.hidePeriod === 'session')
@@ -264,107 +313,116 @@ export default function SitePopups() {
       ? '다시 열지 않기'
       : '오늘 하루 열지 않기'
 
+  // 슬라이드 폭 — 가장 넓은 팝업 기준으로 perView 장이 딱 들어가게 잡는다.
+  const widest = Math.max(...layers.map((p) => p.width))
+  const viewportWidth = perView * widest + (perView - 1) * GAP
+
+  // 보이는 칸의 양옆에 한 칸씩 더 깔아 두어 밀려 들어올 장을 미리 준비한다.
+  const slots = Array.from({ length: perView + 2 }, (_, k) => layers[(index - 1 + k + count) % count])
+
   return (
     <div
       role="dialog"
       aria-modal
       aria-label="팝업 안내"
-      className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/90"
+      className="fixed inset-0 z-[70] overflow-y-auto bg-black/85"
     >
-      <div className="flex min-h-full flex-col items-center justify-center px-4 py-10 sm:px-16">
-        {/* 팝업 — 세 장까지는 나란히, 네 장부터는 넘겨서 본다. */}
-        <div className="relative w-full">
-          <div className="flex flex-wrap items-start justify-center gap-6">
-            {shown.map((popup) => (
-              <PopupCard key={popup.id} popup={popup} />
-            ))}
-          </div>
+      <div className="flex min-h-full flex-col items-center justify-center px-5 py-10 sm:px-10">
+        <h2 className="pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:pb-20 sm:text-5xl">
+          팝업자료
+        </h2>
 
-          {/* 좁은 화면에서는 팝업이 세로로 쌓여 가운데가 비지 않으므로 아래쪽 줄로 옮긴다. */}
-          {sliding && (
-            <div className="hidden sm:block">
-              <ArrowButton
-                direction="prev"
-                label="이전 팝업"
-                onClick={() => go(page - 1)}
-                className="-left-4"
-              />
-              <ArrowButton
-                direction="next"
-                label="다음 팝업"
-                onClick={() => go(page + 1)}
-                className="-right-4"
-              />
+        <div className="relative w-full max-w-site">
+          {sliding ? (
+            <>
+              <div className="px-12 sm:px-[70px]">
+                <div
+                  className="mx-auto overflow-hidden"
+                  style={{ width: viewportWidth, maxWidth: '100%' }}
+                >
+                  <div
+                    className="flex"
+                    style={{
+                      gap: GAP,
+                      transform: `translateX(calc(${(-(1 - offset) * 100) / perView}% - ${((1 - offset) * GAP) / perView}px))`,
+                      transition: moving ? `transform ${SPEED}ms ease` : 'none',
+                    }}
+                    onTransitionEnd={onTransitionEnd}
+                  >
+                    {slots.map((popup, slot) => {
+                      const shown = slot >= 1 && slot <= perView
+                      return (
+                        <div
+                          key={slot}
+                          className="flex flex-none justify-center"
+                          style={{ width: `calc(${100 / perView}% - ${((perView - 1) * GAP) / perView}px)` }}
+                          aria-hidden={!shown}
+                        >
+                          <PopupCard popup={popup} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 좌우 이동 — 슬라이드 바깥 양끝에 둔다. */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between">
+                <ArrowButton direction="prev" label="이전 슬라이드 보기" onClick={() => go(1)} />
+                <ArrowButton direction="next" label="다음 슬라이드 보기" onClick={() => go(-1)} />
+              </div>
+
+              {/* 현재 위치 점 */}
+              <div className="mt-8 flex justify-center gap-2.5">
+                {layers.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => jump(i)}
+                    aria-label={`${i + 1}번째 팝업 보기`}
+                    aria-current={i === index}
+                    className={`h-2.5 w-2.5 rounded-full transition ${
+                      i === index ? 'bg-[#ce4b00]' : 'bg-white hover:bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            // 한두 장이면 가운데에 나란히 놓는다.
+            <div className="flex flex-wrap items-start justify-center" style={{ gap: GAP }}>
+              {layers.map((popup) => (
+                <PopupCard key={popup.id} popup={popup} />
+              ))}
             </div>
           )}
         </div>
 
-        {/* 현재 쪽 표시 — 좁은 화면에서는 좌우 버튼을 양옆에 함께 둔다. */}
-        {sliding && (
-          <div className="mt-6 flex items-center gap-4 sm:gap-2.5">
-            <button
-              type="button"
-              onClick={() => go(page - 1)}
-              aria-label="이전 팝업"
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/50 text-white transition hover:bg-white/15 sm:hidden"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div className="flex gap-2.5">
-              {Array.from({ length: pages }, (_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setPage(i)}
-                  aria-label={`${i + 1}번째 팝업 보기`}
-                  aria-current={i === page}
-                  className={`h-2.5 w-2.5 rounded-full transition ${
-                    i === page ? 'bg-mint-400' : 'bg-white/40 hover:bg-white/70'
-                  }`}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => go(page + 1)}
-              aria-label="다음 팝업"
-              className="grid h-9 w-9 place-items-center rounded-full border border-white/50 text-white transition hover:bg-white/15 sm:hidden"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        )}
-
         {/* 건수 · 닫기 */}
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <span className="mr-2 rounded bg-black/70 px-4 py-2.5 text-sm text-white">
-            팝업건수 : 총 <span className="font-bold text-mint-400">{layers.length}</span>건
-          </span>
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:mt-20 sm:gap-[30px]">
+          <dl className="flex h-12 items-center rounded-lg bg-black px-7 text-base font-medium text-white sm:text-lg">
+            <dt>팝업건수 :</dt>
+            <dd className="pl-1">
+              총 <span className="text-[#ffc80b]">{count}</span>건
+            </dd>
+          </dl>
 
           <button
             type="button"
             onClick={() => closeAll(false)}
-            className="inline-flex items-center gap-2 rounded bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            className="flex h-12 items-center gap-3 rounded-lg bg-[#26a112] px-6 font-medium text-white transition hover:brightness-110 sm:px-[38px]"
           >
             닫기
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon />
           </button>
 
           <button
             type="button"
             onClick={() => closeAll(true)}
-            className="inline-flex items-center gap-2 rounded bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
+            className="flex h-12 items-center gap-3 rounded-lg bg-[#f36f21] px-6 font-medium text-white transition hover:brightness-110 sm:px-[38px]"
           >
             {hideLabel}
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <CloseIcon />
           </button>
         </div>
       </div>

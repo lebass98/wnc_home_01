@@ -1,4 +1,5 @@
-import type { BoardCategory, Contact, ContactStatus, Post } from '@wnc/shared'
+import type { BoardCategory, Branch, Contact, ContactStatus, Post } from '@wnc/shared'
+import { DEFAULT_COMPANY } from '@wnc/shared'
 
 /**
  * 데모 모드 초기 데이터.
@@ -314,11 +315,35 @@ export interface DemoSetting {
   gaId: string | null
   generatorEnabled: boolean
   generatorContent: string | null
+  companyName: string
+  companyNameEn: string
+  ceo: string
+  bizNo: string
+  zipCode: string
+  address: string
+  tel: string
+  fax: string
+  email: string
+  hours: string
+  since: string
+  copyright: string
+  mapQuery: string
+  directionsGuide: string
+  snsFacebook: string
+  snsYoutube: string
+  snsBlog: string
+  snsInstagram: string
+  branches: Branch[]
   updatedAt: string
 }
 
 export function createDemoSetting(): DemoSetting {
   return {
+    ...DEFAULT_COMPANY,
+    branches: [
+      { name: '워드앤코드 판교 지점', phone: '031-123-4567', email: 'pangyo@wordncode.com', address: '경기도 성남시 분당구 판교역로 166' },
+      { name: '워드앤코드 부산 지점', phone: '051-123-4567', email: 'busan@wordncode.com', address: '부산광역시 해운대구 센텀중앙로 79' },
+    ],
     siteName: '워드앤코드',
     siteUrl: 'https://wnc.co.kr',
     description: '웹·모바일 서비스 개발과 디지털 전환을 돕는 IT 솔루션 기업입니다.',

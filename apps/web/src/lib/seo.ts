@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { BoardSetting, SiteSetting } from '@wnc/shared'
 import { DEFAULT_GENERATOR, fillTemplate } from '@wnc/shared'
 import { api } from './api'
@@ -36,6 +36,31 @@ let sitePromise: Promise<SiteSetting> | null = null
 function loadSiteSetting(): Promise<SiteSetting> {
   sitePromise ??= api<SiteSetting>('/settings')
   return sitePromise
+}
+
+/** 관리자에서 설정을 저장한 뒤 부른다 — 다음 화면부터 새 값을 읽는다. */
+export function invalidateSiteSetting() {
+  sitePromise = null
+}
+
+/**
+ * 사이트 설정(회사 정보 등)을 화면에서 쓴다. 받기 전에는 null 이므로
+ * 호출하는 쪽에서 DEFAULT_COMPANY 같은 기본값으로 대신 그린다.
+ */
+export function useSiteSetting(): SiteSetting | null {
+  const [setting, setSetting] = useState<SiteSetting | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadSiteSetting()
+      .then((s) => alive && setSetting(s))
+      .catch(() => {
+        // 설정을 못 읽어도 화면은 기본값으로 그려진다.
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+  return setting
 }
 
 /** 같은 이름의 메타 태그가 있으면 내용만 바꾸고, 없으면 새로 넣는다. */

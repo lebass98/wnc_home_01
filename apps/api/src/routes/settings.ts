@@ -56,6 +56,47 @@ const seoInputSchema = z.object({
   generatorContent: optionalText(100),
 })
 
+/** 회사 정보 — 빈 값도 그대로 저장한다 (비우면 화면에서 감춘다). */
+const text = (max: number) => z.string().max(max).transform((v) => v.trim())
+
+const branchSchema = z.object({
+  name: text(100),
+  phone: text(50),
+  email: text(200),
+  address: text(300),
+})
+
+const companyInputSchema = z.object({
+  companyName: z.string().trim().min(1, '회사명을 입력하세요.').max(100),
+  companyNameEn: text(100),
+  ceo: text(100),
+  bizNo: text(50),
+  zipCode: text(20),
+  address: text(300),
+  tel: text(50),
+  fax: text(50),
+  email: z.union([z.literal(''), z.string().trim().email('이메일 형식이 올바르지 않습니다.').max(200)]),
+  hours: text(500),
+  since: text(10),
+  copyright: text(200),
+  mapQuery: text(300),
+  directionsGuide: text(1000),
+  snsFacebook: text(300),
+  snsYoutube: text(300),
+  snsBlog: text(300),
+  snsInstagram: text(300),
+  branches: z.array(branchSchema).max(20, '지점은 20곳까지 등록할 수 있습니다.'),
+})
+
+function parseBranches(raw: string) {
+  try {
+    const list = JSON.parse(raw)
+    return Array.isArray(list) ? list : []
+  } catch {
+    return []
+  }
+}
+
 function toResponse(row: SettingRow) {
   return {
     siteName: row.siteName,
@@ -81,6 +122,25 @@ function toResponse(row: SettingRow) {
     gaId: row.gaId,
     generatorEnabled: row.generatorEnabled,
     generatorContent: row.generatorContent,
+    companyName: row.companyName,
+    companyNameEn: row.companyNameEn,
+    ceo: row.ceo,
+    bizNo: row.bizNo,
+    zipCode: row.zipCode,
+    address: row.address,
+    tel: row.tel,
+    fax: row.fax,
+    email: row.email,
+    hours: row.hours,
+    since: row.since,
+    copyright: row.copyright,
+    mapQuery: row.mapQuery,
+    directionsGuide: row.directionsGuide,
+    snsFacebook: row.snsFacebook,
+    snsYoutube: row.snsYoutube,
+    snsBlog: row.snsBlog,
+    snsInstagram: row.snsInstagram,
+    branches: parseBranches(row.branches),
     updatedAt: row.updatedAt.toISOString(),
   }
 }
@@ -131,6 +191,22 @@ settingsRouter.put(
     const existing = await loadSetting()
 
     const updated = await prisma.siteSetting.update({ where: { id: existing.id }, data })
+    res.json(toResponse(updated))
+  }),
+)
+
+/** 회사 정보 탭 — 푸터·문의하기·찾아오시는 길에 바로 반영된다. */
+settingsRouter.put(
+  '/company',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const data = companyInputSchema.parse(req.body)
+    const existing = await loadSetting()
+
+    const updated = await prisma.siteSetting.update({
+      where: { id: existing.id },
+      data: { ...data, branches: JSON.stringify(data.branches) },
+    })
     res.json(toResponse(updated))
   }),
 )

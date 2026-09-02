@@ -1,22 +1,27 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { ContactInput } from '@wnc/shared'
+import { DEFAULT_COMPANY } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
 import Reveal from '../../components/Reveal'
 import { ErrorMessage } from '../../components/ui'
-import { usePageTitle } from '../../lib/seo'
+import { usePageTitle, useSiteSetting } from '../../lib/seo'
 import { CONTACT_TABS } from './FaqPage'
 
 const EMPTY: ContactInput = { name: '', email: '', phone: '', company: '', message: '' }
 
-/** 왼쪽 연락처 — 작은 제목과 값 */
-const INFO = [
-  { label: 'ADDRESS', value: ['서울특별시 강남구 테헤란로 123, 8층'] },
-  { label: 'TEL', value: ['02-1234-5678'] },
-  { label: 'E-MAIL', value: ['contact@wnc.co.kr'] },
-  { label: 'HOURS', value: ['평일 09:00 - 18:00', '점심 12:00 - 13:00 · 주말·공휴일 휴무'] },
-]
+/** 왼쪽 연락처 — 환경설정 > 회사 정보에서 읽는다. 비어 있는 항목은 감춘다. */
+function contactInfo(c: typeof DEFAULT_COMPANY) {
+  return [
+    { label: 'ADDRESS', value: [c.zipCode ? `[${c.zipCode}] ${c.address}` : c.address] },
+    { label: 'TEL', value: [c.tel] },
+    { label: 'E-MAIL', value: [c.email] },
+    { label: 'HOURS', value: c.hours.split('\n') },
+  ]
+    .map((item) => ({ ...item, value: item.value.map((v) => v.trim()).filter(Boolean) }))
+    .filter((item) => item.value.length > 0)
+}
 
 /** 문의 절차 — 접수 뒤 어떻게 진행되는지 세 단계로 */
 const STEPS = [
@@ -30,6 +35,7 @@ const FIELD =
   'w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-[0.95rem] text-slate-900 placeholder:text-slate-400 transition focus:border-slate-900 focus:outline-none focus:ring-0'
 
 export default function ContactPage() {
+  const INFO = contactInfo(useSiteSetting() ?? DEFAULT_COMPANY)
   usePageTitle('문의하기')
   const [searchParams] = useSearchParams()
   const [form, setForm] = useState<ContactInput>(EMPTY)

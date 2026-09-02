@@ -4,17 +4,23 @@ import type { OgType, SeoSettingInput, SiteSetting, SiteSettingInput } from '@wn
 import { DEFAULT_GENERATOR } from '@wnc/shared'
 import { api, IS_DEMO } from '../../lib/api'
 import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
+import CompanySettingsForm from './CompanySettingsForm'
 
 const TABS = [
   { key: 'general', label: '일반' },
+  { key: 'company', label: '회사 정보' },
   { key: 'seo', label: 'SEO' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
+function toTab(value: string | null): TabKey {
+  return TABS.some((t) => t.key === value && t.key !== 'general') ? (value as TabKey) : 'general'
+}
+
 export default function SettingsPage() {
   const [params, setParams] = useSearchParams()
-  const tab: TabKey = params.get('tab') === 'seo' ? 'seo' : 'general'
+  const tab = toTab(params.get('tab'))
 
   const [setting, setSetting] = useState<SiteSetting | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +35,10 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="환경설정" description="사이트 기본 정보와 운영에 필요한 값을 설정합니다." />
+      <PageHeader
+        title="환경설정"
+        description="사이트 기본 정보와 운영에 필요한 값을 설정합니다. 회사 정보 탭의 값은 홈페이지 푸터·문의하기·찾아오시는 길에 바로 반영됩니다."
+      />
 
       {/* 탭 */}
       <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
@@ -57,6 +66,8 @@ export default function SettingsPage() {
         <Loading />
       ) : tab === 'seo' ? (
         <SeoForm setting={setting} />
+      ) : tab === 'company' ? (
+        <CompanySettingsForm setting={setting} />
       ) : (
         <GeneralForm setting={setting} />
       )}

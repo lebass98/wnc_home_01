@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
-import type { CategoryNode, PageListItem } from '@wnc/shared'
+import type { CategoryNode, PageListItem, SiteSetting } from '@wnc/shared'
+import { DEFAULT_COMPANY } from '@wnc/shared'
 import { api } from '../lib/api'
 import { useBoards } from '../lib/boards'
-import { useSiteSeo } from '../lib/seo'
+import { useSiteSeo, useSiteSetting } from '../lib/seo'
 import SitePopups from './SitePopups'
 import SiteUtilMenu from './SiteUtilMenu'
 import SitemapDrawer from './SitemapDrawer'
@@ -21,35 +22,29 @@ interface NavItem {
   children: SubItem[]
 }
 
-/** 푸터 회사 정보 — wordncode.com 하단과 같은 내용 */
-const COMPANY = {
-  address: '[08510] 서울 금천구 벚꽃로 298(가산동 50-3) 대륭포스트타워6차 2층 227호',
-  tel: '02-2261-5555',
-  fax: '02-863-5554',
-  email: 'help@wordncode.com',
-  since: '2003',
-}
-
-/** 푸터 SNS — href 가 비어 있으면 아이콘을 보이지 않는다. 계정이 생기면 주소만 채우면 된다. */
-const SOCIAL: { name: string; href: string; icon: string }[] = [
+/**
+ * 푸터 SNS 아이콘 — 주소는 환경설정 > 회사 정보에서 읽고, 비어 있으면 아이콘을 보이지 않는다.
+ * key 는 설정의 필드 이름이다.
+ */
+const SOCIAL: { key: keyof Pick<SiteSetting, 'snsFacebook' | 'snsYoutube' | 'snsBlog' | 'snsInstagram'>; name: string; icon: string }[] = [
   {
+    key: 'snsFacebook',
     name: '페이스북',
-    href: '',
     icon: 'M13.5 22v-8h2.7l.4-3.2h-3.1V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.5-.1-2.5 0-4.1 1.5-4.1 4.2v2.3H7.4V14h2.8v8h3.3z',
   },
   {
+    key: 'snsYoutube',
     name: '유튜브',
-    href: '',
     icon: 'M21.6 7.2c-.2-.9-.9-1.6-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 8.8 2 12 2 12s0 3.2.4 4.8c.2.9.9 1.6 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3L10 15z',
   },
   {
+    key: 'snsBlog',
     name: '블로그',
-    href: '',
     icon: 'M4 5h16a2 2 0 012 2v9a2 2 0 01-2 2h-7l-4 3v-3H4a2 2 0 01-2-2V7a2 2 0 012-2zm3.2 4.2v5.6h2.3c1.3 0 2.1-.6 2.1-1.6 0-.7-.4-1.2-1-1.4.4-.2.7-.7.7-1.2 0-.9-.7-1.4-1.9-1.4H7.2zm1.3 1h.8c.5 0 .8.2.8.6s-.3.6-.8.6h-.8v-1.2zm0 2.2h1c.6 0 .9.2.9.7 0 .4-.3.7-.9.7h-1v-1.4zm5.3-3.2v5.6h1.3V9.2h-1.3z',
   },
   {
+    key: 'snsInstagram',
     name: '인스타그램',
-    href: 'https://www.instagram.com/wordncode__/',
     icon: 'M12 7.3a4.7 4.7 0 100 9.4 4.7 4.7 0 000-9.4zm0 7.7a3 3 0 110-6 3 3 0 010 6zm5.9-7.9a1.1 1.1 0 11-2.2 0 1.1 1.1 0 012.2 0zM12 2.2c-2.7 0-3 0-4.1.1-1.1.1-1.8.2-2.4.5-.7.3-1.2.6-1.8 1.2-.6.6-.9 1.1-1.2 1.8-.3.6-.4 1.3-.5 2.4C2 9.2 2 9.5 2 12s0 3 .1 4.1c.1 1.1.2 1.8.5 2.4.3.7.6 1.2 1.2 1.8.6.6 1.1.9 1.8 1.2.6.3 1.3.4 2.4.5 1.1.1 1.4.1 4.1.1s3 0 4.1-.1c1.1-.1 1.8-.2 2.4-.5.7-.3 1.2-.6 1.8-1.2.6-.6.9-1.1 1.2-1.8.3-.6.4-1.3.5-2.4.1-1.1.1-1.4.1-4.1s0-3-.1-4.1c-.1-1.1-.2-1.8-.5-2.4-.3-.7-.6-1.2-1.2-1.8-.6-.6-1.1-.9-1.8-1.2-.6-.3-1.3-.4-2.4-.5-1.1-.1-1.4-.1-4.1-.1zm0 1.8c2.6 0 2.9 0 4 .1 1 0 1.5.2 1.9.3.5.2.8.4 1.1.7.3.3.6.7.7 1.1.1.4.3.9.3 1.9.1 1.1.1 1.4.1 4s0 2.9-.1 4c0 1-.2 1.5-.3 1.9-.2.5-.4.8-.7 1.1-.3.3-.7.6-1.1.7-.4.1-.9.3-1.9.3-1.1.1-1.4.1-4 .1s-2.9 0-4-.1c-1 0-1.5-.2-1.9-.3-.5-.2-.8-.4-1.1-.7-.3-.3-.6-.7-.7-1.1-.1-.4-.3-.9-.3-1.9C4 14.9 4 14.6 4 12s0-2.9.1-4c0-1 .2-1.5.3-1.9.2-.5.4-.8.7-1.1.3-.3.7-.6 1.1-.7.4-.1.9-.3 1.9-.3 1.1-.1 1.4-.1 4-.1z',
   },
 ]
@@ -85,6 +80,9 @@ const NAV: NavItem[] = [
 
 export default function SiteLayout() {
   useSiteSeo()
+  // 푸터 회사 정보 — 설정을 받기 전에는 기본값으로 그린다.
+  const company = useSiteSetting() ?? DEFAULT_COMPANY
+  const social = SOCIAL.map((x) => ({ ...x, href: company[x.key] })).filter((x) => x.href)
   const [open, setOpen] = useState(false)
   const [sitemapOpen, setSitemapOpen] = useState(false)
   const [navPages, setNavPages] = useState<PageListItem[]>([])
@@ -340,7 +338,7 @@ export default function SiteLayout() {
       <footer className="bg-[#b8aa96] text-white">
         <div className="container-wnc py-16 text-center sm:py-20">
           <Link to="/" className="inline-block text-xl font-bold tracking-[0.35em]">
-            WORDNCODE
+            {company.companyNameEn || company.companyName}
           </Link>
 
           {/* 메뉴 — 1차 메뉴 아래 2차 메뉴를 세로로. 열 사이에 옅은 세로선 */}
@@ -366,9 +364,9 @@ export default function SiteLayout() {
           </div>
 
           {/* SNS — 주소가 있는 것만 보인다 */}
-          {SOCIAL.some((x) => x.href) && (
+          {social.length > 0 && (
             <ul className="mt-14 flex justify-center gap-4">
-              {SOCIAL.filter((x) => x.href).map((x) => (
+              {social.map((x) => (
                 <li key={x.name}>
                   <a
                     href={x.href}
@@ -408,15 +406,29 @@ export default function SiteLayout() {
 
           {/* 회사 정보 */}
           <p className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-white/90">
-            <span>{COMPANY.address}</span>
-            <span className="tabular-nums">T. {COMPANY.tel}</span>
-            <span className="tabular-nums">F. {COMPANY.fax}</span>
-            <a href={`mailto:${COMPANY.email}`} className="transition hover:text-white">
-              M. {COMPANY.email}
-            </a>
+            {company.address && (
+              <span>
+                {company.zipCode && `[${company.zipCode}] `}
+                {company.address}
+              </span>
+            )}
+            {company.tel && <span className="tabular-nums">T. {company.tel}</span>}
+            {company.fax && <span className="tabular-nums">F. {company.fax}</span>}
+            {company.email && (
+              <a href={`mailto:${company.email}`} className="transition hover:text-white">
+                M. {company.email}
+              </a>
+            )}
           </p>
+          {(company.ceo || company.bizNo) && (
+            <p className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-white/80">
+              {company.ceo && <span>대표 {company.ceo}</span>}
+              {company.bizNo && <span className="tabular-nums">사업자등록번호 {company.bizNo}</span>}
+            </p>
+          )}
           <p className="mt-3 text-xs tracking-wide text-white/60">
-            {COMPANY.since}-{new Date().getFullYear()} ⓒ BY WORDNCODE. ALL RIGHTS RESERVED.
+            {company.since && `${company.since}-`}
+            {new Date().getFullYear()} {company.copyright}
           </p>
 
           {/* 맨 위로 */}

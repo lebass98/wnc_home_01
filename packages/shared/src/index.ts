@@ -393,7 +393,95 @@ export interface SiteSetting {
   /** 비우면 DEFAULT_GENERATOR 를 쓴다 */
   generatorContent: string | null
 
+  /* 회사 정보 — 푸터 · 문의하기 · 찾아오시는 길이 읽는다 */
+  companyName: string
+  /** 푸터 로고와 저작권 문구에 쓰는 영문 이름 */
+  companyNameEn: string
+  ceo: string
+  /** 사업자등록번호 */
+  bizNo: string
+  zipCode: string
+  address: string
+  tel: string
+  fax: string
+  email: string
+  /** 업무시간 — 줄바꿈으로 여러 줄 */
+  hours: string
+  /** 설립연도 — 저작권 문구의 시작 연도 */
+  since: string
+  /** 저작권 문구 — 앞에 '설립연도-올해' 가 자동으로 붙는다 */
+  copyright: string
+  /** 찾아오시는 길 지도 검색어 */
+  mapQuery: string
+  /** 찾아오시는 길 본사 안내 문구 */
+  directionsGuide: string
+  /** SNS 주소 — 비우면 푸터 아이콘을 감춘다 */
+  snsFacebook: string
+  snsYoutube: string
+  snsBlog: string
+  snsInstagram: string
+  /** 지점 목록 */
+  branches: Branch[]
+
   updatedAt: string
+}
+
+/** 찾아오시는 길에 보이는 지점 한 곳 */
+export interface Branch {
+  name: string
+  phone: string
+  email: string
+  address: string
+}
+
+/** 환경설정 > 회사 정보 저장 입력 */
+export interface CompanySettingInput {
+  companyName: string
+  companyNameEn: string
+  ceo: string
+  bizNo: string
+  zipCode: string
+  address: string
+  tel: string
+  fax: string
+  email: string
+  hours: string
+  since: string
+  copyright: string
+  mapQuery: string
+  directionsGuide: string
+  snsFacebook: string
+  snsYoutube: string
+  snsBlog: string
+  snsInstagram: string
+  branches: Branch[]
+}
+
+/**
+ * 회사 정보 기본값 — 설정을 아직 받지 못한 동안 푸터 등이 임시로 보여 준다.
+ * DB 기본값(prisma/schema.prisma) 과 같은 내용이다.
+ */
+export const DEFAULT_COMPANY: CompanySettingInput = {
+  companyName: '워드앤코드',
+  companyNameEn: 'WORDNCODE',
+  ceo: '',
+  bizNo: '',
+  zipCode: '08510',
+  address: '서울 금천구 벚꽃로 298(가산동 50-3) 대륭포스트타워6차 2층 227호',
+  tel: '02-2261-5555',
+  fax: '02-863-5554',
+  email: 'help@wordncode.com',
+  hours: '평일 09:00 - 18:00\n점심 12:00 - 13:00 · 주말·공휴일 휴무',
+  since: '2003',
+  copyright: 'ⓒ BY WORDNCODE. ALL RIGHTS RESERVED.',
+  mapQuery: '서울 금천구 벚꽃로 298',
+  directionsGuide:
+    '1호선·7호선 가산디지털단지역 5번 출구에서 도보 7분 거리입니다. 건물 지하 주차장을 이용하실 수 있으며, 방문 전 연락 주시면 주차권을 준비해 드립니다.',
+  snsFacebook: '',
+  snsYoutube: '',
+  snsBlog: '',
+  snsInstagram: 'https://www.instagram.com/wordncode__/',
+  branches: [],
 }
 
 export interface SiteSettingInput {

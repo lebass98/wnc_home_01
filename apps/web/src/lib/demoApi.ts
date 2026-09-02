@@ -1250,6 +1250,34 @@ export function handleDemoRequest(
     return db.setting
   }
 
+  if (rawPath === '/settings/company' && method === 'PUT') {
+    db.setting = {
+      ...db.setting,
+      companyName: body.companyName,
+      companyNameEn: body.companyNameEn ?? '',
+      ceo: body.ceo ?? '',
+      bizNo: body.bizNo ?? '',
+      zipCode: body.zipCode ?? '',
+      address: body.address ?? '',
+      tel: body.tel ?? '',
+      fax: body.fax ?? '',
+      email: body.email ?? '',
+      hours: body.hours ?? '',
+      since: body.since ?? '',
+      copyright: body.copyright ?? '',
+      mapQuery: body.mapQuery ?? '',
+      directionsGuide: body.directionsGuide ?? '',
+      snsFacebook: body.snsFacebook ?? '',
+      snsYoutube: body.snsYoutube ?? '',
+      snsBlog: body.snsBlog ?? '',
+      snsInstagram: body.snsInstagram ?? '',
+      branches: Array.isArray(body.branches) ? body.branches : [],
+      updatedAt: new Date().toISOString(),
+    }
+    save(db)
+    return db.setting
+  }
+
   if (rawPath === '/settings/seo' && method === 'PUT') {
     db.setting = {
       ...db.setting,

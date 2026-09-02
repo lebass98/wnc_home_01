@@ -301,7 +301,8 @@ export default function PopupListPage() {
           </div>
 
           <div className="flex gap-2 lg:w-40 lg:flex-col">
-            <button type="submit" className="btn-primary flex-1 lg:py-4">
+            {/* 초기화(btn-secondary)에는 테두리가 있어, 높이를 맞추려면 같은 두께의 투명 테두리가 필요하다. */}
+            <button type="submit" className="btn-primary flex-1 border border-transparent">
               검색
             </button>
             <button type="button" onClick={resetSearch} className="btn-secondary flex-1">

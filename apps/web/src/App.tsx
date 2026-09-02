@@ -15,6 +15,8 @@ import PostDetailPage from './pages/site/PostDetailPage'
 import ContactPage from './pages/site/ContactPage'
 import FaqPage from './pages/site/FaqPage'
 import CustomPage from './pages/site/CustomPage'
+import TermsPage from './pages/site/TermsPage'
+import PrivacyPage from './pages/site/PrivacyPage'
 
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/admin/LoginPage'
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="/board/:id" element={<PostDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/contact/faq" element={<FaqPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             {/* 관리자가 만든 일반 페이지 */}
             <Route path="/page/:slug" element={<CustomPage />} />
           </Route>

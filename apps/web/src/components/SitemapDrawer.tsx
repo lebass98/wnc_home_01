@@ -99,14 +99,16 @@ export default function SitemapDrawer({ open, onClose }: { open: boolean; onClos
     },
   ]
 
-  // 관리자가 '상단 메뉴에 표시'로 발행한 페이지가 있으면 한 묶음 더 붙인다.
-  if (navPages.length > 0) {
-    groups.push({
-      title: '이용안내',
-      to: `/page/${navPages[0].slug}`,
-      items: navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title })),
-    })
-  }
+  // 이용안내 — 약관·방침은 고정이고, 관리자가 '상단 메뉴에 표시'로 발행한 페이지가 있으면 뒤에 덧붙인다.
+  groups.push({
+    title: '이용안내',
+    to: '/terms',
+    items: [
+      { to: '/terms', label: '이용약관' },
+      { to: '/privacy', label: '개인정보처리방침' },
+      ...navPages.map((p) => ({ to: `/page/${p.slug}`, label: p.title })),
+    ],
+  })
 
   return (
     <div className="fixed inset-0 z-[60]" role="dialog" aria-modal aria-label="사이트맵">

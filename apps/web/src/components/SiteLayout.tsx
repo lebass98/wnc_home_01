@@ -110,7 +110,7 @@ export default function SiteLayout() {
   // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는
   // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
   // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
-  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact']
+  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact', '/terms', '/privacy']
   const overHero =
     DARK_TOP.includes(pathname) ||
     pathname.startsWith('/page/') ||
@@ -337,9 +337,21 @@ export default function SiteLayout() {
 
         <div className="border-t border-slate-200">
           <div className="container-wnc flex flex-col items-center justify-between gap-3 py-5 sm:flex-row">
-            <p className="text-xs text-slate-500">
-              © {new Date().getFullYear()} Word &amp; Code. All rights reserved.
-            </p>
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-5">
+              {/* 약관·방침 — 화면 하단 메뉴로 항상 노출한다. */}
+              <nav className="flex items-center gap-4 text-xs" aria-label="약관 및 정책">
+                <Link to="/terms" className="text-slate-600 hover:text-slate-900">
+                  이용약관
+                </Link>
+                <span className="h-3 w-px bg-slate-300" aria-hidden />
+                <Link to="/privacy" className="font-semibold text-slate-800 hover:text-slate-900">
+                  개인정보처리방침
+                </Link>
+              </nav>
+              <p className="text-xs text-slate-500">
+                © {new Date().getFullYear()} Word &amp; Code. All rights reserved.
+              </p>
+            </div>
             <Link to="/admin" className="text-xs text-slate-400 hover:text-slate-600">
               관리자
             </Link>

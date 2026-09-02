@@ -10,6 +10,7 @@ import {
 import { Link, useLocation } from 'react-router-dom'
 import type { Popup } from '@wnc/shared'
 import { api } from '../lib/api'
+import { setPopupCount, usePopupOpenSeq } from '../lib/popupLayer'
 import RichText from './RichText'
 
 /**
@@ -197,6 +198,11 @@ export default function SitePopups() {
   const [offset, setOffset] = useState<-1 | 0 | 1>(0)
   // 창으로 여는 팝업은 한 번만 열어야 하므로 이미 연 id 를 기억한다.
   const opened = useRef(new Set<number>())
+  // 방문자가 닫기 버튼으로 레이어를 내렸는지
+  const [closed, setClosed] = useState(false)
+  // 상단 POPUP 버튼으로 다시 열었는지 — 켜지면 '오늘 하루 열지 않기' 기록을 무시한다.
+  const [forced, setForced] = useState(false)
+  const openSeq = usePopupOpenSeq()
 
   useEffect(() => {
     api<Popup[]>('/popups/active')
@@ -204,6 +210,19 @@ export default function SitePopups() {
       // 팝업은 부가 기능이라 실패해도 사이트 이용에는 지장이 없다.
       .catch(() => setPopups([]))
   }, [])
+
+  // 상단 메뉴에서 열기를 요청하면 닫아 둔 것도 다시 보여 준다.
+  useEffect(() => {
+    if (openSeq === 0) return
+    setClosed(false)
+    setForced(true)
+  }, [openSeq])
+
+  // 화면을 옮기면 닫힘 상태를 초기화한다 — 다른 페이지의 팝업은 새로 판단한다.
+  useEffect(() => {
+    setClosed(false)
+    setForced(false)
+  }, [pathname])
 
   /** 이 화면에서 띄울 팝업인지 — 메인페이지 전용인지, 특정 주소인지 본다. */
   const matchesPath = useCallback(
@@ -215,9 +234,15 @@ export default function SitePopups() {
     [pathname],
   )
 
+  // 이 화면에 해당하는 팝업 전부 — 닫았든 말든 상단 메뉴의 건수는 이 숫자다.
+  const onPage = useMemo(() => popups.filter(matchesPath), [popups, matchesPath])
+  useEffect(() => {
+    setPopupCount(onPage.filter((p) => p.windowType !== 'window').length)
+  }, [onPage])
+
   const visible = useMemo(
-    () => popups.filter((p) => matchesPath(p) && !isHidden(p.id)),
-    [popups, matchesPath],
+    () => (closed ? [] : onPage.filter((p) => forced || !isHidden(p.id))),
+    [onPage, closed, forced],
   )
 
   // 일반 윈도우 팝업은 브라우저 창으로 연다. 팝업 차단에 막히면 조용히 넘어간다.
@@ -279,7 +304,7 @@ export default function SitePopups() {
   const closeAll = useCallback(
     (keep: boolean) => {
       if (keep) for (const p of layers) remember(p)
-      setPopups((prev) => prev.filter((p) => !layers.some((l) => l.id === p.id)))
+      setClosed(true)
     },
     [layers],
   )

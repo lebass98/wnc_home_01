@@ -5,6 +5,7 @@ import type { PageListItem } from '@wnc/shared'
 import { api } from '../lib/api'
 import { useSiteSeo } from '../lib/seo'
 import SitePopups from './SitePopups'
+import SiteUtilMenu from './SiteUtilMenu'
 
 const NAV = [
   { to: '/about', label: '회사소개' },
@@ -38,7 +39,7 @@ export default function SiteLayout() {
   // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는
   // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
   // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
-  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact']
+  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact', '/sitemap']
   const overHero = DARK_TOP.includes(pathname) || pathname.startsWith('/page/')
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -105,8 +106,32 @@ export default function SiteLayout() {
             >
               상담 신청
             </Link>
+            {/* 언어 선택 · 팝업 다시 열기 */}
+            <div
+              className={`ml-5 border-l pl-5 ${transparent ? 'border-white/30' : 'border-slate-200'}`}
+            >
+              <SiteUtilMenu transparent={transparent} />
+            </div>
+            {/* 맨 오른쪽 — 사이트맵 */}
+            <Link
+              to="/sitemap"
+              aria-label="사이트맵"
+              title="사이트맵"
+              className={`ml-5 grid h-9 w-9 place-items-center rounded-lg transition ${
+                transparent ? 'text-white hover:bg-white/15' : 'text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 21" fill="currentColor" aria-hidden>
+                <rect x="0" y="0" width="24" height="3" rx="1.5" />
+                <rect x="0" y="9" width="24" height="3" rx="1.5" />
+                <rect x="0" y="18" width="24" height="3" rx="1.5" />
+              </svg>
+            </Link>
           </nav>
 
+          {/* 모바일 — 햄버거 왼쪽에 언어·팝업을 둔다. */}
+          <div className="flex items-center gap-3 md:hidden">
+            <SiteUtilMenu transparent={transparent} />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -124,6 +149,7 @@ export default function SiteLayout() {
               />
             </svg>
           </button>
+          </div>
         </div>
 
         {open && (
@@ -142,6 +168,16 @@ export default function SiteLayout() {
                   {item.label}
                 </NavLink>
               ))}
+              <NavLink
+                to="/sitemap"
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-3 text-sm font-medium ${
+                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
+                  }`
+                }
+              >
+                사이트맵
+              </NavLink>
             </div>
           </nav>
         )}

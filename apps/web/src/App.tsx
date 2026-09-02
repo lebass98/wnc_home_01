@@ -13,6 +13,7 @@ import ProductDetailPage from './pages/site/ProductDetailPage'
 import PostDetailPage from './pages/site/PostDetailPage'
 import ContactPage from './pages/site/ContactPage'
 import CustomPage from './pages/site/CustomPage'
+import SitemapPage from './pages/site/SitemapPage'
 
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/admin/LoginPage'
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/board" element={<BoardPage />} />
             <Route path="/board/:id" element={<PostDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/sitemap" element={<SitemapPage />} />
             {/* 관리자가 만든 일반 페이지 */}
             <Route path="/page/:slug" element={<CustomPage />} />
           </Route>

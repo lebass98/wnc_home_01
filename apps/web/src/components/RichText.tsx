@@ -7,11 +7,14 @@ const ALLOWED_TAGS = new Set([
   'P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'S', 'CODE', 'PRE',
   'H1', 'H2', 'H3', 'H4', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'HR',
   'A', 'IMG', 'SPAN', 'DIV',
+  'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'COLGROUP', 'COL',
 ])
 
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
   A: new Set(['href', 'target', 'rel']),
   IMG: new Set(['src', 'alt', 'title']),
+  TH: new Set(['colspan', 'rowspan']),
+  TD: new Set(['colspan', 'rowspan']),
 }
 
 /** script/onclick/javascript: 등 실행 가능한 요소를 제거한다. */

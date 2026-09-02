@@ -3,7 +3,9 @@ import { EditorContent, useEditor, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
 import { IS_DEMO } from '../lib/api'
+import { SECTION_TEMPLATES } from '../lib/sectionTemplates'
 
 /** 툴바 버튼 — 활성 상태를 시각적으로 구분한다. */
 function ToolButton({
@@ -129,6 +131,60 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
 
+      {/* 표 — 커서가 표 안에 있을 때만 행·열 버튼이 보인다. */}
+      <ToolButton
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        active={editor.isActive('table')}
+        title="표 넣기 (3×3)"
+      >
+        표
+      </ToolButton>
+      {editor.isActive('table') && (
+        <>
+          <ToolButton onClick={() => editor.chain().focus().addRowAfter().run()} title="아래에 행 추가">
+            행+
+          </ToolButton>
+          <ToolButton onClick={() => editor.chain().focus().deleteRow().run()} title="현재 행 삭제">
+            행−
+          </ToolButton>
+          <ToolButton onClick={() => editor.chain().focus().addColumnAfter().run()} title="오른쪽에 열 추가">
+            열+
+          </ToolButton>
+          <ToolButton onClick={() => editor.chain().focus().deleteColumn().run()} title="현재 열 삭제">
+            열−
+          </ToolButton>
+          <ToolButton onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="첫 행을 머리글로">
+            머리글
+          </ToolButton>
+          <ToolButton onClick={() => editor.chain().focus().deleteTable().run()} title="표 삭제">
+            표 삭제
+          </ToolButton>
+        </>
+      )}
+
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
+
+      {/* 섹션 템플릿 — 고르면 커서 자리에 통째로 들어간다. 넣은 뒤에는 보통 내용처럼 고친다. */}
+      <select
+        value=""
+        onChange={(e) => {
+          const t = SECTION_TEMPLATES.find((x) => x.key === e.target.value)
+          if (t) editor.chain().focus().insertContent(t.html).run()
+        }}
+        className="h-8 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+        aria-label="섹션 템플릿 넣기"
+        title="섹션 템플릿 — 고르면 커서 자리에 들어갑니다"
+      >
+        <option value="">+ 섹션 템플릿</option>
+        {SECTION_TEMPLATES.map((t) => (
+          <option key={t.key} value={t.key}>
+            {t.label} — {t.description}
+          </option>
+        ))}
+      </select>
+
+      <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-600" />
+
       <ToolButton onClick={handleLink} active={editor.isActive('link')} title="링크">
         링크
       </ToolButton>
@@ -171,6 +227,11 @@ export default function RichEditor({
       StarterKit.configure({ heading: { levels: [2, 3, 4] } }),
       Image.configure({ HTMLAttributes: { class: 'rounded-lg' } }),
       Link.configure({ openOnClick: false, autolink: true }),
+      // 표 — 2단·카드 구성도 표로 만든다.
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value,
     // 내용이 바뀔 때마다 상위 폼 상태에 HTML 을 반영한다.

@@ -119,6 +119,35 @@
   .prose-wnc strong {
     @apply font-semibold text-slate-900 dark:text-slate-100;
   }
+  /* 표 — 본문 표와 2단·카드 템플릿 모두 이 스타일을 쓴다. */
+  .prose-wnc .tableWrapper {
+    @apply overflow-x-auto;
+  }
+  .prose-wnc table {
+    @apply w-full border-collapse text-[0.95em];
+  }
+  .prose-wnc th,
+  .prose-wnc td {
+    @apply border border-slate-200 px-4 py-3 align-top dark:border-slate-700;
+  }
+  .prose-wnc th {
+    @apply bg-slate-50 text-left font-semibold text-slate-900 dark:bg-slate-800 dark:text-slate-100;
+  }
+  .prose-wnc td > * + *,
+  .prose-wnc th > * + * {
+    @apply mt-2;
+  }
+  .prose-wnc td > h3,
+  .prose-wnc td > h4 {
+    @apply mt-0;
+  }
+  .prose-wnc td > img {
+    @apply my-0;
+  }
+  /* 편집기에서 선택한 셀 */
+  .prose-wnc .selectedCell {
+    @apply bg-brand-50 dark:bg-brand-900/30;
+  }
 
   /* 편집기 안내문 (빈 상태) */
   .prose-wnc p.is-editor-empty:first-child::before {

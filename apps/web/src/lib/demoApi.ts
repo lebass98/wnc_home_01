@@ -1098,7 +1098,9 @@ export function handleDemoRequest(
   if (pageSlugMatch && method === 'GET') {
     const slug = decodeURIComponent(pageSlugMatch[1])
     const page = db.pages.find((p) => p.slug === slug)
-    if (!page || !page.published) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+    // 미발행 페이지는 로그인한 관리자(미리보기)에게만 보인다.
+    const loggedIn = Boolean(localStorage.getItem('wnc_admin_token'))
+    if (!page || (!page.published && !loggedIn)) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
     page.views += 1
     save(db)
     return page
@@ -1134,6 +1136,9 @@ export function handleDemoRequest(
       sortOrder: input.sortOrder ?? 0,
       views: 0,
       version: 1,
+      metaTitle: input.metaTitle?.trim() || null,
+      metaDescription: input.metaDescription?.trim() || null,
+      ogImage: input.ogImage?.trim() || null,
       createdAt: now,
       updatedAt: now,
     }
@@ -1212,9 +1217,20 @@ export function handleDemoRequest(
       if (page.content !== input.content) changes.push('본문')
       if (page.published !== input.published) changes.push('발행 상태')
       if (page.showInNav !== input.showInNav) changes.push('메뉴 노출')
+      const seo = {
+        metaTitle: input.metaTitle?.trim() || null,
+        metaDescription: input.metaDescription?.trim() || null,
+        ogImage: input.ogImage?.trim() || null,
+      }
+      if (page.metaTitle !== seo.metaTitle || page.metaDescription !== seo.metaDescription || page.ogImage !== seo.ogImage) {
+        changes.push('검색 노출')
+      }
       const changed = changes.length > 0
 
       page.slug = slug
+      page.metaTitle = seo.metaTitle
+      page.metaDescription = seo.metaDescription
+      page.ogImage = seo.ogImage
       page.title = input.title
       page.description = input.description || null
       page.content = input.content ?? ''

@@ -224,6 +224,9 @@ export interface DemoPage {
   sortOrder: number
   views: number
   version: number
+  metaTitle: string | null
+  metaDescription: string | null
+  ogImage: string | null
   createdAt: string
   updatedAt: string
 }
@@ -268,6 +271,9 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
       sortOrder: i,
       views: published ? (i + 1) * 37 : 0,
       version: 1,
+      metaTitle: null,
+      metaDescription: null,
+      ogImage: null,
       createdAt,
       updatedAt: createdAt,
     })

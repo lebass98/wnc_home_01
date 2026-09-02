@@ -17,7 +17,13 @@ const pageInputSchema = z.object({
   published: z.boolean(),
   showInNav: z.boolean(),
   sortOrder: z.number().int().optional(),
+  metaTitle: z.string().max(120).nullable().optional(),
+  metaDescription: z.string().max(400).nullable().optional(),
+  ogImage: z.string().max(500).nullable().optional(),
 })
+
+/** 빈 문자열은 '설정 안 함'으로 본다. */
+const orNull = (v: string | null | undefined) => (v?.trim() ? v.trim() : null)
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -74,7 +80,13 @@ function toListItem(p: PageRow) {
 }
 
 function toDetail(p: PageRow) {
-  return { ...toListItem(p), content: p.content }
+  return {
+    ...toListItem(p),
+    content: p.content,
+    metaTitle: p.metaTitle ?? null,
+    metaDescription: p.metaDescription ?? null,
+    ogImage: p.ogImage ?? null,
+  }
 }
 
 function toVersionItem(v: PageRow, currentVersion: number) {
@@ -263,6 +275,9 @@ pagesRouter.post(
         showInNav: data.showInNav,
         sortOrder: data.sortOrder ?? 0,
         version: 1,
+        metaTitle: orNull(data.metaTitle),
+        metaDescription: orNull(data.metaDescription),
+        ogImage: orNull(data.ogImage),
       },
     })
     await snapshot(page, '최초 생성', author)
@@ -293,6 +308,14 @@ pagesRouter.put(
     if (existing.content !== data.content) changes.push('본문')
     if (existing.published !== data.published) changes.push('발행 상태')
     if (existing.showInNav !== data.showInNav) changes.push('메뉴 노출')
+    const seo = { metaTitle: orNull(data.metaTitle), metaDescription: orNull(data.metaDescription), ogImage: orNull(data.ogImage) }
+    if (
+      (existing.metaTitle ?? null) !== seo.metaTitle ||
+      (existing.metaDescription ?? null) !== seo.metaDescription ||
+      (existing.ogImage ?? null) !== seo.ogImage
+    ) {
+      changes.push('검색 노출')
+    }
     const changed = changes.length > 0
 
     const page = await prisma.page.update({
@@ -306,6 +329,7 @@ pagesRouter.put(
         publishedAt: data.published ? (existing.publishedAt ?? new Date()) : null,
         showInNav: data.showInNav,
         sortOrder: data.sortOrder ?? existing.sortOrder,
+        ...seo,
         ...(changed ? { version: existing.version + 1 } : {}),
       },
     })

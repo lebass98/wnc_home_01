@@ -1,28 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { Page } from '@wnc/shared'
 import { api } from '../../lib/api'
 import PageHero from '../../components/PageHero'
 import RichText from '../../components/RichText'
 import { ErrorMessage, Loading } from '../../components/ui'
-import { usePageTitle } from '../../lib/seo'
+import { usePageMeta, usePageTitle } from '../../lib/seo'
 
-/** 관리자가 만든 일반 페이지 — /page/:slug */
+/**
+ * 관리자가 만든 일반 페이지 — /page/:slug
+ * ?preview=1 로 열면 로그인한 관리자에게는 미발행 페이지도 보인다. (관리자 화면의 '실제 화면 미리보기')
+ */
 export default function CustomPage() {
   const { slug } = useParams<{ slug: string }>()
+  const [params] = useSearchParams()
+  const preview = params.get('preview') === '1'
   const [page, setPage] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
-  usePageTitle(page?.title)
   const [error, setError] = useState('')
+
+  // 검색 노출 설정이 있으면 그것을, 없으면 제목·한 줄 설명을 쓴다.
+  usePageTitle(page ? page.metaTitle || page.title : undefined)
+  usePageMeta({
+    title: page ? page.metaTitle || page.title : null,
+    description: page ? page.metaDescription || page.description : null,
+    image: page?.ogImage ?? null,
+  })
 
   useEffect(() => {
     setLoading(true)
     setError('')
-    api<Page>(`/pages/slug/${slug}`)
+    api<Page>(`/pages/slug/${slug}`, preview ? { auth: true } : undefined)
       .then(setPage)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, preview])
 
   if (loading) return <Loading />
 
@@ -42,6 +54,11 @@ export default function CustomPage() {
 
   return (
     <>
+      {preview && !page.published && (
+        <div className="bg-amber-500 px-4 py-2 text-center text-sm font-medium text-white">
+          미리보기 — 아직 발행되지 않아 방문자에게는 보이지 않습니다.
+        </div>
+      )}
       <PageHero title={page.title} description={page.description ?? ''} />
       <section className="container-wnc py-14 sm:py-16">
         <div className="max-w-3xl">

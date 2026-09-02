@@ -5,6 +5,7 @@ import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import RichText from '../../components/RichText'
 import PageVersionHistory from '../../components/PageVersionHistory'
+import SitePreviewModal from '../../components/SitePreviewModal'
 import { Badge, ErrorMessage, Loading, Modal, PageHeader } from '../../components/ui'
 
 /** 한 줄로 저장된 HTML 을 태그마다 줄을 나눠 읽기 쉽게 만든다. 내용 자체는 바꾸지 않는다. */
@@ -26,6 +27,7 @@ export default function PageDetailPage() {
   const [openPreviewCard, setOpenPreviewCard] = useState(true)
   // 미리보기 카드에서 렌더링 결과 대신 실제 HTML 코드를 본다.
   const [showCode, setShowCode] = useState(false)
+  const [sitePreview, setSitePreview] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -89,6 +91,9 @@ export default function PageDetailPage() {
         description="페이지 내용과 저장된 버전 이력을 확인합니다."
         action={
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setSitePreview(true)} className="btn-secondary">
+              실제 화면 미리보기
+            </button>
             <button type="button" onClick={() => navigate('/admin/pages')} className="btn-secondary">
               목록
             </button>
@@ -151,6 +156,9 @@ export default function PageDetailPage() {
             ['발행일시', formatStamp(page.publishedAt)],
             ['생성일', formatStamp(page.createdAt)],
             ['수정일', formatStamp(page.updatedAt)],
+            ['검색 제목', page.metaTitle || `(제목 사용) ${page.title}`],
+            ['검색 설명', page.metaDescription || (page.description ? `(한 줄 설명 사용) ${page.description}` : '(사이트 기본값)')],
+            ['공유 이미지', page.ogImage || '(사이트 기본값)'],
           ].map(([label, value]) => (
             <div key={label} className="flex gap-6">
               <dt className="w-20 shrink-0 text-slate-500 dark:text-slate-400">{label}</dt>
@@ -210,6 +218,10 @@ export default function PageDetailPage() {
       </div>
 
       <PageVersionHistory versions={versions} onView={openVersion} />
+
+      {sitePreview && (
+        <SitePreviewModal slug={page.slug} published={page.published} onClose={() => setSitePreview(false)} />
+      )}
 
       {preview && (
         <Modal

@@ -6,6 +6,7 @@ import { formatStamp } from '../../lib/format'
 import RichEditor from '../../components/RichEditor'
 import RichText from '../../components/RichText'
 import PageVersionHistory from '../../components/PageVersionHistory'
+import SitePreviewModal from '../../components/SitePreviewModal'
 import { Badge, ErrorMessage, Loading, Modal, PageHeader } from '../../components/ui'
 
 const EMPTY: PageInput = {
@@ -16,6 +17,19 @@ const EMPTY: PageInput = {
   published: false,
   showInNav: false,
   sortOrder: 0,
+  metaTitle: '',
+  metaDescription: '',
+  ogImage: '',
+}
+
+/** 권장 길이를 넘으면 색으로 알려주는 글자 수 표시 */
+function CharCount({ value, max }: { value: string; max: number }) {
+  const over = value.length > max
+  return (
+    <span className={`text-xs ${over ? 'font-medium text-red-600' : 'text-slate-400'}`}>
+      {value.length} / {max}자 권장
+    </span>
+  )
 }
 
 export default function PageEditPage() {
@@ -36,6 +50,9 @@ export default function PageEditPage() {
     setCodeModeState(code)
   }
   const [openContent, setOpenContent] = useState(true)
+  const [openSeo, setOpenSeo] = useState(false)
+  // 실제 홈페이지 레이아웃으로 보는 미리보기 — 저장된 내용 기준
+  const [sitePreview, setSitePreview] = useState(false)
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
@@ -61,6 +78,9 @@ export default function PageEditPage() {
           published: page.published,
           showInNav: page.showInNav,
           sortOrder: page.sortOrder,
+          metaTitle: page.metaTitle ?? '',
+          metaDescription: page.metaDescription ?? '',
+          ogImage: page.ogImage ?? '',
         })
       })
       .catch((e: Error) => setError(e.message))
@@ -133,6 +153,11 @@ export default function PageEditPage() {
         }
         action={
           <div className="flex items-center gap-2">
+            {!isNew && current && (
+              <button type="button" onClick={() => setSitePreview(true)} className="btn-secondary">
+                실제 화면 미리보기
+              </button>
+            )}
             {!isNew && (
               <button
                 type="button"
@@ -293,6 +318,105 @@ export default function PageEditPage() {
           )}
         </div>
 
+        {/* 검색 노출(SEO) */}
+        <div className="card mb-6">
+          <button
+            type="button"
+            onClick={() => setOpenSeo((v) => !v)}
+            className="flex w-full items-center justify-between px-6 py-4 text-left"
+            aria-expanded={openSeo}
+          >
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">검색 노출 (SEO)</h2>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                비우면 제목과 한 줄 설명을 그대로 씁니다. 검색 결과와 SNS 공유 카드에 영향을 줍니다.
+              </p>
+            </div>
+            <svg
+              className={`h-5 w-5 text-slate-400 transition ${openSeo ? '' : 'rotate-180'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          {openSeo && (
+            <div className="grid gap-5 px-6 pb-6 pt-1 lg:grid-cols-[1fr_20rem]">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <label htmlFor="metaTitle" className="label">
+                      검색 제목
+                    </label>
+                    <CharCount value={form.metaTitle ?? ''} max={60} />
+                  </div>
+                  <input
+                    id="metaTitle"
+                    maxLength={120}
+                    value={form.metaTitle ?? ''}
+                    onChange={(e) => set('metaTitle', e.target.value)}
+                    className="input"
+                    placeholder={form.title || '비우면 페이지 제목'}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <label htmlFor="metaDescription" className="label">
+                      검색 설명
+                    </label>
+                    <CharCount value={form.metaDescription ?? ''} max={160} />
+                  </div>
+                  <textarea
+                    id="metaDescription"
+                    rows={3}
+                    maxLength={400}
+                    value={form.metaDescription ?? ''}
+                    onChange={(e) => set('metaDescription', e.target.value)}
+                    className="input resize-y"
+                    placeholder={form.description || '비우면 한 줄 설명, 그것도 없으면 사이트 기본 설명'}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ogImage" className="label">
+                    공유 이미지 주소
+                  </label>
+                  <input
+                    id="ogImage"
+                    maxLength={500}
+                    value={form.ogImage ?? ''}
+                    onChange={(e) => set('ogImage', e.target.value)}
+                    className="input tabular-nums"
+                    placeholder="https://… 또는 /uploads/… — 비우면 사이트 기본 이미지"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    본문에 넣은 이미지의 주소를 복사해 쓰거나, 환경설정 &gt; SEO 의 기본 이미지를 그대로 둘 수 있습니다.
+                  </p>
+                </div>
+              </div>
+
+              {/* 검색 결과 모양 미리보기 */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
+                <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">검색 결과 미리보기</p>
+                <p className="truncate text-xs text-green-700 dark:text-green-400">
+                  {window.location.origin}
+                  {import.meta.env.BASE_URL}page/{form.slug?.trim() || '슬러그'}
+                </p>
+                <p className="mt-1 truncate text-base font-medium text-blue-700 dark:text-blue-400">
+                  {form.metaTitle?.trim() || form.title || '페이지 제목'}
+                </p>
+                <p className="mt-1 line-clamp-3 text-sm text-slate-600 dark:text-slate-400">
+                  {form.metaDescription?.trim() || form.description?.trim() || '검색 설명이 여기에 보입니다.'}
+                </p>
+                {form.ogImage?.trim() && (
+                  <img src={form.ogImage} alt="" className="mt-3 h-28 w-full rounded object-cover" />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 내용 */}
         <div className="card mb-6">
           <button
@@ -372,6 +496,10 @@ export default function PageEditPage() {
           </p>
         </div>
       </form>
+
+      {sitePreview && current && (
+        <SitePreviewModal slug={current.slug} published={current.published} onClose={() => setSitePreview(false)} />
+      )}
 
       {preview && (
         <Modal

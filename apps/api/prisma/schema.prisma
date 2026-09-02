@@ -117,6 +117,12 @@ model Page {
   /// 현재 내용의 버전 번호 — versions 의 최신 version 과 같다.
   version     Int     @default(1)
 
+  // --- 검색 노출(SEO) — 비우면 제목·한 줄 설명·사이트 기본값을 쓴다 ---
+  metaTitle       String?
+  metaDescription String?
+  /// SNS 공유 이미지 — 업로드 경로(/uploads/..) 또는 외부 URL
+  ogImage         String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

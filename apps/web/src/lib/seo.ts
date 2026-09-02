@@ -96,6 +96,35 @@ function loadAnalytics(gaId: string | null) {
   document.head.appendChild(init)
 }
 
+/**
+ * 화면별 검색 설명·공유 제목·공유 이미지. 화면을 떠나면 환경설정 값으로 되돌린다.
+ * 비어 있는 항목은 건드리지 않는다.
+ */
+export function usePageMeta(meta: { title?: string | null; description?: string | null; image?: string | null }) {
+  const { title, description, image } = meta
+  useEffect(() => {
+    if (!title && !description && !image) return
+    if (title) upsertMeta('property', 'og:title', title)
+    if (description) {
+      upsertMeta('name', 'description', description)
+      upsertMeta('property', 'og:description', description)
+    }
+    if (image) upsertMeta('property', 'og:image', image)
+
+    return () => {
+      loadSiteSetting()
+        .then((s) => {
+          const d = s.metaDescription?.trim() || s.description
+          upsertMeta('name', 'description', d)
+          upsertMeta('property', 'og:title', s.ogEnabled ? s.ogTitle?.trim() || s.metaTitle?.trim() || s.siteName : null)
+          upsertMeta('property', 'og:description', s.ogEnabled ? s.ogDescription?.trim() || d : null)
+          upsertMeta('property', 'og:image', s.ogEnabled ? s.ogImage : null)
+        })
+        .catch(() => {})
+    }
+  }, [title, description, image])
+}
+
 /** 환경설정 > SEO 에 저장한 값을 공개 사이트의 <head> 에 반영한다. */
 export function useSiteSeo() {
   useEffect(() => {

@@ -321,6 +321,12 @@ export interface PageListItem {
 export interface Page extends PageListItem {
   /** TipTap 이 생성한 본문 HTML */
   content: string
+  /** 검색 결과 제목 — 비우면 페이지 제목 */
+  metaTitle: string | null
+  /** 검색 결과 설명 — 비우면 한 줄 설명, 그것도 없으면 사이트 기본값 */
+  metaDescription: string | null
+  /** SNS 공유 이미지 — 비우면 사이트 기본값 */
+  ogImage: string | null
 }
 
 export interface PageInput {
@@ -331,6 +337,9 @@ export interface PageInput {
   published: boolean
   showInNav: boolean
   sortOrder?: number
+  metaTitle?: string | null
+  metaDescription?: string | null
+  ogImage?: string | null
 }
 
 /** 버전 목록 항목 — 본문은 담지 않는다. */

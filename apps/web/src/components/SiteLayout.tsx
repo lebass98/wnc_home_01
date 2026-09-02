@@ -6,6 +6,7 @@ import { api } from '../lib/api'
 import { useSiteSeo } from '../lib/seo'
 import SitePopups from './SitePopups'
 import SiteUtilMenu from './SiteUtilMenu'
+import SitemapDrawer from './SitemapDrawer'
 
 const NAV = [
   { to: '/about', label: '회사소개' },
@@ -18,6 +19,7 @@ const NAV = [
 export default function SiteLayout() {
   useSiteSeo()
   const [open, setOpen] = useState(false)
+  const [sitemapOpen, setSitemapOpen] = useState(false)
   const [navPages, setNavPages] = useState<PageListItem[]>([])
   const { pathname } = useLocation()
 
@@ -33,13 +35,14 @@ export default function SiteLayout() {
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
     setOpen(false)
+    setSitemapOpen(false)
     window.scrollTo(0, 0)
   }, [pathname])
 
   // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는
   // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
   // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
-  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact', '/sitemap']
+  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact']
   const overHero = DARK_TOP.includes(pathname) || pathname.startsWith('/page/')
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function SiteLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <SitePopups />
+      <SitemapDrawer open={sitemapOpen} onClose={() => setSitemapOpen(false)} />
       <header
         style={{ top: 'var(--demo-banner-h)' }}
         className={`z-40 transition-colors ${
@@ -113,9 +117,11 @@ export default function SiteLayout() {
               <SiteUtilMenu transparent={transparent} />
             </div>
             {/* 맨 오른쪽 — 사이트맵 */}
-            <Link
-              to="/sitemap"
-              aria-label="사이트맵"
+            <button
+              type="button"
+              onClick={() => setSitemapOpen(true)}
+              aria-label="사이트맵 열기"
+              aria-expanded={sitemapOpen}
               title="사이트맵"
               className={`ml-5 grid h-9 w-9 place-items-center rounded-lg transition ${
                 transparent ? 'text-white hover:bg-white/15' : 'text-slate-900 hover:bg-slate-100'
@@ -126,7 +132,7 @@ export default function SiteLayout() {
                 <rect x="0" y="9" width="24" height="3" rx="1.5" />
                 <rect x="0" y="18" width="24" height="3" rx="1.5" />
               </svg>
-            </Link>
+            </button>
           </nav>
 
           {/* 모바일 — 햄버거 왼쪽에 언어·팝업을 둔다. */}
@@ -168,16 +174,16 @@ export default function SiteLayout() {
                   {item.label}
                 </NavLink>
               ))}
-              <NavLink
-                to="/sitemap"
-                className={({ isActive }) =>
-                  `rounded-lg px-3 py-3 text-sm font-medium ${
-                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
-                  }`
-                }
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false)
+                  setSitemapOpen(true)
+                }}
+                className="rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 사이트맵
-              </NavLink>
+              </button>
             </div>
           </nav>
         )}

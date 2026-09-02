@@ -4,6 +4,8 @@ import Reveal from './Reveal'
 export interface PageHeroTab {
   to: string
   label: string
+  /** 주소의 ?query 로 구분되는 탭처럼, 경로만으로 활성 여부를 알 수 없을 때 직접 넘긴다. */
+  active?: boolean
 }
 
 /**
@@ -44,7 +46,7 @@ export default function PageHero({
                 end
                 className={({ isActive }) =>
                   `text-sm transition ${
-                    isActive ? 'font-semibold text-white' : 'text-white/60 hover:text-white/90'
+                    (tab.active ?? isActive) ? 'font-semibold text-white' : 'text-white/60 hover:text-white/90'
                   }`
                 }
               >

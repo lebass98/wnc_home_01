@@ -22,6 +22,7 @@ import { api } from '../../lib/api'
 // 편집기(TipTap)는 용량이 커서 관리자가 이 화면에 들어올 때만 불러온다.
 const RichEditor = lazy(() => import('../../components/RichEditor'))
 import ThumbnailInput from '../../components/ThumbnailInput'
+import { DateRangePicker } from '../../components/DatePicker'
 import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
 /** yyyy-MM-ddTHH:mm — <input type="datetime-local"> 이 요구하는 형식 */
@@ -275,25 +276,15 @@ export default function PopupEditPage() {
           </Row>
 
           <Row label="게시기간" description="이 기간 안에서만 팝업이 노출됩니다.">
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="datetime-local"
-                value={form.startAt}
-                onChange={(e) => set('startAt', e.target.value)}
-                className="input w-56"
-                aria-label="게시 시작일시"
-                required
-              />
-              <span className="text-slate-400">~</span>
-              <input
-                type="datetime-local"
-                value={form.endAt}
-                onChange={(e) => set('endAt', e.target.value)}
-                className="input w-56"
-                aria-label="게시 종료일시"
-                required
-              />
-            </div>
+            <DateRangePicker
+              start={form.startAt}
+              end={form.endAt}
+              onChange={(startAt, endAt) => setForm((prev) => ({ ...prev, startAt, endAt }))}
+              withTime
+              startLabel="게시 시작일시"
+              endLabel="게시 종료일시"
+              className="max-w-2xl"
+            />
           </Row>
 
           <Row label="팝업창 크기">

@@ -9,7 +9,9 @@ import {
   POPUP_WINDOW_LABEL,
 } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
+import { DateRangePicker } from '../../components/DatePicker'
 import { formatStamp } from '../../lib/format'
+import { toDateValue } from '../../lib/date'
 import {
   Badge,
   EmptyState,
@@ -34,12 +36,6 @@ const STATUS_TONE: Record<PopupStatus, 'slate' | 'blue' | 'green' | 'amber' | 'r
   ongoing: 'green',
   ended: 'slate',
   stopped: 'red',
-}
-
-/** yyyy-MM-dd — <input type="date"> 에 넣는 형식 */
-function dateInput(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
 export default function PopupListPage() {
@@ -131,8 +127,8 @@ export default function PopupListPage() {
     }
     const now = new Date()
     if (kind === 'today') {
-      setFromDraft(dateInput(now))
-      setToDraft(dateInput(now))
+      setFromDraft(toDateValue(now))
+      setToDraft(toDateValue(now))
       return
     }
     if (kind === 'week') {
@@ -141,14 +137,14 @@ export default function PopupListPage() {
       start.setDate(now.getDate() - now.getDay())
       const end = new Date(start)
       end.setDate(start.getDate() + 6)
-      setFromDraft(dateInput(start))
-      setToDraft(dateInput(end))
+      setFromDraft(toDateValue(start))
+      setToDraft(toDateValue(end))
       return
     }
     const start = new Date(now.getFullYear(), now.getMonth(), 1)
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    setFromDraft(dateInput(start))
-    setToDraft(dateInput(end))
+    setFromDraft(toDateValue(start))
+    setToDraft(toDateValue(end))
   }
 
   /** 목록에서 바로 사용여부를 켜고 끈다. */
@@ -250,20 +246,16 @@ export default function PopupListPage() {
                 게시기간
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="date"
-                  value={fromDraft}
-                  onChange={(e) => setFromDraft(e.target.value)}
-                  className="input w-40"
-                  aria-label="게시기간 시작"
-                />
-                <span className="text-slate-400">~</span>
-                <input
-                  type="date"
-                  value={toDraft}
-                  onChange={(e) => setToDraft(e.target.value)}
-                  className="input w-40"
-                  aria-label="게시기간 종료"
+                <DateRangePicker
+                  start={fromDraft}
+                  end={toDraft}
+                  onChange={(from, to) => {
+                    setFromDraft(from)
+                    setToDraft(to)
+                  }}
+                  startLabel="게시기간 시작"
+                  endLabel="게시기간 종료"
+                  className="w-[24rem]"
                 />
                 <div className="flex gap-1">
                   {([

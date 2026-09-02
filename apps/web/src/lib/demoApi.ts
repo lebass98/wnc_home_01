@@ -65,6 +65,7 @@ function seed(): DemoDb {
   const { categories, leaves } = createDemoCategories()
   const products = createDemoProducts(leaves)
   const { pages, versions } = createDemoPages()
+  const popups = createDemoPopups()
   return {
     posts,
     contacts,
@@ -75,9 +76,9 @@ function seed(): DemoDb {
     setting: createDemoSetting(),
     boardSetting: createDemoBoardSetting(),
     boards: createDemoBoards(),
-    popups: createDemoPopups(),
+    popups,
     nextBoardId: 4,
-    nextPopupId: 6,
+    nextPopupId: popups.length + 1,
     nextPostId: posts.length + 1,
     nextContactId: contacts.length + 1,
     nextCategoryId: Math.max(...categories.map((c) => c.id)) + 1,

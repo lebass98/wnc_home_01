@@ -14,6 +14,13 @@ function daysAgo(n: number): Date {
   return d
 }
 
+/** 오늘 기준으로 n일 뒤(음수면 n일 전) — 팝업 게시기간에 쓴다. */
+function daysFromNow(n: number): Date {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return d
+}
+
 async function main() {
   const password = await bcrypt.hash('admin1234', 10)
 
@@ -203,6 +210,41 @@ async function main() {
           authorId: admin.id,
           authorName: admin.name,
           createdAt: created.createdAt,
+        },
+      })
+    }
+  }
+
+  if ((await prisma.popup.count()) === 0) {
+    // 앞의 세 건은 지금 게시기간 안이라 홈페이지에 바로 뜬다.
+    // 뒤의 세 건은 진행대기·종료·중지 상태로, 관리자 목록의 상태 필터를 확인하는 용도다.
+    const popups: [string, string, number, number, boolean, string][] = [
+      ['신규 제품 출시 안내', 'fixed', -3, 14, true, '<h3>신규 제품이 출시되었습니다</h3><p>워드앤코드의 새로운 제품 라인업을 확인해 보세요.</p>'],
+      ['설 연휴 배송 안내', 'draggable', -1, 7, true, '<p>설 연휴 기간에는 배송이 하루 이틀 늦어질 수 있습니다.</p>'],
+      ['개발자 채용 설명회 안내', 'fixed', -2, 10, true, '<h3>개발자 채용 설명회를 엽니다</h3><p>신입·경력 개발자를 모십니다. 사전 신청은 문의하기에서 받습니다.</p>'],
+      ['정기 점검 예정 안내', 'fixed', 5, 12, true, '<p>서비스 점검이 예정되어 있습니다. 이용에 참고해 주세요.</p>'],
+      ['지난 이벤트 안내', 'fixed', -30, -10, true, '<p>종료된 이벤트입니다.</p>'],
+      ['임시 중지된 팝업', 'fixed', -5, 20, false, '<p>관리자가 잠시 꺼 둔 팝업입니다.</p>'],
+    ]
+
+    for (const [i, [name, windowType, startDays, endDays, enabled, content]] of popups.entries()) {
+      await prisma.popup.create({
+        data: {
+          name,
+          placement: 'main',
+          windowType,
+          scrollbar: 'none',
+          content,
+          startAt: daysFromNow(startDays),
+          endAt: daysFromNow(endDays),
+          enabled,
+          positionTop: 120,
+          positionLeft: 120 + i * 30,
+          width: 400,
+          height: 500,
+          hidePeriod: 'day',
+          sortOrder: i,
+          createdAt: daysAgo(10 - i),
         },
       })
     }

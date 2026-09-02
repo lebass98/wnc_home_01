@@ -426,7 +426,10 @@ export interface DemoPopup {
   updatedAt: string
 }
 
-/** 진행중·진행대기·종료 상태를 한 번에 볼 수 있도록 기간을 다르게 잡는다. */
+/**
+ * 진행중·진행대기·종료 상태를 한 번에 볼 수 있도록 기간을 다르게 잡는다.
+ * 앞의 세 건은 지금 게시기간 안이라 홈페이지에 바로 뜬다.
+ */
 export function createDemoPopups(): DemoPopup[] {
   const daysFromNow = (n: number): string => {
     const d = new Date()
@@ -437,6 +440,7 @@ export function createDemoPopups(): DemoPopup[] {
   const seed: [string, DemoPopup['windowType'], number, number, boolean, string][] = [
     ['신규 제품 출시 안내', 'fixed', -3, 14, true, '<h3>신규 제품이 출시되었습니다</h3><p>워드앤코드의 새로운 제품 라인업을 확인해 보세요.</p>'],
     ['설 연휴 배송 안내', 'draggable', -1, 7, true, '<p>설 연휴 기간에는 배송이 하루 이틀 늦어질 수 있습니다.</p>'],
+    ['개발자 채용 설명회 안내', 'fixed', -2, 10, true, '<h3>개발자 채용 설명회를 엽니다</h3><p>신입·경력 개발자를 모십니다. 사전 신청은 문의하기에서 받습니다.</p>'],
     ['정기 점검 예정 안내', 'fixed', 5, 12, true, '<p>서비스 점검이 예정되어 있습니다. 이용에 참고해 주세요.</p>'],
     ['지난 이벤트 안내', 'fixed', -30, -10, true, '<p>종료된 이벤트입니다.</p>'],
     ['임시 중지된 팝업', 'fixed', -5, 20, false, '<p>관리자가 잠시 꺼 둔 팝업입니다.</p>'],

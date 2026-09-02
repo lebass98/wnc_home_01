@@ -14,7 +14,7 @@ const STORAGE_KEY = 'wnc_popup_hidden'
 const SESSION_KEY = 'wnc_popup_hidden_session'
 
 /** 한 화면에 나란히 보여줄 최대 개수. 이보다 많으면 슬라이드로 넘긴다. */
-const PER_PAGE = 2
+const PER_PAGE = 3
 
 type HiddenMap = Record<string, number>
 
@@ -156,7 +156,7 @@ function PopupCard({ popup }: { popup: Popup }) {
  * 게시기간 안이고 사용 중인 팝업만 서버가 내려주며,
  * 팝업위치가 맞지 않거나 방문자가 닫은 것은 여기서 걸러진다.
  *
- * 두 장까지는 한 화면에 나란히 놓고, 세 장부터는 좌우로 넘겨 본다.
+ * 세 장까지는 한 화면에 나란히 놓고, 네 장부터는 좌우로 넘겨 본다.
  */
 export default function SitePopups() {
   const { pathname } = useLocation()
@@ -214,7 +214,7 @@ export default function SitePopups() {
   // 레이어로 띄울 팝업만 겹쳐서 보여준다.
   const layers = visible.filter((p) => p.windowType !== 'window')
   const pages = Math.max(1, Math.ceil(layers.length / PER_PAGE))
-  // 화살표는 세 장 이상일 때만 쓴다. (두 장이면 한 화면에 다 들어간다)
+  // 화살표는 네 장 이상일 때만 쓴다. (세 장까지는 한 화면에 다 들어간다)
   const sliding = layers.length > PER_PAGE
 
   // 팝업이 줄어 현재 쪽이 사라지면 첫 쪽으로 되돌린다.
@@ -272,7 +272,7 @@ export default function SitePopups() {
       className="fixed inset-0 z-[70] overflow-y-auto bg-slate-950/90"
     >
       <div className="flex min-h-full flex-col items-center justify-center px-4 py-10 sm:px-16">
-        {/* 팝업 — 두 장까지는 나란히, 세 장부터는 넘겨서 본다. */}
+        {/* 팝업 — 세 장까지는 나란히, 네 장부터는 넘겨서 본다. */}
         <div className="relative w-full">
           <div className="flex flex-wrap items-start justify-center gap-6">
             {shown.map((popup) => (

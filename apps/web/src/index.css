@@ -149,6 +149,19 @@
     @apply bg-brand-50 dark:bg-brand-900/30;
   }
 
+  /* 코드 편집기(CodeMirror) — 높이를 고정하고 사이트 글꼴(프리텐다드)을 그대로 쓴다. */
+  .cm-wnc .cm-editor {
+    height: 28rem;
+  }
+  .cm-wnc .cm-editor.cm-focused {
+    outline: none;
+  }
+  .cm-wnc .cm-content,
+  .cm-wnc .cm-gutters {
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+  }
+
   /* 편집기 안내문 (빈 상태) */
   .prose-wnc p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);

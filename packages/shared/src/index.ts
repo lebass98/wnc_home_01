@@ -804,6 +804,17 @@ export interface SitePageSource extends SitePageDef {
   updatedAt: string | null
 }
 
+/** 코드 문법 검사 결과 */
+export interface SitePageCheck {
+  ok: boolean
+  message: string
+  /** 문제가 있는 줄 번호 (1부터). 알 수 없으면 null */
+  line: number | null
+  column: number | null
+  /** 그 줄의 내용 */
+  excerpt: string | null
+}
+
 export interface SitePageBackup {
   /** 파일 이름 (시각 기반) */
   name: string

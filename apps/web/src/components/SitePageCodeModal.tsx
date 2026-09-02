@@ -1,15 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
-import type { SitePageBackup, SitePageInfo, SitePageSource } from '@wnc/shared'
-import { api } from '../lib/api'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import type { SitePageBackup, SitePageCheck, SitePageInfo, SitePageSource } from '@wnc/shared'
+import { ApiError, api } from '../lib/api'
 import { formatStamp } from '../lib/format'
+import DiffView from './DiffView'
 import { Loading, Modal } from './ui'
+
+// 편집기는 무거우므로 창을 열 때 불러온다.
+const CodeEditor = lazy(() => import('./CodeEditor'))
 
 /** 바이트를 KB 로 */
 const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`
 
+/** 가운데 영역에 무엇을 보여 줄지 */
+type Pane = { mode: 'code' } | { mode: 'diff'; label: string; content: string }
+
 /**
  * 코드로 만들어진 실제 화면의 소스를 보고 고치는 창.
- * 고치기 전 원본은 서버가 백업으로 남기므로 '백업 N개'에서 되돌릴 수 있다.
+ * 저장 전에 문법을 검사해 깨진 코드는 막고, 고치기 전 원본은 백업으로 남아 되돌릴 수 있다.
+ * 되돌리기 전에는 무엇이 바뀌는지 줄 단위로 비교해 볼 수 있다.
  */
 export default function SitePageCodeModal({
   item,
@@ -29,7 +37,13 @@ export default function SitePageCodeModal({
   const [notice, setNotice] = useState('')
   const [backups, setBackups] = useState<SitePageBackup[]>([])
   const [showBackups, setShowBackups] = useState(false)
-  const textRef = useRef<HTMLTextAreaElement>(null)
+  const [pane, setPane] = useState<Pane>({ mode: 'code' })
+
+  // 문법 검사 결과 — 저장 실패로 돌아온 것도 여기에 담는다.
+  const [check, setCheck] = useState<SitePageCheck | null>(null)
+  const [checking, setChecking] = useState(false)
+  /** 편집기가 이동할 줄 — 같은 줄을 다시 눌러도 움직이도록 값을 새로 만든다. */
+  const [jump, setJump] = useState<{ line: number } | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -49,9 +63,31 @@ export default function SitePageCodeModal({
     }
   }, [item.key])
 
+  const dirty = source !== null && draft !== source.content
+
   function close() {
-    if (editing && draft !== source?.content && !confirm('고친 내용을 저장하지 않았습니다. 닫을까요?')) return
+    if (editing && dirty && !confirm('고친 내용을 저장하지 않았습니다. 닫을까요?')) return
     onClose()
+  }
+
+  /** 저장하지 않고 문법만 확인한다. */
+  async function handleCheck() {
+    if (!source) return
+    setChecking(true)
+    setNotice('')
+    try {
+      const res = await api<SitePageCheck>(`/site-pages/${source.key}/check`, {
+        method: 'POST',
+        body: { content: draft },
+        auth: true,
+      })
+      setCheck(res)
+      if (!res.ok && res.line) setJump({ line: res.line })
+    } catch (e) {
+      setNotice((e as Error).message)
+    } finally {
+      setChecking(false)
+    }
   }
 
   async function handleSave() {
@@ -72,12 +108,32 @@ export default function SitePageCodeModal({
       setSource({ ...source, content: draft, updatedAt: res.updatedAt ?? source.updatedAt })
       setBackups(await api<SitePageBackup[]>(`/site-pages/${source.key}/backups`, { auth: true }))
       setEditing(false)
+      setCheck(null)
       setNotice('저장했습니다. 홈페이지를 새로고침하면 바로 보입니다.')
       onChanged?.()
     } catch (e) {
+      // 서버가 문법 오류로 막았으면 어디가 문제인지 함께 보여 준다.
+      const detail = e instanceof ApiError ? (e.data as { check?: SitePageCheck } | undefined)?.check : undefined
+      if (detail) {
+        setCheck(detail)
+        if (detail.line) setJump({ line: detail.line })
+      }
       setNotice((e as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** 백업 내용을 받아 지금 코드와 비교해 보여 준다. */
+  async function showBackupDiff(b: SitePageBackup) {
+    if (!source) return
+    try {
+      const res = await api<{ name: string; content: string }>(`/site-pages/${source.key}/backups/${b.name}`, {
+        auth: true,
+      })
+      setPane({ mode: 'diff', label: `${formatStamp(b.createdAt)} 백업`, content: res.content })
+    } catch (e) {
+      alert((e as Error).message)
     }
   }
 
@@ -91,6 +147,8 @@ export default function SitePageCodeModal({
       setDraft(src.content)
       setBackups(await api<SitePageBackup[]>(`/site-pages/${source.key}/backups`, { auth: true }))
       setEditing(false)
+      setCheck(null)
+      setPane({ mode: 'code' })
       setNotice('되돌렸습니다. 홈페이지를 새로고침하면 바로 보입니다.')
       onChanged?.()
     } catch (e) {
@@ -107,18 +165,6 @@ export default function SitePageCodeModal({
     }
   }
 
-  /** Tab 키로 들여쓰기 두 칸 — 브라우저 기본 동작(포커스 이동)을 막는다. */
-  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key !== 'Tab') return
-    e.preventDefault()
-    const el = e.currentTarget
-    const { selectionStart: s, selectionEnd: en } = el
-    const next = `${draft.slice(0, s)}  ${draft.slice(en)}`
-    setDraft(next)
-    requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2))
-  }
-
-  const dirty = editing && source !== null && draft !== source.content
   const lineCount = draft.split('\n').length
 
   return (
@@ -135,10 +181,27 @@ export default function SitePageCodeModal({
                 onClick={() => {
                   setDraft(source.content)
                   setEditing(false)
+                  setCheck(null)
+                  setPane({ mode: 'code' })
                 }}
                 className="btn-secondary"
               >
                 편집 취소
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setPane((p) =>
+                    p.mode === 'diff' ? { mode: 'code' } : { mode: 'diff', label: '고친 내용', content: draft },
+                  )
+                }
+                disabled={!dirty}
+                className="btn-secondary"
+              >
+                {pane.mode === 'diff' ? '코드로 돌아가기' : '변경 내용'}
+              </button>
+              <button type="button" onClick={handleCheck} disabled={checking} className="btn-secondary">
+                {checking ? '검사 중...' : '문법 검사'}
               </button>
               <button type="button" onClick={handleSave} disabled={saving || !dirty} className="btn-primary">
                 {saving ? '저장 중...' : '저장'}
@@ -149,17 +212,17 @@ export default function SitePageCodeModal({
               <button type="button" onClick={handleCopy} className="btn-secondary">
                 복사
               </button>
-              <button type="button" onClick={() => setShowBackups((v) => !v)} className="btn-secondary">
-                백업 {backups.length}개
-              </button>
               <button
                 type="button"
                 onClick={() => {
-                  setEditing(true)
-                  requestAnimationFrame(() => textRef.current?.focus())
+                  setShowBackups((v) => !v)
+                  setPane({ mode: 'code' })
                 }}
-                className="btn-primary"
+                className="btn-secondary"
               >
+                백업 {backups.length}개
+              </button>
+              <button type="button" onClick={() => setEditing(true)} className="btn-primary">
                 코드 편집
               </button>
             </>
@@ -181,32 +244,67 @@ export default function SitePageCodeModal({
             <span>
               {source.path} · {lineCount}줄 · 수정 {source.updatedAt ? formatStamp(source.updatedAt) : '-'}
             </span>
-            {dirty && <span className="font-medium text-amber-600">저장하지 않은 변경이 있습니다</span>}
+            {editing && dirty && <span className="font-medium text-amber-600">저장하지 않은 변경이 있습니다</span>}
           </div>
 
           {notice && (
-            <p className="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
+            <p className="mb-3 whitespace-pre-line rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:bg-slate-900/50 dark:text-slate-300">
               {notice}
             </p>
           )}
 
+          {/* 문법 검사 결과 */}
+          {check && (
+            <div
+              className={`mb-3 rounded-lg px-3 py-2 text-sm ${
+                check.ok
+                  ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                  : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-medium">{check.ok ? '문법에 문제가 없습니다.' : check.message}</span>
+                {!check.ok && check.line && (
+                  <button
+                    type="button"
+                    onClick={() => setJump({ line: check.line! })}
+                    className="rounded border border-current px-2 py-0.5 text-xs"
+                  >
+                    {check.line}번째 줄로 이동
+                  </button>
+                )}
+              </div>
+              {!check.ok && check.excerpt && (
+                <pre className="mt-1.5 overflow-x-auto rounded bg-black/10 px-2 py-1 text-xs dark:bg-black/30">
+                  <code>{check.excerpt}</code>
+                </pre>
+              )}
+            </div>
+          )}
+
+          {/* 백업 목록 */}
           {showBackups && !editing && (
             <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700">
               <p className="border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-700 dark:text-slate-400">
-                저장 전 원본 백업 — 최근 것이 위입니다.
+                저장 전 원본 백업 — 최근 것이 위입니다. 되돌리기 전에 '변경 내용'으로 무엇이 바뀌는지 볼 수 있습니다.
               </p>
               {backups.length === 0 ? (
                 <p className="px-3 py-3 text-sm text-slate-500">아직 백업이 없습니다. 코드를 저장하면 그 전 원본이 남습니다.</p>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-700">
                   {backups.map((b) => (
-                    <li key={b.name} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <li key={b.name} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
                       <span className="text-slate-700 dark:text-slate-300">
                         {formatStamp(b.createdAt)} <span className="text-xs text-slate-400">· {kb(b.size)}</span>
                       </span>
-                      <button type="button" onClick={() => handleRestore(b)} className="btn-secondary px-2.5 py-1 text-xs">
-                        이 백업으로 되돌리기
-                      </button>
+                      <span className="inline-flex gap-1.5">
+                        <button type="button" onClick={() => showBackupDiff(b)} className="btn-secondary px-2.5 py-1 text-xs">
+                          변경 내용
+                        </button>
+                        <button type="button" onClick={() => handleRestore(b)} className="btn-secondary px-2.5 py-1 text-xs">
+                          이 백업으로 되돌리기
+                        </button>
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -214,31 +312,27 @@ export default function SitePageCodeModal({
             </div>
           )}
 
-          {/* 코드 — 줄 번호와 함께 보여 준다. 편집 중에는 그대로 고칠 수 있다. */}
-          <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-slate-950 text-[13px] leading-6 dark:border-slate-700">
-            <pre
-              aria-hidden
-              className="select-none border-r border-white/10 px-3 py-3 text-right tabular-nums text-slate-500"
-            >
-              {Array.from({ length: lineCount }, (_, i) => i + 1).join('\n')}
-            </pre>
-            {editing ? (
-              <textarea
-                ref={textRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKey}
-                spellCheck={false}
-                className="min-h-[24rem] flex-1 resize-y bg-transparent px-4 py-3 text-slate-100 focus:outline-none"
-                style={{ tabSize: 2, whiteSpace: 'pre', overflowWrap: 'normal', overflowX: 'auto' }}
-                aria-label="소스 코드"
+          {pane.mode === 'diff' ? (
+            <>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{pane.label}과 비교</p>
+                <button type="button" onClick={() => setPane({ mode: 'code' })} className="btn-secondary px-2.5 py-1 text-xs">
+                  코드 보기
+                </button>
+              </div>
+              <DiffView before={source.content} after={pane.content} beforeLabel="지금 코드" afterLabel={pane.label} />
+            </>
+          ) : (
+            <Suspense fallback={<Loading label="편집기 불러오는 중..." />}>
+              <CodeEditor
+                value={editing ? draft : source.content}
+                onChange={setDraft}
+                readOnly={!editing}
+                jump={jump}
+                className="border border-slate-200 dark:border-slate-700"
               />
-            ) : (
-              <pre className="flex-1 overflow-x-auto px-4 py-3 text-slate-100" style={{ tabSize: 2 }}>
-                <code>{draft}</code>
-              </pre>
-            )}
-          </div>
+            </Suspense>
+          )}
         </>
       )}
     </Modal>

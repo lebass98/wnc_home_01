@@ -24,6 +24,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    /** 서버가 함께 보낸 응답 본문 — 오류 상세(예: 문법 검사 결과)를 읽을 때 쓴다. */
+    public data?: unknown,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -74,7 +76,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new ApiError((data as { message?: string }).message ?? '요청에 실패했습니다.', res.status)
+    throw new ApiError((data as { message?: string }).message ?? '요청에 실패했습니다.', res.status, data)
   }
   return data as T
 }

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import path from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
+import { transform } from 'esbuild'
 import { asyncHandler } from '../lib/handler.js'
 import { requireAuth } from '../lib/auth.js'
 
@@ -39,6 +40,38 @@ const BACKUP_DIR = path.resolve(process.cwd(), 'uploads/site-page-backups')
 /** 최근 몇 개까지 남길지 */
 const MAX_BACKUPS = 20
 
+/**
+ * 저장하기 전에 코드가 말이 되는지 확인한다.
+ * esbuild 로 한 번 변환해 보고, 문법이 깨졌으면 몇 번째 줄이 잘못됐는지 알려 준다.
+ * (타입 오류까지는 보지 않는다 — 문법만 본다.)
+ */
+async function checkSyntax(content: string, file: string) {
+  if (!/export\s+default\s+function/.test(content)) {
+    return {
+      ok: false as const,
+      message: "'export default function' 이 없습니다. 화면 컴포넌트의 기본 내보내기를 지우면 페이지가 열리지 않습니다.",
+      line: null as number | null,
+      column: null as number | null,
+      excerpt: null as string | null,
+    }
+  }
+  try {
+    await transform(content, { loader: 'tsx', jsx: 'automatic', sourcefile: file })
+    return { ok: true as const, message: '문법에 문제가 없습니다.', line: null, column: null, excerpt: null }
+  } catch (e) {
+    const err = e as { errors?: { text: string; location?: { line: number; column: number; lineText: string } }[] }
+    const first = err.errors?.[0]
+    const loc = first?.location
+    return {
+      ok: false as const,
+      message: first?.text ?? '코드를 해석할 수 없습니다.',
+      line: loc?.line ?? null,
+      column: loc ? loc.column + 1 : null,
+      excerpt: loc?.lineText?.trim() ?? null,
+    }
+  }
+}
+
 function findDef(key: string) {
   return SITE_PAGES.find((p) => p.key === key) ?? null
 }
@@ -55,6 +88,15 @@ function backupDirOf(key: string): string {
   return dir
 }
 
+/**
+ * 백업 파일로 볼 이름인지 확인한다.
+ * macOS 가 외장 디스크에 남기는 '._이름.tsx' 같은 곁다리 파일을 백업으로 세지 않는다.
+ * (그 파일을 되돌리면 소스가 깨진 내용으로 덮인다.)
+ */
+function isBackupName(name: string): boolean {
+  return name.endsWith('.tsx') && !name.startsWith('._') && !name.startsWith('.')
+}
+
 /** 백업 파일 이름 — 정렬하면 시간순이 되도록 시각을 앞에 둔다. */
 function backupName(): string {
   return `${new Date().toISOString().replace(/[:.]/g, '-')}.tsx`
@@ -62,7 +104,7 @@ function backupName(): string {
 
 async function listBackups(key: string) {
   const dir = backupDirOf(key)
-  const names = (await readdir(dir)).filter((n) => n.endsWith('.tsx')).sort().reverse()
+  const names = (await readdir(dir)).filter(isBackupName).sort().reverse()
   return Promise.all(
     names.map(async (name) => {
       const info = await stat(path.join(dir, name))
@@ -126,11 +168,12 @@ sitePagesRouter.put(
       .object({ content: z.string().min(1, '내용이 비어 있습니다. 화면 코드를 모두 지울 수는 없습니다.') })
       .parse(req.body)
 
-    // 최소한의 안전장치 — 화면 컴포넌트가 사라지면 사이트가 깨진다.
-    if (!/export\s+default\s+function/.test(content)) {
-      return res.status(400).json({
-        message: "'export default function' 이 없습니다. 화면 컴포넌트의 기본 내보내기를 지우면 페이지가 열리지 않습니다.",
-      })
+    // 문법이 깨진 코드를 저장하면 그 화면이 열리지 않는다. 저장 전에 막는다.
+    const check = await checkSyntax(content, def.file)
+    if (!check.ok) {
+      const where = check.line ? ` (${check.line}번째 줄${check.column ? `, ${check.column}번째 글자` : ''})` : ''
+      const excerpt = check.excerpt ? `\n${check.excerpt}` : ''
+      return res.status(400).json({ message: `문법 오류로 저장하지 않았습니다.${where} ${check.message}${excerpt}`, check })
     }
 
     const before = await readFile(file, 'utf8')
@@ -147,6 +190,18 @@ sitePagesRouter.put(
     await writeFile(file, content, 'utf8')
     const info = await stat(file)
     res.json({ saved: true, updatedAt: info.mtime.toISOString(), backups: Math.min(backups.length, MAX_BACKUPS) })
+  }),
+)
+
+/** 문법 검사만 — 저장하지 않는다. 편집 중에 '문법 검사' 버튼으로 부른다. */
+sitePagesRouter.post(
+  '/:key/check',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const def = findDef(req.params.key)
+    if (!def) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
+    const { content } = z.object({ content: z.string() }).parse(req.body)
+    res.json(await checkSyntax(content, def.file))
   }),
 )
 
@@ -168,7 +223,7 @@ sitePagesRouter.get(
     if (!findDef(req.params.key)) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
     const name = path.basename(req.params.name)
     const target = path.join(backupDirOf(req.params.key), name)
-    if (!name.endsWith('.tsx') || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
+    if (!isBackupName(name) || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
     res.json({ name, content: await readFile(target, 'utf8') })
   }),
 )
@@ -184,7 +239,7 @@ sitePagesRouter.post(
     const name = path.basename(req.params.name)
     const dir = backupDirOf(def.key)
     const target = path.join(dir, name)
-    if (!name.endsWith('.tsx') || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
+    if (!isBackupName(name) || !existsSync(target)) return res.status(404).json({ message: '백업을 찾을 수 없습니다.' })
 
     await copyFile(file, path.join(dir, backupName()))
     await copyFile(target, file)

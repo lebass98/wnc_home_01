@@ -369,7 +369,6 @@ export default function SitePopups() {
    * 좌우는 슬라이드 칸의 실제 폭에서, 위아래는 제목·버튼을 뺀 남은 높이에서 구한다.
    */
   const stageRef = useRef<HTMLDivElement>(null)
-  const headRef = useRef<HTMLHeadingElement>(null)
   const footRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
 
@@ -384,12 +383,11 @@ export default function SitePopups() {
       const availWidth = stage.clientWidth - arrows
       const needWidth = cols * widest + (cols - 1) * GAP
 
-      // 제목·버튼과 위아래 여백(py-10)을 뺀 나머지가 팝업이 쓸 수 있는 높이다.
-      const headHeight = headRef.current?.offsetHeight ?? 0
+      // 아래 버튼과 위아래 여백(py-10)을 뺀 나머지가 팝업이 쓸 수 있는 높이다.
       const footHeight = footRef.current?.offsetHeight ?? 0
       const footMargin = wide ? 80 : 32
       const dots = sliding ? 42 : 0
-      const availHeight = window.innerHeight - headHeight - footHeight - footMargin - dots - 80
+      const availHeight = window.innerHeight - footHeight - footMargin - dots - 80
 
       const next = Math.min(1, availWidth / needWidth, availHeight / tallest)
       // 너무 작아지면 읽을 수 없으므로 여기서 멈추고, 넘치는 만큼은 덮개가 스크롤된다.
@@ -424,14 +422,6 @@ export default function SitePopups() {
       className="fixed inset-0 z-[70] overflow-y-auto bg-black/85"
     >
       <div className="flex min-h-full flex-col items-center justify-center px-5 py-10 sm:px-10">
-        {/* 제목 — 좁은 화면에서는 자리를 아끼려고 감춘다. */}
-        <h2
-          ref={headRef}
-          className="hidden pb-10 text-center text-[38px] font-semibold leading-tight text-white sm:block sm:pb-20 sm:text-5xl"
-        >
-          팝업자료
-        </h2>
-
         <div ref={stageRef} className="relative w-full max-w-site">
           {sliding ? (
             <>

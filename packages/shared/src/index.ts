@@ -769,6 +769,8 @@ export interface SitePageDef {
   file: string
   /** 화면 설명 */
   description: string
+  /** page(기본) | layout — 레이아웃 파일은 주소가 없고 미리보기를 열 수 없다. */
+  kind?: 'page' | 'layout'
 }
 
 export const SITE_PAGES: SitePageDef[] = [
@@ -785,6 +787,8 @@ export const SITE_PAGES: SitePageDef[] = [
   { key: 'terms', label: '이용약관', path: '/terms', file: 'TermsPage.tsx', description: '조문 목차와 본문' },
   { key: 'privacy', label: '개인정보처리방침', path: '/privacy', file: 'PrivacyPage.tsx', description: '라벨링 · 목차 · 본문 · 개정이력' },
   { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
+  { key: 'layoutBasic', label: '레이아웃: 기본 서브', path: '', file: '../../layouts/BasicSubLayout.tsx', description: '전체 폭 본문 서브 틀', kind: 'layout' },
+  { key: 'layoutLeft', label: '레이아웃: 좌측 메뉴 서브', path: '', file: '../../layouts/LeftMenuSubLayout.tsx', description: '좌측 메뉴 + 본문 서브 틀', kind: 'layout' },
 ]
 
 /** 목록 항목 — 파일 상태를 함께 준다. */
@@ -880,14 +884,11 @@ export interface MenuReorderInput {
  *  페이지 레이아웃
  * ------------------------------------------------------------------ */
 
-/** 서브 화면의 틀 — basic(기본) | left(좌측 메뉴) */
-export const PAGE_LAYOUTS = ['basic', 'left'] as const
-export type PageLayoutType = (typeof PAGE_LAYOUTS)[number]
-
-export const PAGE_LAYOUT_LABEL: Record<PageLayoutType, string> = {
-  basic: '기본 서브',
-  left: '좌측 메뉴 서브',
-}
+/**
+ * 서브 화면의 틀. 레이아웃 하나가 파일 하나이며
+ * 목록·이름은 apps/web/src/layouts 등록부가 갖는다. 값은 등록부의 key 다.
+ */
+export type PageLayoutType = string
 
 /** 경로 → 레이아웃 매핑. 없는 경로는 basic 으로 본다. */
 export type SitePageLayoutMap = Record<string, PageLayoutType>

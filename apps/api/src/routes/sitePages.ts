@@ -28,6 +28,9 @@ const SITE_PAGES = [
   { key: 'terms', label: '이용약관', path: '/terms', file: 'TermsPage.tsx', description: '조문 목차와 본문' },
   { key: 'privacy', label: '개인정보처리방침', path: '/privacy', file: 'PrivacyPage.tsx', description: '라벨링 · 목차 · 본문 · 개정이력' },
   { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
+  // 서브 레이아웃 — 파일은 apps/web/src/layouts 에 있다. 목록은 web 의 등록부(index.ts)가 갖는다.
+  { key: 'layoutBasic', label: '레이아웃: 기본 서브', path: '', file: '../../layouts/BasicSubLayout.tsx', description: '전체 폭 본문 서브 틀', kind: 'layout' },
+  { key: 'layoutLeft', label: '레이아웃: 좌측 메뉴 서브', path: '', file: '../../layouts/LeftMenuSubLayout.tsx', description: '좌측 메뉴 + 본문 서브 틀', kind: 'layout' },
 ]
 
 /**
@@ -132,7 +135,8 @@ sitePagesRouter.put(
     const { path: pagePath, layout } = z
       .object({
         path: z.string().trim().min(1).max(200).regex(/^\//, '경로는 / 로 시작해야 합니다.'),
-        layout: z.enum(['basic', 'left']),
+        // 레이아웃 목록은 web 등록부가 가지므로 여기서는 키 형식만 본다. basic 은 기본값이라 행을 지운다.
+        layout: z.string().trim().min(1).max(40).regex(/^[a-z0-9-]+$/i, '레이아웃 키는 영문·숫자·하이픈만 쓸 수 있습니다.'),
       })
       .parse(req.body)
 

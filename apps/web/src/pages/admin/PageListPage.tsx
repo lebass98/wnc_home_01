@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { PageLayoutType, PageListItem, Paginated, SitePageInfo, SitePageLayoutMap } from '@wnc/shared'
-import { PAGE_LAYOUT_LABEL, PAGE_LAYOUTS } from '@wnc/shared'
+import { LAYOUTS } from '../../layouts'
 import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { pickMenu, useSiteMenu } from '../../lib/menus'
@@ -135,7 +135,7 @@ export default function PageListPage() {
       title: c.label,
       description: c.description,
       path: c.path,
-      previewable: !c.path.includes(':'),
+      previewable: c.kind !== 'layout' && !c.path.includes(':'),
       published: null,
       inGnb: gnbUrls.has(c.path),
       updatedAt: c.updatedAt,
@@ -474,9 +474,15 @@ export default function PageListPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {row.kind === 'code' ? <Badge tone="blue">코드 화면</Badge> : <Badge tone="amber">에디터 페이지</Badge>}
+                      {row.code?.kind === 'layout' ? (
+                        <Badge tone="slate">레이아웃</Badge>
+                      ) : row.kind === 'code' ? (
+                        <Badge tone="blue">코드 화면</Badge>
+                      ) : (
+                        <Badge tone="amber">에디터 페이지</Badge>
+                      )}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-400">{row.path}</td>
+                    <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-400">{row.path || '—'}</td>
                     <td className="px-4 py-3">
                       {row.published === null ? (
                         <Badge tone="green">공개</Badge>
@@ -487,7 +493,7 @@ export default function PageListPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {row.path === '/' ? (
+                      {row.path === '/' || !row.path ? (
                         <span className="text-slate-300 dark:text-slate-600">—</span>
                       ) : (
                         <select
@@ -496,9 +502,9 @@ export default function PageListPage() {
                           className="select w-auto py-1.5 text-xs"
                           aria-label={`${row.title} 레이아웃`}
                         >
-                          {PAGE_LAYOUTS.map((l) => (
-                            <option key={l} value={l}>
-                              {PAGE_LAYOUT_LABEL[l]}
+                          {LAYOUTS.map((l) => (
+                            <option key={l.key} value={l.key}>
+                              {l.label}
                             </option>
                           ))}
                         </select>
@@ -539,7 +545,13 @@ export default function PageListPage() {
                         ) : (
                           <span
                             className="btn-secondary cursor-not-allowed px-2.5 py-1 text-xs opacity-40"
-                            title={row.kind === 'code' ? '항목을 골라야 열리는 상세 화면입니다' : '발행하면 미리보기가 열립니다'}
+                            title={
+                              row.code?.kind === 'layout'
+                                ? '레이아웃 틀은 단독 화면이 아니라 미리보기가 없습니다'
+                                : row.kind === 'code'
+                                  ? '항목을 골라야 열리는 상세 화면입니다'
+                                  : '발행하면 미리보기가 열립니다'
+                            }
                           >
                             미리보기
                           </span>

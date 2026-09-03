@@ -158,7 +158,7 @@ export default function TemplatesPage() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3M12 4v11m0-11L8 8m4-4l4 4" />
               </svg>
-              가져오기
+              수동 설치
             </button>
             <button type="button" onClick={() => setCreateOpen(true)} className="btn-primary">
               새 템플릿
@@ -501,32 +501,66 @@ function CreateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   )
 }
 
-/** 가져오기 — 내보내기로 받은 .json 파일을 올린다. */
+/** 수동 설치 — 파일 업로드 또는 GitHub 주소로 템플릿을 들여온다. (참고: 그누보드7 수동 설치) */
 function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [tab, setTab] = useState<'file' | 'github'>('file')
   const [fileName, setFileName] = useState('')
-  const [payload, setPayload] = useState<unknown>(null)
+  const [url, setUrl] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [payload, setPayload] = useState<SiteTemplateFile | null>(null)
+  const [showManifest, setShowManifest] = useState(false)
   const [problem, setProblem] = useState('')
   const [saving, setSaving] = useState(false)
+
+  /** 읽어 온 내용이 우리 템플릿 형식인지 확인해 담는다. */
+  function accept(raw: string, from: string): void {
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed?.type !== 'wnc-template' || typeof parsed.name !== 'string') {
+        setProblem(`워드앤코드 템플릿 형식이 아닙니다. ${from}이(가) [내보내기]로 받은 JSON 인지 확인해 주세요.`)
+        return
+      }
+      setPayload(parsed as SiteTemplateFile)
+      setProblem('')
+    } catch {
+      setProblem(`${from}을(를) JSON 으로 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.`)
+    }
+  }
 
   async function pick(file: File | undefined) {
     if (!file) return
     setFileName(file.name)
-    setProblem('')
     setPayload(null)
+    setShowManifest(false)
+    accept(await file.text(), '선택한 파일')
+  }
+
+  /** GitHub 화면 주소(blob)는 원본(raw) 주소로 바꿔 받는다. */
+  async function fetchFromUrl() {
+    const target = url.trim().replace(
+      /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\//,
+      'https://raw.githubusercontent.com/$1/$2/',
+    )
+    if (!/^https:\/\//.test(target)) {
+      setProblem('https:// 로 시작하는 파일 주소를 입력하세요.')
+      return
+    }
+    setFetching(true)
+    setPayload(null)
+    setShowManifest(false)
     try {
-      const parsed = JSON.parse(await file.text())
-      if (parsed?.type !== 'wnc-template') {
-        setProblem('워드앤코드 템플릿 파일이 아닙니다. 내보내기로 받은 JSON 파일을 올려 주세요.')
-        return
-      }
-      setPayload(parsed)
+      const res = await fetch(target)
+      if (!res.ok) throw new Error()
+      accept(await res.text(), '주소의 파일')
     } catch {
-      setProblem('JSON 파일을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
+      setProblem('주소에서 파일을 가져오지 못했습니다. 공개 저장소의 파일인지, 주소가 정확한지 확인해 주세요.')
+    } finally {
+      setFetching(false)
     }
   }
 
-  async function save() {
+  async function install() {
     if (!payload) return
     setSaving(true)
     try {
@@ -540,31 +574,122 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
   return (
     <Modal
-      title="템플릿 가져오기"
+      title="템플릿 수동 설치"
       onClose={onClose}
       footer={
         <>
           <button type="button" onClick={onClose} className="btn-secondary">
             취소
           </button>
-          <button type="button" onClick={save} disabled={!payload || saving} className="btn-primary">
-            {saving ? '가져오는 중...' : '가져오기'}
+          <button type="button" onClick={install} disabled={!payload || saving} className="btn-primary">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3M12 15V4m0 11l-4-4m4 4l4-4" />
+            </svg>
+            {saving ? '설치 중...' : '설치'}
           </button>
         </>
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          다른 곳에서 내보낸 템플릿 파일(.json)을 올려 목록에 추가합니다. 가져온 템플릿은 활성화하기 전까지 사이트에 영향을 주지 않습니다.
-        </p>
-        <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => pick(e.target.files?.[0])} />
-        <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary w-full justify-center">
-          {fileName || 'JSON 파일 선택'}
+        <p className="text-sm text-slate-600 dark:text-slate-300">파일 업로드 또는 GitHub 저장소에서 템플릿을 설치할 수 있습니다.</p>
+
+        {/* manifest 미리보기 — 파일을 읽은 뒤에만 열 수 있다 */}
+        <button
+          type="button"
+          disabled={!payload}
+          onClick={() => setShowManifest((v) => !v)}
+          className="flex items-center gap-1.5 text-sm font-medium text-brand-600 transition hover:text-brand-700 disabled:cursor-not-allowed disabled:text-slate-400 dark:disabled:text-slate-500"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          manifest 미리보기
         </button>
-        {problem && <ErrorMessage message={problem} />}
-        {payload != null && (
-          <p className="text-sm text-green-700 dark:text-green-400">파일을 확인했습니다 — 가져오기를 누르면 목록에 추가됩니다.</p>
+        {showManifest && payload && (
+          <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+            {JSON.stringify(payload, null, 2)}
+          </pre>
         )}
+
+        {/* 탭 — 파일 업로드 / GitHub */}
+        <div className="border-b border-slate-200 dark:border-slate-700">
+          <nav className="-mb-px flex gap-1">
+            {(
+              [
+                { key: 'file', label: '파일 업로드', icon: 'M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3M12 4v11m0-11L8 8m4-4l4 4' },
+                { key: 'github', label: 'GitHub', icon: 'M6 3v12m0 0a3 3 0 103 3m-3-3a3 3 0 013-3h6a3 3 0 003-3V6m0 0a3 3 0 10-.001-.001' },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
+                  tab === t.key
+                    ? 'border-brand-600 text-brand-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d={t.icon} />
+                </svg>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {tab === 'file' ? (
+          <div>
+            <p className="label">템플릿 파일 (.json)</p>
+            <div className="flex items-center gap-3">
+              <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => pick(e.target.files?.[0])} />
+              <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary">
+                찾아보기
+              </button>
+              <span className={`min-w-0 truncate text-sm ${fileName ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                {fileName || '파일이 선택되지 않음'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="label">저장소 파일 주소</p>
+            <div className="flex items-center gap-2">
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchFromUrl()}
+                placeholder="https://github.com/사용자/저장소/blob/main/템플릿.json"
+                className="input"
+              />
+              <button type="button" onClick={fetchFromUrl} disabled={fetching} className="btn-secondary shrink-0">
+                {fetching ? '가져오는 중...' : '불러오기'}
+              </button>
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">공개 저장소의 JSON 파일 주소를 붙여 넣으세요. GitHub 화면 주소는 자동으로 원본 주소로 바꿔 받습니다.</p>
+          </div>
+        )}
+
+        {problem && <ErrorMessage message={problem} />}
+        {payload && (
+          <p className="text-sm text-green-700 dark:text-green-400">
+            '{payload.name}' 템플릿을 확인했습니다 — 설치를 누르면 목록에 추가됩니다.
+          </p>
+        )}
+
+        {/* 안내 상자 */}
+        <div className="flex gap-2.5 rounded-lg border border-blue-200 bg-blue-50 p-3.5 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+          <svg className="mt-0.5 h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+          </svg>
+          <p>
+            템플릿 파일은 반드시{' '}
+            <code className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold dark:bg-blue-900/50">wnc-template</code>{' '}
+            형식(JSON)이어야 하며, [내보내기]로 받은 파일 구조를 따라야 합니다.
+          </p>
+        </div>
       </div>
     </Modal>
   )

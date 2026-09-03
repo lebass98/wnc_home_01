@@ -274,7 +274,7 @@ export default function TemplatesPage() {
 
                   <div className="flex shrink-0 items-center gap-2.5">
                     {row.active && (
-                      <Link to="/admin/pages" className="btn-secondary hidden sm:inline-flex">
+                      <Link to="/admin/templates/code" className="btn-secondary hidden sm:inline-flex">
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-3-9l-2 12" />
                         </svg>

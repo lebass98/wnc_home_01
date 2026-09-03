@@ -824,6 +824,28 @@ export interface SitePageInfo extends SitePageDef {
   backups: number
 }
 
+/** 코드 편집 구조 트리의 항목 — 화면·레이아웃·부품이 같은 모양이다. */
+export interface SiteTreeItem {
+  key: string
+  label: string
+  /** 홈페이지 주소 — 부품·레이아웃은 빈 문자열 */
+  path: string
+  /** 보여 주는 소스 경로 (src/... 부터) */
+  file: string
+  kind: 'page' | 'layout' | 'component'
+  available: boolean
+  lines: number
+  /** 이 화면이 가져다 쓰는 부품 이름들 */
+  components: string[]
+  children: SiteTreeItem[]
+}
+
+/** 구조 트리 한 묶음 */
+export interface SiteTreeGroup {
+  group: string
+  items: SiteTreeItem[]
+}
+
 export interface SitePageSource extends SitePageDef {
   content: string
   updatedAt: string | null

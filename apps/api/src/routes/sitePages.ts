@@ -43,6 +43,8 @@ const SITE_PAGES = [
  */
 const PAGES_DIR = path.resolve(process.cwd(), '../web/src/pages/site')
 const BACKUP_DIR = path.resolve(process.cwd(), 'uploads/site-page-backups')
+/** 화면이 가져다 쓰는 부품 폴더 — 구조 트리에서 함께 고칠 수 있다. */
+const COMPONENTS_DIR = path.resolve(process.cwd(), '../web/src/components')
 
 /** 최근 몇 개까지 남길지 */
 const MAX_BACKUPS = 20
@@ -52,8 +54,8 @@ const MAX_BACKUPS = 20
  * esbuild 로 한 번 변환해 보고, 문법이 깨졌으면 몇 번째 줄이 잘못됐는지 알려 준다.
  * (타입 오류까지는 보지 않는다 — 문법만 본다.)
  */
-async function checkSyntax(content: string, file: string) {
-  if (!/export\s+default\s+function/.test(content)) {
+async function checkSyntax(content: string, file: string, requireDefault = true) {
+  if (requireDefault && !/export\s+default\s+function/.test(content)) {
     return {
       ok: false as const,
       message: "'export default function' 이 없습니다. 화면 컴포넌트의 기본 내보내기를 지우면 페이지가 열리지 않습니다.",
@@ -79,7 +81,25 @@ async function checkSyntax(content: string, file: string) {
   }
 }
 
+/** 부품 키는 'component:이름' 이다. 이름은 영문·숫자·밑줄만 받아 다른 경로로 새지 않게 한다. */
+const COMPONENT_PREFIX = 'component:'
+
+function componentDef(key: string) {
+  const name = key.slice(COMPONENT_PREFIX.length)
+  if (!/^[A-Za-z0-9_]+$/.test(name)) return null
+  if (!existsSync(path.join(COMPONENTS_DIR, `${name}.tsx`))) return null
+  return {
+    key,
+    label: name,
+    path: '',
+    file: `../../components/${name}.tsx`,
+    description: '화면이 가져다 쓰는 부품',
+    kind: 'component' as const,
+  }
+}
+
 function findDef(key: string) {
+  if (key.startsWith(COMPONENT_PREFIX)) return componentDef(key)
   return SITE_PAGES.find((p) => p.key === key) ?? null
 }
 
@@ -90,7 +110,8 @@ function filePathOf(key: string): string | null {
 }
 
 function backupDirOf(key: string): string {
-  const dir = path.join(BACKUP_DIR, key)
+  // 키에 ':' 이 들어갈 수 있어 폴더 이름으로 쓸 수 있는 글자만 남긴다.
+  const dir = path.join(BACKUP_DIR, key.replace(/[^A-Za-z0-9_-]/g, '_'))
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   return dir
 }
@@ -151,6 +172,89 @@ sitePagesRouter.put(
   }),
 )
 
+/**
+ * 편집할 수 있는 화면·레이아웃·부품의 구조.
+ * 왼쪽 구조 트리가 이 결과를 그대로 그린다 — 공통 레이아웃 / 템플릿(화면) / 공통 부품 세 묶음이고,
+ * 화면 아래에는 그 화면이 가져다 쓰는 부품을 달아 준다.
+ */
+sitePagesRouter.get(
+  '/tree',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    /** 파일에서 '../../components/X' 형태의 가져오기를 뽑아 부품 이름 목록을 만든다. */
+    const usedComponents = async (file: string): Promise<string[]> => {
+      const full = path.join(PAGES_DIR, file)
+      if (!existsSync(full)) return []
+      const text = await readFile(full, 'utf8')
+      const names = new Set<string>()
+      for (const m of text.matchAll(/from\s+'(?:\.\.\/)+components\/([A-Za-z0-9_]+)'/g)) names.add(m[1])
+      return [...names].sort()
+    }
+
+    const info = async (def: (typeof SITE_PAGES)[number]) => {
+      const full = path.join(PAGES_DIR, def.file)
+      const available = existsSync(full)
+      const lines = available ? (await readFile(full, 'utf8')).split('\n').length : 0
+      return {
+        key: def.key,
+        label: def.label,
+        path: def.path,
+        // 보여 줄 경로 — 레이아웃은 '../../layouts/X.tsx', 화면은 파일명만 갖고 있다.
+        file: def.file.startsWith('..') ? def.file.replace(/^(\.\.\/)+/, 'src/') : `src/pages/site/${def.file}`,
+        kind: def.kind ?? 'page',
+        available,
+        lines,
+        components: available ? await usedComponents(def.file) : [],
+        children: [] as unknown[],
+      }
+    }
+
+    const layouts = await Promise.all(SITE_PAGES.filter((d) => d.kind === 'layout').map(info))
+    const pages = await Promise.all(SITE_PAGES.filter((d) => d.kind !== 'layout').map(info))
+
+    // 화면은 주소가 겹치는 만큼 안으로 넣는다 — /about 아래에 /about/directions 가 붙는다.
+    type Node = Awaited<ReturnType<typeof info>>
+    const roots: Node[] = []
+    const isChildOf = (child: string, parent: string) =>
+      Boolean(parent) && parent !== '/' && child !== parent && child.startsWith(`${parent}/`)
+    for (const node of pages) {
+      const parent = pages
+        .filter((p) => isChildOf(node.path, p.path))
+        .sort((a, b) => b.path.length - a.path.length)[0]
+      if (parent) (parent.children as Node[]).push(node)
+      else roots.push(node)
+    }
+
+    // 부품 — 폴더에 있는 모든 파일. 화면에서 골라 바로 고칠 수 있다.
+    const names = existsSync(COMPONENTS_DIR)
+      ? (await readdir(COMPONENTS_DIR)).filter((n) => n.endsWith('.tsx') && !n.startsWith('.')).sort()
+      : []
+    const components = await Promise.all(
+      names.map(async (name) => {
+        const base = name.replace(/\.tsx$/, '')
+        const text = await readFile(path.join(COMPONENTS_DIR, name), 'utf8')
+        return {
+          key: `${COMPONENT_PREFIX}${base}`,
+          label: base,
+          path: '',
+          file: `src/components/${name}`,
+          kind: 'component' as const,
+          available: true,
+          lines: text.split('\n').length,
+          components: [],
+          children: [],
+        }
+      }),
+    )
+
+    res.json([
+      { group: '공통 레이아웃', items: layouts },
+      { group: '템플릿', items: roots },
+      { group: '공통 부품', items: components },
+    ])
+  }),
+)
+
 sitePagesRouter.get(
   '/',
   requireAuth,
@@ -206,7 +310,7 @@ sitePagesRouter.put(
       .parse(req.body)
 
     // 문법이 깨진 코드를 저장하면 그 화면이 열리지 않는다. 저장 전에 막는다.
-    const check = await checkSyntax(content, def.file)
+    const check = await checkSyntax(content, def.file, def.kind !== 'component')
     if (!check.ok) {
       const where = check.line ? ` (${check.line}번째 줄${check.column ? `, ${check.column}번째 글자` : ''})` : ''
       const excerpt = check.excerpt ? `\n${check.excerpt}` : ''
@@ -238,7 +342,7 @@ sitePagesRouter.post(
     const def = findDef(req.params.key)
     if (!def) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
     const { content } = z.object({ content: z.string() }).parse(req.body)
-    res.json(await checkSyntax(content, def.file))
+    res.json(await checkSyntax(content, def.file, def.kind !== 'component'))
   }),
 )
 

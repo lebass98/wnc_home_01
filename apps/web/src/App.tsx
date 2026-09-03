@@ -29,6 +29,7 @@ import CategoryPage from './pages/admin/CategoryPage'
 import PageListPage from './pages/admin/PageListPage'
 import SitePageEditPage from './pages/admin/SitePageEditPage'
 import TemplatesPage from './pages/admin/TemplatesPage'
+import TemplateCodePage from './pages/admin/TemplateCodePage'
 import PageEditPage from './pages/admin/PageEditPage'
 import PageDetailPage from './pages/admin/PageDetailPage'
 import SettingsPage from './pages/admin/SettingsPage'
@@ -120,6 +121,7 @@ export default function App() {
             <Route path="pages/:id/detail" element={<PageDetailPage />} />
             <Route path="pages/code/:key" element={<SitePageEditPage />} />
             <Route path="templates" element={<TemplatesPage />} />
+            <Route path="templates/code" element={<TemplateCodePage />} />
             <Route path="popups" element={<PopupListPage />} />
             <Route path="popups/new" element={<PopupEditPage />} />
             <Route path="popups/:id" element={<PopupEditPage />} />

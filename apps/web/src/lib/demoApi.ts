@@ -605,6 +605,25 @@ export function handleDemoRequest(
   }
 
   // --- 사이트 페이지(실제 화면) — 데모에서는 파일을 읽을 수 없어 목록만 준다 ---
+  // 구조 트리 — 데모에서는 파일을 읽을 수 없어 목록만 만들어 준다.
+  if (rawPath === '/site-pages/tree' && method === 'GET') {
+    const item = (p: (typeof SITE_PAGES)[number]) => ({
+      key: p.key,
+      label: p.label,
+      path: p.path,
+      file: p.file.startsWith('..') ? p.file.replace(/^(\.\.\/)+/, 'src/') : `src/pages/site/${p.file}`,
+      kind: p.kind ?? 'page',
+      available: false,
+      lines: 0,
+      components: [],
+      children: [],
+    })
+    return [
+      { group: '공통 레이아웃', items: SITE_PAGES.filter((p) => p.kind === 'layout').map(item) },
+      { group: '템플릿', items: SITE_PAGES.filter((p) => p.kind !== 'layout').map(item) },
+    ]
+  }
+
   if (rawPath === '/site-pages' && method === 'GET') {
     return SITE_PAGES.map((p) => ({ ...p, available: false, size: 0, lines: 0, updatedAt: null, backups: 0 }))
   }

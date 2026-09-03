@@ -7,7 +7,7 @@ import { findGroup, pathOf, pickMenu, useSiteMenu } from '../lib/menus'
  * (참고: 아이파킹 서브 상단 위치 표시 https://www.iparking.co.kr/kr/company/summary.php)
  *
  * 아이파킹과 같은 모양으로 맞춘다.
- *  - 히어로 아래쪽 가운데에 놓는 높이 48px 막대. 테두리는 1px 그러데이션, 뒤가 비쳐 보이도록 흐림 처리
+ *  - 히어로 아래쪽 가운데에 놓는 높이 48px 막대. 바탕은 고른 반투명 + 흐림, 테두리만 1px 그러데이션
  *  - 집 아이콘(48px) 다음에 묶음·현재 화면 칸이 각각 240px, 칸 사이는 세로 실선
  *  - 칸을 누르면 아래로 펼쳐지는 풀다운. 여닫을 때 살짝 미끄러지며 스며든다(0.2초)
  *  - 펼친 판은 뒤가 비쳐 보이는 투명한 흐림(blur) 판이다
@@ -106,9 +106,9 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
   return (
     <nav ref={ref} aria-label="현재 위치" className="flex w-full justify-center">
-      {/* 바깥 한 겹은 1px 그러데이션 테두리 역할만 한다 */}
-      <div className="w-full max-w-full rounded-lg bg-gradient-to-br from-white/25 via-white/[0.03] to-white/25 p-px sm:w-auto">
-        <div className="flex h-12 rounded-[7px] bg-white/[0.06] backdrop-blur-md">
+      {/* 바탕은 고른 반투명 한 겹, 테두리만 그러데이션(.border-gradient) 이다 */}
+      <div className="border-gradient relative w-full max-w-full rounded-lg bg-white/[0.07] backdrop-blur-md sm:w-auto">
+        <div className="flex h-12">
           {crumbs.map((crumb, i) => {
             const isOpen = open === i
 
@@ -154,7 +154,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                     여닫는 모션을 주려고 늘 그려 두고, 닫힌 동안에는 투명하게 눌러 둔다. */}
                 <ul
                   aria-hidden={!isOpen}
-                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/25 bg-white/25 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 ease-out motion-reduce:transition-none ${
+                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/25 bg-white/40 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 ease-out motion-reduce:transition-none ${
                     isOpen
                       ? 'translate-y-0 scale-y-100 opacity-100'
                       : 'pointer-events-none -translate-y-1 scale-y-95 opacity-0'

@@ -34,11 +34,10 @@ export default function PageHero({
       className="relative z-20"
       style={{ background: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)' }}
     >
-      {/* 길 안내 막대는 히어로 맨 아래에 딱 붙인다.
-          펼친 판이 투명해서, 판이 어두운 히어로가 아니라 흰 본문 위에 온전히 놓여야 글자가 읽힌다. */}
+      {/* 길 안내 막대 아래 여백은 위쪽(타이틀과의 간격)과 같게 둬 위아래를 맞춘다. */}
       <div
         className={`container-wnc pt-36 text-center sm:pt-40 ${
-          breadcrumb && breadcrumb.length > 0 ? 'pb-0' : 'pb-16 sm:pb-20'
+          breadcrumb && breadcrumb.length > 0 ? 'pb-12 sm:pb-14' : 'pb-16 sm:pb-20'
         }`}
       >
         <Reveal>

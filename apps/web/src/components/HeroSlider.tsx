@@ -6,7 +6,9 @@ export interface HeroSlide {
   title: string[]
   desc: string[]
   /** 배경으로 깔 CSS 그라데이션 */
-  gradient: string
+  gradient?: string
+  /** 배경 이미지 경로 */
+  image?: string
 }
 
 /** 슬라이드가 옆으로 밀려가는 시간(ms). 참고 사이트처럼 천천히 넘어간다. */
@@ -112,7 +114,7 @@ export default function HeroSlider({
 
   return (
     <section
-      className="relative h-[34rem] overflow-hidden sm:h-[42rem]"
+      className="relative h-[34rem] overflow-hidden bg-slate-950 sm:h-[42rem]"
       aria-roledescription="carousel"
       aria-label="메인 배너"
     >
@@ -142,19 +144,35 @@ export default function HeroSlider({
                   transform: `translateX(${driftOf(slot)})`,
                   transition: moving ? `transform ${DRIFT}ms ease` : 'none',
                 }}
+              >
+                {slide.image && (
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="h-full w-full object-cover object-center select-none pointer-events-none"
+                    loading="eager"
+                  />
+                )}
+              </div>
+              {/* 글이 잘 보이도록 다층 그라데이션 암막 오버레이 */}
+              <div
+                className="absolute inset-0 select-none pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(10, 16, 26, 0.72) 0%, rgba(15, 23, 42, 0.52) 40%, rgba(10, 16, 26, 0.78) 100%)',
+                }}
+                aria-hidden
               />
-              {/* 글이 잘 보이도록 어둡게 덮는다. */}
-              <div className="absolute inset-0 bg-black/25" aria-hidden />
 
               <div className="container-wnc relative flex h-full flex-col items-center justify-center text-center">
-                <h1 className="text-3xl font-bold leading-[1.4] tracking-tight text-white sm:text-[2.6rem]">
+                <h1 className="text-3xl font-bold leading-[1.4] tracking-tight text-white drop-shadow-md sm:text-[2.6rem]">
                   {slide.title.map((line) => (
                     <span key={line} className="block">
                       {line}
                     </span>
                   ))}
                 </h1>
-                <p className="mt-6 text-sm leading-[2] text-white/85 sm:text-base">
+                <p className="mt-6 text-sm leading-[2] text-white/90 drop-shadow-sm sm:text-base">
                   {slide.desc.map((line) => (
                     <span key={line} className="block">
                       {line}
@@ -164,7 +182,7 @@ export default function HeroSlider({
                 <Link
                   to="/about"
                   tabIndex={current ? 0 : -1}
-                  className="mt-10 inline-flex bg-mint-400 px-8 py-3 text-sm font-semibold text-white transition hover:bg-mint-500"
+                  className="mt-10 inline-flex bg-mint-400 px-8 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-mint-500"
                 >
                   자세히보기
                 </Link>

@@ -23,22 +23,27 @@ const PHILOSOPHY = [
   },
 ]
 
+const asset = (path: string) => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 /** 아래쪽 카드 세 장 */
 const STRENGTHS = [
   {
     title: '충분한 정보 제공',
     desc: '무엇을 어떻게 하고 있는지 숨기지 않습니다. 진행 상황과 남은 일정을 정리해 공유합니다.',
-    gradient: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
+    image: asset('/images/about/about_strength_01.jpg'),
   },
   {
     title: '편리한 서비스',
     desc: '자주 하는 일일수록 손이 덜 가게 만듭니다. 반복되는 작업은 자동으로 처리합니다.',
-    gradient: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
+    image: asset('/images/about/about_strength_02.jpg'),
   },
   {
     title: '사용자 의견 반영',
     desc: '쓰는 사람의 이야기를 모아 다음 개선에 반영합니다. 작은 불편도 그냥 넘기지 않습니다.',
-    gradient: 'linear-gradient(135deg, #dcd8e8 0%, #8b7fae 100%)',
+    image: asset('/images/about/about_strength_03.jpg'),
   },
 ]
 
@@ -76,15 +81,24 @@ export default function AboutPage() {
 
         {/* 이미지 두 장 — 오른쪽이 더 넓다. */}
         <div className="container-wnc mt-16 grid gap-6 md:grid-cols-[2fr_3fr]">
-          <Reveal
-            className="h-64 sm:h-80"
-            style={{ background: 'linear-gradient(135deg, #dfe7ec 0%, #93aab8 100%)' }}
-          />
-          <Reveal
-            index={1}
-            className="h-64 sm:h-80"
-            style={{ background: 'linear-gradient(135deg, #1f2a33 0%, #3a5560 60%, #6f9aa0 100%)' }}
-          />
+          <Reveal className="group relative h-64 overflow-hidden rounded-sm shadow-md sm:h-80">
+            <img
+              src={asset('/images/about/about_intro_01.jpg')}
+              alt="워드앤코드 스마트 웹 서비스 인터페이스"
+              className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-slate-900/10 transition duration-300 group-hover:bg-transparent" aria-hidden />
+          </Reveal>
+          <Reveal index={1} className="group relative h-64 overflow-hidden rounded-sm shadow-md sm:h-80">
+            <img
+              src={asset('/images/about/about_intro_02.jpg')}
+              alt="워드앤코드 전문 기획 및 개발 협업"
+              className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-slate-900/10 transition duration-300 group-hover:bg-transparent" aria-hidden />
+          </Reveal>
         </div>
       </section>
 
@@ -105,10 +119,19 @@ export default function AboutPage() {
 
         <div className="container-wnc mt-14">
           <Reveal
-            className="grid h-[22rem] place-items-center sm:h-[30rem]"
-            style={{ background: 'linear-gradient(135deg, #24333a 0%, #3b5a5e 55%, #7fa39f 100%)' }}
+            className="group relative grid h-[22rem] place-items-center overflow-hidden rounded-sm shadow-xl sm:h-[30rem]"
           >
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 transition hover:bg-white/35">
+            <img
+              src={asset('/images/about/about_video.jpg')}
+              alt="워드앤코드 서비스 홍보영상 미리보기"
+              className="absolute inset-0 h-full w-full object-cover object-center select-none"
+              loading="lazy"
+            />
+            <div
+              className="absolute inset-0 bg-slate-950/40 backdrop-brightness-95 transition hover:bg-slate-950/30"
+              aria-hidden
+            />
+            <div className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:scale-110 hover:bg-white/35 cursor-pointer shadow-lg">
               <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -142,9 +165,17 @@ export default function AboutPage() {
           {/* 강점 카드 세 장 */}
           <div className="mt-20 grid gap-8 md:grid-cols-3">
             {STRENGTHS.map((s, i) => (
-              <Reveal key={s.title} index={i}>
-                <div className="h-72 w-full" style={{ background: s.gradient }} />
-                <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
+              <Reveal key={s.title} index={i} className="group">
+                <div className="relative h-72 w-full overflow-hidden rounded-sm bg-slate-100 shadow-sm">
+                  <img
+                    src={s.image}
+                    alt={s.title}
+                    className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/10 transition duration-300 group-hover:bg-transparent" aria-hidden />
+                </div>
+                <h3 className="mt-6 font-semibold text-slate-900 transition group-hover:text-mint-600">{s.title}</h3>
                 <p className="mt-3 text-sm leading-[1.9] text-slate-600">{s.desc}</p>
               </Reveal>
             ))}

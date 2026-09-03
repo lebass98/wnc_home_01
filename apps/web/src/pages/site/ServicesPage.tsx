@@ -18,25 +18,30 @@ const INTRO = [
   },
 ]
 
+const asset = (path: string) => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 /** 사업 인프라 카드 세 장 — 번호·제목·설명 아래에 이미지가 붙는다. */
 const INFRA = [
   {
     no: '1',
     title: '사업영역',
     desc: '기업 홈페이지와 브랜드 사이트, 이커머스 플랫폼, 사내 업무 시스템까지 — 목적에 맞는 구조로 설계하고 개발합니다. 웹과 모바일을 가리지 않습니다.',
-    gradient: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
+    image: asset('/images/services/service_infra_01.jpg'),
   },
   {
     no: '2',
     title: '사업형태',
     desc: '기획부터 디자인·개발·운영까지 한 팀이 책임지는 턴키 방식과, 필요한 단계만 맡는 부분 참여 방식을 모두 제공합니다. 규모와 일정에 맞춰 고를 수 있습니다.',
-    gradient: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
+    image: asset('/images/services/service_infra_02.jpg'),
   },
   {
     no: '3',
     title: '서비스영역',
     desc: '오픈 이후에도 모니터링과 개선을 이어갑니다. 클라우드 전환, 데이터 분석과 AI 도입처럼 운영 중에 필요한 일도 함께 준비합니다.',
-    gradient: 'linear-gradient(135deg, #dcd8e8 0%, #8b7fae 100%)',
+    image: asset('/images/services/service_infra_03.jpg'),
   },
 ]
 
@@ -87,12 +92,19 @@ export default function ServicesPage() {
 
           <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
             {INFRA.map((card, i) => (
-              <Reveal key={card.title} index={i}>
+              <Reveal key={card.title} index={i} className="group">
                 <p className="tabular-nums text-2xl font-semibold text-mint-400">{card.no}</p>
-                <h3 className="mt-3 text-lg font-bold text-slate-900">{card.title}</h3>
+                <h3 className="mt-3 text-lg font-bold text-slate-900 transition group-hover:text-mint-600">{card.title}</h3>
                 <p className="mt-4 min-h-[6.5rem] text-[0.95rem] leading-[1.9] text-slate-600">{card.desc}</p>
-                {/* 이미지 자리 — 외부 이미지 없이 그라데이션으로 그린다. */}
-                <div className="mt-8 h-56 sm:h-64" style={{ background: card.gradient }} />
+                <div className="mt-8 relative h-56 sm:h-64 overflow-hidden rounded-sm bg-slate-100 shadow-sm">
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/10 transition duration-300 group-hover:bg-transparent" aria-hidden />
+                </div>
               </Reveal>
             ))}
           </div>

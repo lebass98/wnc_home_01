@@ -9,22 +9,30 @@ import HeroSlider from '../../components/HeroSlider'
 import CardCarousel from '../../components/CardCarousel'
 import Reveal from '../../components/Reveal'
 
-/** 히어로 슬라이드 — 배경은 그라데이션으로 그려 외부 이미지 없이 동작한다. */
+const asset = (path: string) => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+/** 히어로 슬라이드 — 고해상도 배경 이미지와 매끄러운 패럴랙스 드리프트 */
 const SLIDES = [
   {
     title: ['고객과 우리의 생각을', '함께 구현하다'],
     desc: ['필요한 것을 정확히 짚어내는 설계로', '비즈니스가 다음 단계로 나아가도록 돕습니다'],
     gradient: 'linear-gradient(135deg, #1b2a3a 0%, #24404a 55%, #2f5f63 100%)',
+    image: asset('/images/main/main_hero_01.jpg'),
   },
   {
     title: ['기획부터 운영까지', '한 팀이 책임집니다'],
     desc: ['흩어진 과정을 하나로 묶어', '더 빠르고 단단하게 만들어 냅니다'],
     gradient: 'linear-gradient(135deg, #21243a 0%, #2f3557 55%, #3f5f7a 100%)',
+    image: asset('/images/main/main_hero_02.jpg'),
   },
   {
     title: ['오래 쓸 수 있는', '서비스를 만듭니다'],
     desc: ['눈에 보이는 화면 뒤의 구조까지', '길게 쓰일 것을 생각하며 짓습니다'],
     gradient: 'linear-gradient(135deg, #1d2b26 0%, #2b4a41 55%, #3d6e71 100%)',
+    image: asset('/images/main/main_hero_03.jpg'),
   },
 ]
 
@@ -41,18 +49,25 @@ const SERVICES = [
   {
     title: '쉽고 편리한 최적의 서비스',
     desc: ['복잡한 과정을 덜어내고 꼭 필요한 것만 남겨', '누구나 어렵지 않게 쓸 수 있게 만듭니다.'],
-    gradient: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
+    image: asset('/images/main/main_service_01.jpg'),
   },
   {
     title: '디지털 트랜스포메이션 혁신',
     desc: ['흩어진 업무와 데이터를 한곳으로 모아', '일하는 방식 자체를 바꿔 드립니다.'],
-    gradient: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
+    image: asset('/images/main/main_service_02.jpg'),
   },
   {
     title: '플랫폼 중심의 커뮤니케이션',
     desc: ['고객과 사용자가 만나는 자리를 만들어', '이야기가 오래 이어지도록 돕습니다.'],
-    gradient: 'linear-gradient(135deg, #dcd8e8 0%, #8b7fae 100%)',
+    image: asset('/images/main/main_service_03.jpg'),
   },
+]
+
+const DEFAULT_PROJECT_THUMBNAILS = [
+  asset('/images/main/main_project_01.jpg'),
+  asset('/images/main/main_project_02.jpg'),
+  asset('/images/main/main_project_03.jpg'),
+  asset('/images/main/main_project_04.jpg'),
 ]
 
 export default function HomePage() {
@@ -104,10 +119,19 @@ export default function HomePage() {
       {/* 넓은 이미지 띠 */}
       <section className="container-wnc">
         <Reveal
-          className="grid h-[22rem] place-items-center sm:h-[26rem]"
-          style={{ background: 'linear-gradient(135deg, #20303b 0%, #2c4a52 60%, #3d6e71 100%)' }}
+          className="relative grid h-[22rem] place-items-center overflow-hidden shadow-lg sm:h-[26rem]"
         >
-          <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:bg-white/35">
+          <img
+            src={asset('/images/main/main_banner_video.jpg')}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-center select-none"
+            loading="lazy"
+          />
+          <div
+            className="absolute inset-0 bg-slate-950/40 backdrop-brightness-95 transition hover:bg-slate-950/30"
+            aria-hidden
+          />
+          <div className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:scale-110 hover:bg-white/35 cursor-pointer shadow-lg">
             <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z" />
             </svg>
@@ -129,10 +153,10 @@ export default function HomePage() {
 
             <div className="mt-14">
               <CardCarousel
-                items={products.map((p) => ({
+                items={products.map((p, idx) => ({
                   id: p.id,
                   to: `/products/${p.id}`,
-                  image: p.thumbnail,
+                  image: p.thumbnail || DEFAULT_PROJECT_THUMBNAILS[idx % DEFAULT_PROJECT_THUMBNAILS.length],
                   title: p.name,
                   desc: p.summary ?? '',
                 }))}
@@ -179,13 +203,23 @@ export default function HomePage() {
         <div className="absolute inset-x-0 top-0 h-24 bg-[#2b2b2b]" aria-hidden />
         <div className="container-wnc relative">
           <Reveal
-            className="h-[20rem] sm:h-[26rem]"
-            style={{ background: 'linear-gradient(135deg, #1f6f9e 0%, #2f93c8 55%, #8fd0e8 100%)' }}
-          />
+            className="relative h-[20rem] overflow-hidden shadow-xl sm:h-[26rem]"
+          >
+            <img
+              src={asset('/images/main/main_banner_services.jpg')}
+              alt=""
+              className="h-full w-full object-cover object-center"
+              loading="lazy"
+            />
+            <div
+              className="absolute inset-0 bg-slate-950/35"
+              aria-hidden
+            />
+          </Reveal>
           <Reveal index={1} className="mt-12 text-center">
             <Link
               to="/services"
-              className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="inline-flex bg-slate-900 px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
             >
               자세히보기
             </Link>
@@ -203,9 +237,17 @@ export default function HomePage() {
 
           <div className="mt-14 grid gap-8 md:grid-cols-3">
             {SERVICES.map((s, i) => (
-              <Reveal key={s.title} index={i}>
-                <div className="h-56 w-full" style={{ background: s.gradient }} />
-                <h3 className="mt-6 font-semibold text-slate-900">{s.title}</h3>
+              <Reveal key={s.title} index={i} className="group">
+                <div className="relative h-56 w-full overflow-hidden bg-slate-100 shadow-sm">
+                  <img
+                    src={s.image}
+                    alt={s.title}
+                    className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/10 transition duration-300 group-hover:bg-transparent" aria-hidden />
+                </div>
+                <h3 className="mt-6 font-semibold text-slate-900 transition group-hover:text-mint-600">{s.title}</h3>
                 <p className="mt-3 text-sm leading-[1.9] text-slate-600">
                   {s.desc[0]}
                   <br />
@@ -237,10 +279,19 @@ export default function HomePage() {
           {/* 오른쪽 아래로 어긋나게 깔리는 민트 블록 */}
           <div className="absolute inset-y-16 right-0 left-56 bg-mint-400" aria-hidden />
           <div
-            className="relative mr-24 grid h-[22rem] place-items-center sm:h-[30rem]"
-            style={{ background: 'linear-gradient(135deg, #2a3b3f 0%, #44646a 55%, #7d9ea3 100%)' }}
+            className="relative mr-24 grid h-[22rem] place-items-center overflow-hidden shadow-2xl sm:h-[30rem]"
           >
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:bg-white/35">
+            <img
+              src={asset('/images/main/main_video_project.jpg')}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              loading="lazy"
+            />
+            <div
+              className="absolute inset-0 bg-slate-950/45 transition hover:bg-slate-950/35"
+              aria-hidden
+            />
+            <div className="relative z-10 grid h-16 w-16 place-items-center rounded-full bg-white/25 backdrop-blur transition hover:scale-110 hover:bg-white/35 cursor-pointer shadow-lg">
               <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>

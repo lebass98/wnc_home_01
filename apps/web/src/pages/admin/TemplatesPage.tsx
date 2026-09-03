@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { SiteTemplateFile, SiteTemplateInfo } from '@wnc/shared'
 import { api } from '../../lib/api'
@@ -17,108 +17,6 @@ const PER_PAGE = 10
 /** 등록부에서 레이아웃 이름을 찾는다 — 등록이 지워진 키는 키 그대로 보여 준다. */
 const headerLabel = (key: string) => HEADERS.find((h) => h.key === key)?.label ?? key
 const footerLabel = (key: string) => FOOTERS.find((f) => f.key === key)?.label ?? key
-
-/** 선택 카드 안의 미니어처 — 레이아웃 생김새를 도형으로 어림해 보여 준다. */
-const SKETCHES: Record<string, ReactNode> = {
-  'header:basic': (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-slate-200 px-2 py-1.5 dark:border-slate-600">
-        <span className="h-2 w-9 rounded-sm bg-slate-700 dark:bg-slate-200" />
-        <span className="flex gap-1.5">
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} className="h-1.5 w-5 rounded-sm bg-slate-300 dark:bg-slate-500" />
-          ))}
-        </span>
-      </div>
-      <div className="flex-1 bg-slate-100 dark:bg-slate-700/40" />
-    </div>
-  ),
-  'header:center': (
-    <div className="flex h-full flex-col">
-      <div className="grid place-items-center border-b border-slate-100 py-1 dark:border-slate-700">
-        <span className="h-2 w-10 rounded-sm bg-slate-700 dark:bg-slate-200" />
-      </div>
-      <div className="flex justify-center gap-1.5 border-b border-slate-200 py-1 dark:border-slate-600">
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="h-1.5 w-5 rounded-sm bg-slate-300 dark:bg-slate-500" />
-        ))}
-      </div>
-      <div className="flex-1 bg-slate-100 dark:bg-slate-700/40" />
-    </div>
-  ),
-  'footer:basic': (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 bg-slate-100 dark:bg-slate-700/40" />
-      <div className="flex h-12 flex-col items-center justify-center gap-1 bg-[#b8aa96]">
-        <span className="h-1.5 w-10 rounded-sm bg-white/85" />
-        <span className="flex gap-1.5">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className="h-1 w-4 rounded-sm bg-white/55" />
-          ))}
-        </span>
-        <span className="h-1 w-16 rounded-sm bg-white/40" />
-      </div>
-    </div>
-  ),
-  'footer:simple': (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 bg-slate-100 dark:bg-slate-700/40" />
-      <div className="flex h-8 items-center justify-between bg-slate-800 px-2">
-        <span className="flex flex-col gap-1">
-          <span className="h-1.5 w-9 rounded-sm bg-white/85" />
-          <span className="h-1 w-14 rounded-sm bg-white/35" />
-        </span>
-        <span className="flex gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <span key={i} className="h-1 w-4 rounded-sm bg-white/55" />
-          ))}
-        </span>
-      </div>
-    </div>
-  ),
-}
-
-/** 헤더 또는 푸터 한 종류를 고르는 카드 묶음 */
-function LayoutPicker({
-  part,
-  defs,
-  value,
-  onChange,
-}: {
-  part: 'header' | 'footer'
-  defs: { key: string; label: string; description: string }[]
-  value: string
-  onChange: (key: string) => void
-}) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {defs.map((def) => {
-        const active = value === def.key
-        return (
-          <button
-            key={def.key}
-            type="button"
-            onClick={() => onChange(def.key)}
-            aria-pressed={active}
-            className={`rounded-xl border p-3 text-left transition ${
-              active
-                ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-500 dark:border-brand-400 dark:bg-brand-900/20 dark:ring-brand-400'
-                : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-slate-500 dark:hover:bg-slate-800/60'
-            }`}
-          >
-            <div className="h-16 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-900">
-              {SKETCHES[`${part}:${def.key}`] ?? (
-                <div className="grid h-full place-items-center text-xs text-slate-400">미리보기 없음</div>
-              )}
-            </div>
-            <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{def.label}</p>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{def.description}</p>
-          </button>
-        )
-      })}
-    </div>
-  )
-}
 
 /** 템플릿 아이콘 — 팔레트 */
 function TemplateIcon() {
@@ -147,7 +45,6 @@ export default function TemplatesPage() {
   const [working, setWorking] = useState(false)
 
   // 열려 있는 대화상자
-  const [layoutTarget, setLayoutTarget] = useState<SiteTemplateInfo | null>(null)
   const [metaTarget, setMetaTarget] = useState<SiteTemplateInfo | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -377,33 +274,16 @@ export default function TemplatesPage() {
 
                   <div className="flex shrink-0 items-center gap-2.5">
                     {row.active && (
-                      <>
-                        <Link to="/admin/pages" className="btn-secondary hidden sm:inline-flex">
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-3-9l-2 12" />
-                          </svg>
-                          코드 편집
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setLayoutTarget(row)}
-                          className="btn hidden bg-slate-900 text-white hover:bg-slate-700 focus:ring-slate-500 sm:inline-flex dark:bg-slate-700 dark:hover:bg-slate-600"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.4a2 2 0 112.8 2.8L11 16l-4 1 1-4 9.6-9.4z" />
-                          </svg>
-                          레이아웃 편집
-                        </button>
-                      </>
+                      <Link to="/admin/pages" className="btn-secondary hidden sm:inline-flex">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3m-3-9l-2 12" />
+                        </svg>
+                        코드 편집
+                      </Link>
                     )}
                     <ToggleSwitch checked={row.active} onChange={() => !working && activate(row)} label={`${row.name} 활성화`} />
                     <RowMenu
                       items={[
-                        {
-                          label: '레이아웃 편집',
-                          icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.4a2 2 0 112.8 2.8L11 16l-4 1 1-4 9.6-9.4z',
-                          onClick: () => setLayoutTarget(row),
-                        },
                         {
                           label: '정보 수정',
                           icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z',
@@ -458,17 +338,6 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {layoutTarget && (
-        <LayoutEditModal
-          template={layoutTarget}
-          onClose={() => setLayoutTarget(null)}
-          onSaved={(next) => {
-            setLayoutTarget(null)
-            setRows((prev) => prev?.map((r) => (r.id === next.id ? next : r)) ?? null)
-            if (next.active) refreshSite()
-          }}
-        />
-      )}
       {metaTarget && (
         <MetaEditModal
           template={metaTarget}
@@ -498,64 +367,6 @@ export default function TemplatesPage() {
         />
       )}
     </div>
-  )
-}
-
-/** 레이아웃 편집 — 이 템플릿의 헤더·푸터를 고른다. 저장해야 반영된다. */
-function LayoutEditModal({
-  template,
-  onClose,
-  onSaved,
-}: {
-  template: SiteTemplateInfo
-  onClose: () => void
-  onSaved: (next: SiteTemplateInfo) => void
-}) {
-  const [header, setHeader] = useState(template.header)
-  const [footer, setFooter] = useState(template.footer)
-  const [saving, setSaving] = useState(false)
-
-  async function save() {
-    setSaving(true)
-    try {
-      onSaved(await api<SiteTemplateInfo>(`/templates/${template.id}`, { method: 'PUT', body: { header, footer }, auth: true }))
-    } catch (e) {
-      alert((e as Error).message)
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Modal
-      title={`레이아웃 편집 — ${template.name}`}
-      onClose={onClose}
-      wide
-      footer={
-        <>
-          <button type="button" onClick={onClose} className="btn-secondary">
-            취소
-          </button>
-          <button type="button" onClick={save} disabled={saving} className="btn-primary">
-            {saving ? '저장 중...' : '저장'}
-          </button>
-        </>
-      }
-    >
-      <div className="space-y-6">
-        <div>
-          <p className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">헤더</p>
-          <LayoutPicker part="header" defs={HEADERS} value={header} onChange={setHeader} />
-        </div>
-        <div>
-          <p className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">푸터</p>
-          <LayoutPicker part="footer" defs={FOOTERS} value={footer} onChange={setFooter} />
-        </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          화면별 서브 레이아웃(기본/좌측 메뉴)은 [페이지 관리]에서 경로마다 고릅니다 — 활성 템플릿에 저장됩니다.
-          새 헤더·푸터는 apps/web/src/layouts 에 파일을 만들고 등록부에 한 줄 등록하면 여기에 나타납니다.
-        </p>
-      </div>
-    </Modal>
   )
 }
 

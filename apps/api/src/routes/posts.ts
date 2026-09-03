@@ -11,6 +11,13 @@ const postInputSchema = z.object({
   category: z.string().trim().min(1, '게시판을 선택하세요.').max(40),
   title: z.string().min(1, '제목을 입력하세요.').max(200),
   content: z.string().min(1, '내용을 입력하세요.'),
+  /** 대표 이미지 — 업로드 경로 또는 외부 URL. 비우면 null 로 저장한다. */
+  thumbnail: z
+    .string()
+    .trim()
+    .max(2000, '이미지 주소가 너무 깁니다.')
+    .nullish()
+    .transform((v) => v || null),
   published: z.boolean(),
 })
 
@@ -29,9 +36,13 @@ async function assertBoardExists(slug: string) {
 
 type PostWithAuthor = { author: { name: string } } & Record<string, any>
 
-/** 본문 앞부분을 한 줄로 줄인다 — 카드형 목록의 요약 */
+/** 본문 앞부분을 한 줄로 줄인다 — 카드형 목록의 요약. 본문이 HTML 이면 태그를 걷어낸다. */
 function excerptOf(content: string, max = 120): string {
-  const text = content.replace(/\s+/g, ' ').trim()
+  const text = content
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
@@ -41,6 +52,7 @@ function toListItem(post: PostWithAuthor) {
     category: post.category,
     title: post.title,
     excerpt: excerptOf(post.content),
+    thumbnail: post.thumbnail ?? null,
     published: post.published,
     views: post.views,
     authorName: post.author.name,

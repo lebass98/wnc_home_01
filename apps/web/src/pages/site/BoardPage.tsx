@@ -29,6 +29,18 @@ const COVERS = [
 ]
 const coverOf = (id: number) => COVERS[id % COVERS.length]
 
+/**
+ * 목록 그림 — 글에 등록한 대표 이미지를 쓰고, 없으면 글 번호로 고른 기본 배경을 깐다.
+ * 올리면 살짝 확대되는 움직임은 두 경우 모두 같다.
+ */
+function Cover({ post, className }: { post: PostListItem; className?: string }) {
+  const common = `h-full w-full transition duration-500 group-hover:scale-105 ${className ?? ''}`
+  if (post.thumbnail) {
+    return <img src={post.thumbnail} alt="" loading="lazy" className={`${common} object-cover`} />
+  }
+  return <div className={common} style={{ background: coverOf(post.id) }} />
+}
+
 interface ListProps {
   items: PostListItem[]
   boards: Board[]
@@ -89,10 +101,7 @@ function CardList({ items, boards, showBoard }: ListProps) {
         <Reveal as="li" key={post.id} index={i} step={80}>
           <Link to={`/board/${post.id}`} className="group flex h-full flex-col">
             <div className="relative aspect-[16/10] overflow-hidden">
-              <div
-                className="h-full w-full transition duration-500 group-hover:scale-105"
-                style={{ background: coverOf(post.id) }}
-              />
+              <Cover post={post} />
               {showBoard && (
                 <span className="absolute left-4 top-4 bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-900">
                   {boardName(boards, post.category)}
@@ -124,10 +133,7 @@ function GalleryList({ items, boards, showBoard }: ListProps) {
         <Reveal as="li" key={post.id} index={i} step={70}>
           <Link to={`/board/${post.id}`} className="group block">
             <div className="relative aspect-[4/3] overflow-hidden">
-              <div
-                className="h-full w-full transition duration-500 group-hover:scale-105"
-                style={{ background: coverOf(post.id) }}
-              />
+              <Cover post={post} />
               {/* 올리면 어두워지며 '자세히 보기'가 뜬다. */}
               <div className="absolute inset-0 grid place-items-center bg-black/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
                 자세히 보기

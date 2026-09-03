@@ -5,9 +5,15 @@ import { IS_DEMO } from '../lib/api'
 export default function ThumbnailInput({
   value,
   onChange,
+  label = '썸네일 이미지',
+  hint,
 }: {
   value: string | null
   onChange: (url: string | null) => void
+  /** 칸 이름 — 쓰는 곳에 따라 '대표 이미지' 처럼 바꿔 쓴다. */
+  label?: string
+  /** 이름 아래에 덧붙이는 한 줄 안내 */
+  hint?: string
 }) {
   const [mode, setMode] = useState<'upload' | 'url'>('upload')
   const [urlDraft, setUrlDraft] = useState('')
@@ -54,7 +60,8 @@ export default function ThumbnailInput({
 
   return (
     <div>
-      <span className="label">썸네일 이미지</span>
+      <span className="label">{label}</span>
+      {hint && <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
 
       <div className="flex gap-4">
         {/* 미리보기 */}

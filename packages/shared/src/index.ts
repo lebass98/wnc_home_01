@@ -115,6 +115,8 @@ export interface Post {
   category: BoardCategory
   title: string
   content: string
+  /** 대표 이미지 — 카드형·갤러리형 목록의 그림. 없으면 기본 배경을 대신 쓴다. */
+  thumbnail: string | null
   published: boolean
   views: number
   authorId: number
@@ -129,6 +131,8 @@ export interface PostListItem {
   title: string
   /** 본문 앞부분 — 카드형 목록의 요약에 쓴다. */
   excerpt: string
+  /** 대표 이미지 — 카드형·갤러리형 목록의 그림. 없으면 기본 배경을 대신 쓴다. */
+  thumbnail: string | null
   published: boolean
   views: number
   authorName: string
@@ -139,6 +143,7 @@ export interface PostInput {
   category: BoardCategory
   title: string
   content: string
+  thumbnail: string | null
   published: boolean
 }
 

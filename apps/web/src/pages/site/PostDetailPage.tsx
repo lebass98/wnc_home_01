@@ -6,8 +6,12 @@ import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
+import RichText from '../../components/RichText'
 import { ErrorMessage, Loading } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
+
+/** 편집기로 쓴 글인지 — 태그가 있으면 HTML 로 그린다. */
+const isHtml = (content: string) => /<\/?[a-z][\s\S]*>/i.test(content)
 
 /** 이전·다음 글을 찾을 때 한 번에 받아 올 최대 건수 */
 const NEIGHBOR_LIMIT = 100
@@ -104,12 +108,14 @@ export default function PostDetailPage() {
                 </Reveal>
               </header>
 
-              {/* 본문 — 서버에서 평문으로 저장하므로 줄바꿈만 유지해 보여 준다. */}
+              {/* 본문 — 편집기로 쓴 글은 HTML(그림·표 포함), 예전 평문 글은 줄바꿈만 살려 보여 준다. */}
               <Reveal
                 index={4}
-                className="mt-12 whitespace-pre-wrap border-t border-slate-900 py-12 text-[0.95rem] leading-[1.9] text-slate-700 sm:py-14"
+                className={`mt-12 border-t border-slate-900 py-12 text-[0.95rem] leading-[1.9] text-slate-700 sm:py-14 ${
+                  isHtml(post.content) ? '' : 'whitespace-pre-wrap'
+                }`}
               >
-                {post.content}
+                {isHtml(post.content) ? <RichText html={post.content} /> : post.content}
               </Reveal>
 
               {/* 이전·다음 글 — 목록의 표와 같은 선 문법 */}

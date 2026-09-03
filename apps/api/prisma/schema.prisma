@@ -23,6 +23,8 @@ model Post {
   category  String   @default("NOTICE") // NOTICE | NEWS | PRESS
   title     String
   content   String
+  /// 대표 이미지 — 카드형·갤러리형 목록의 그림에 쓴다. 업로드 경로(/uploads/..) 또는 외부 URL
+  thumbnail String?
   published Boolean  @default(false)
   views     Int      @default(0)
   createdAt DateTime @default(now())

@@ -1,11 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { Suspense, lazy, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { BoardCategory, Post, PostInput } from '@wnc/shared'
 import { useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
+import ThumbnailInput from '../../components/ThumbnailInput'
 import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
-const EMPTY: PostInput = { category: '', title: '', content: '', published: true }
+// 편집기는 무거우므로 필요할 때 내려받는다 (제품·페이지·팝업 편집과 같은 방식).
+const RichEditor = lazy(() => import('../../components/RichEditor'))
+
+const EMPTY: PostInput = { category: '', title: '', content: '', thumbnail: null, published: true }
 
 export default function PostEditPage() {
   const boards = useBoards(true)
@@ -26,6 +30,7 @@ export default function PostEditPage() {
           category: post.category,
           title: post.title,
           content: post.content,
+          thumbnail: post.thumbnail,
           published: post.published,
         }),
       )
@@ -39,6 +44,12 @@ export default function PostEditPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    // 편집기는 비어 있어도 <p></p> 를 내놓으므로, 태그를 걷어내고 내용이 있는지 본다.
+    const plain = form.content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+    if (!plain && !form.content.includes('<img')) {
+      setError('내용을 입력하세요.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -105,19 +116,21 @@ export default function PostEditPage() {
             </div>
           </div>
 
+          {/* 대표 이미지 — 카드형·갤러리형 게시판 목록에 그림으로 걸린다. */}
+          <ThumbnailInput
+            value={form.thumbnail}
+            onChange={(url) => set('thumbnail', url)}
+            label="대표 이미지"
+            hint="뉴스·보도자료처럼 카드형·갤러리형 게시판의 목록에 걸리는 그림입니다. 비우면 기본 배경이 대신 쓰입니다."
+          />
+
           <div>
-            <label htmlFor="content" className="label">
+            <span className="label">
               내용 <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="content"
-              required
-              rows={16}
-              value={form.content}
-              onChange={(e) => set('content', e.target.value)}
-              className="input resize-y tabular-nums text-sm leading-relaxed"
-              placeholder="내용을 입력하세요"
-            />
+            </span>
+            <Suspense fallback={<Loading />}>
+              <RichEditor value={form.content} onChange={(html) => set('content', html)} />
+            </Suspense>
           </div>
 
           <label className="flex cursor-pointer items-center gap-2.5">

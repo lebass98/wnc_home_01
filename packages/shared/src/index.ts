@@ -965,6 +965,8 @@ export interface SiteTemplateInfo {
   header: string
   footer: string
   pageLayouts: SitePageLayoutMap
+  /** 이 템플릿이 보관한 파일 수 (화면·레이아웃·부품) */
+  files?: number
   createdAt: string
   updatedAt: string
 }

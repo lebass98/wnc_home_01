@@ -1,4 +1,5 @@
 import { prisma } from './prisma.js'
+import { hasFiles, snapshotLive } from './templateFiles.js'
 
 /**
  * 디자인 템플릿 공용 도우미.
@@ -54,17 +55,33 @@ export function toTemplateResponse(row: TemplateRow) {
  */
 export async function ensureBuiltin(): Promise<TemplateRow> {
   const found = await prisma.siteTemplate.findFirst({ where: { builtin: true }, orderBy: { id: 'asc' } })
-  if (found) return found
-  return prisma.siteTemplate.create({
-    data: {
-      name: 'Basic',
-      description: '워드앤코드 기본 템플릿',
-      author: 'wordncode',
-      builtin: true,
-      active: true,
-      pageLayouts: JSON.stringify({ '/terms': 'left', '/privacy': 'left' }),
-    },
-  })
+  const row =
+    found ??
+    (await prisma.siteTemplate.create({
+      data: {
+        name: 'Basic',
+        description: '워드앤코드 관리자 기본 템플릿 샘플',
+        author: 'wordncode',
+        builtin: true,
+        active: true,
+        pageLayouts: JSON.stringify({ '/terms': 'left', '/privacy': 'left' }),
+      },
+    }))
+
+  // 기본 템플릿은 지금 사이트 소스를 그대로 담은 샘플이다. 파일이 없으면 만들어 둔다.
+  if (!hasFiles(row.id)) {
+    await snapshotLive(row.id, {
+      type: 'wnc-template',
+      name: row.name,
+      description: row.description,
+      version: row.version,
+      author: row.author,
+      header: row.header,
+      footer: row.footer,
+      pageLayouts: parseLayouts(row.pageLayouts),
+    })
+  }
+  return row
 }
 
 /** 활성 템플릿을 돌려준다. 없으면 기본 템플릿을 만들어 켠다. */

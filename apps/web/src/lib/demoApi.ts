@@ -498,7 +498,10 @@ export function handleDemoRequest(
   }
 
   // --- 템플릿 관리 ---
-  if (rawPath === '/templates' && method === 'GET') return templatesSorted().map(templateItem)
+  if (rawPath === '/templates' && method === 'GET') return templatesSorted().map((t) => ({ ...templateItem(t), files: 0 }))
+  if (rawPath === '/templates/import-zip' && method === 'POST') {
+    throw new DemoError('GitHub Pages 데모에서는 템플릿 파일(zip)을 설치할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  }
   if (rawPath === '/templates' && method === 'POST') {
     const name = String(body.name ?? '').trim()
     if (!name) throw new DemoError('템플릿 이름을 입력하세요.', 400)
@@ -554,7 +557,8 @@ export function handleDemoRequest(
       for (const x of db.templates) x.active = false
       t.active = true
       save(db)
-      return templatesSorted().map(templateItem)
+      // 데모에는 파일이 없어 구성만 바뀐다.
+      return { templates: templatesSorted().map((x) => ({ ...templateItem(x), files: 0 })), applied: 0 }
     }
     if (action === 'duplicate' && method === 'POST') {
       const now = new Date().toISOString()

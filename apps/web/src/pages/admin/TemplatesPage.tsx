@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { unzipSync } from 'fflate'
 import { Link } from 'react-router-dom'
 import type { SiteTemplateFile, SiteTemplateInfo } from '@wnc/shared'
 import { api } from '../../lib/api'
@@ -72,10 +73,23 @@ export default function TemplatesPage() {
       alert('사용 중인 템플릿은 끌 수 없습니다.\n다른 템플릿을 켜면 이 템플릿은 자동으로 꺼집니다.')
       return
     }
+    if (
+      !confirm(
+        `'${row.name}' 템플릿을 사이트에 적용할까요?\n\n` +
+          '이 템플릿의 화면·레이아웃·부품 파일이 사이트에 덮어써집니다.\n' +
+          '지금 사이트 모습은 사용 중이던 템플릿에 자동으로 담기고, 덮어쓰기 전 원본도 백업으로 남습니다.',
+      )
+    )
+      return
     setWorking(true)
     try {
-      setRows(await api<SiteTemplateInfo[]>(`/templates/${row.id}/activate`, { method: 'POST', auth: true }))
+      const res = await api<{ templates: SiteTemplateInfo[]; applied: number }>(`/templates/${row.id}/activate`, {
+        method: 'POST',
+        auth: true,
+      })
+      setRows(res.templates)
       refreshSite()
+      alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -105,15 +119,19 @@ export default function TemplatesPage() {
     }
   }
 
-  /** 내보내기 — 가져오기로 다시 들일 수 있는 JSON 파일을 내려받는다. */
+  /** 내보내기 — 화면·레이아웃·부품 파일이 담긴 zip 을 내려받는다. */
   async function exportOne(row: SiteTemplateInfo) {
     try {
-      const data = await api<SiteTemplateFile>(`/templates/${row.id}/export`, { auth: true })
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const token = localStorage.getItem('wnc_admin_token')
+      const res = await fetch(`/api/templates/${row.id}/export`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? '내보내기에 실패했습니다.')
+      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${row.name.replace(/[\\/:*?"<>|]/g, '_')}.wnc-template.json`
+      a.download = `${row.name.replace(/[\\/:*?"<>|]/g, '_')}.wnc-template.zip`
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {
@@ -267,6 +285,8 @@ export default function TemplatesPage() {
                         구성: 헤더 {headerLabel(row.header)} · 푸터 {footerLabel(row.footer)} · 화면 레이아웃{' '}
                         {Object.keys(row.pageLayouts).length}건
                       </span>
+                      <span aria-hidden>·</span>
+                      <span>파일 {row.files ?? 0}개</span>
                     </p>
                   </div>
 
@@ -496,39 +516,44 @@ function CreateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   )
 }
 
-/** 수동 설치 — 파일 업로드 또는 GitHub 주소로 템플릿을 들여온다. (참고: 그누보드7 수동 설치) */
+/** 수동 설치 — zip 파일 업로드 또는 GitHub 주소로 템플릿을 들여온다. */
 function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [tab, setTab] = useState<'file' | 'github'>('file')
-  const [fileName, setFileName] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [manifest, setManifest] = useState<SiteTemplateFile | null>(null)
+  const [entries, setEntries] = useState<string[]>([])
   const [url, setUrl] = useState('')
   const [fetching, setFetching] = useState(false)
-  const [payload, setPayload] = useState<SiteTemplateFile | null>(null)
   const [showManifest, setShowManifest] = useState(false)
   const [problem, setProblem] = useState('')
   const [saving, setSaving] = useState(false)
 
-  /** 읽어 온 내용이 우리 템플릿 형식인지 확인해 담는다. */
-  function accept(raw: string, from: string): void {
+  /** 고른 zip 안을 들여다본다 — template.json 과 담긴 파일 목록을 미리 확인한다. */
+  async function inspect(picked: File) {
+    setFile(picked)
+    setManifest(null)
+    setEntries([])
+    setShowManifest(false)
+    setProblem('')
     try {
-      const parsed = JSON.parse(raw)
-      if (parsed?.type !== 'wnc-template' || typeof parsed.name !== 'string') {
-        setProblem(`워드앤코드 템플릿 형식이 아닙니다. ${from}이(가) [내보내기]로 받은 JSON 인지 확인해 주세요.`)
+      const zip = unzipSync(new Uint8Array(await picked.arrayBuffer()))
+      const names = Object.keys(zip)
+      const manifestName = names.find((n) => n.split('/').pop() === 'template.json')
+      if (!manifestName) {
+        setProblem('zip 안에 template.json 이 없습니다. 내보내기로 받은 템플릿 zip 인지 확인해 주세요.')
         return
       }
-      setPayload(parsed as SiteTemplateFile)
-      setProblem('')
+      const parsed = JSON.parse(new TextDecoder().decode(zip[manifestName]))
+      if (parsed?.type !== 'wnc-template' || !parsed.name) {
+        setProblem('워드앤코드 템플릿 형식이 아닙니다. template.json 의 type 과 name 을 확인해 주세요.')
+        return
+      }
+      setManifest(parsed as SiteTemplateFile)
+      setEntries(names.filter((n) => !n.endsWith('/') && n.split('/').pop() !== 'template.json'))
     } catch {
-      setProblem(`${from}을(를) JSON 으로 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.`)
+      setProblem('zip 파일을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
     }
-  }
-
-  async function pick(file: File | undefined) {
-    if (!file) return
-    setFileName(file.name)
-    setPayload(null)
-    setShowManifest(false)
-    accept(await file.text(), '선택한 파일')
   }
 
   /** GitHub 화면 주소(blob)는 원본(raw) 주소로 바꿔 받는다. */
@@ -538,28 +563,37 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       'https://raw.githubusercontent.com/$1/$2/',
     )
     if (!/^https:\/\//.test(target)) {
-      setProblem('https:// 로 시작하는 파일 주소를 입력하세요.')
+      setProblem('https:// 로 시작하는 zip 파일 주소를 입력하세요.')
       return
     }
     setFetching(true)
-    setPayload(null)
-    setShowManifest(false)
+    setProblem('')
     try {
       const res = await fetch(target)
       if (!res.ok) throw new Error()
-      accept(await res.text(), '주소의 파일')
+      const blob = await res.blob()
+      await inspect(new File([blob], target.split('/').pop() || 'template.zip'))
     } catch {
-      setProblem('주소에서 파일을 가져오지 못했습니다. 공개 저장소의 파일인지, 주소가 정확한지 확인해 주세요.')
+      setProblem('주소에서 파일을 가져오지 못했습니다. 공개 저장소의 zip 인지, 주소가 정확한지 확인해 주세요.')
     } finally {
       setFetching(false)
     }
   }
 
   async function install() {
-    if (!payload) return
+    if (!file || !manifest) return
     setSaving(true)
     try {
-      await api('/templates/import', { method: 'POST', body: payload, auth: true })
+      const form = new FormData()
+      form.append('file', file)
+      const token = localStorage.getItem('wnc_admin_token')
+      const res = await fetch('/api/templates/import-zip', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.message ?? '설치에 실패했습니다.')
       onSaved()
     } catch (e) {
       alert((e as Error).message)
@@ -576,7 +610,7 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           <button type="button" onClick={onClose} className="btn-secondary">
             취소
           </button>
-          <button type="button" onClick={install} disabled={!payload || saving} className="btn-primary">
+          <button type="button" onClick={install} disabled={!manifest || saving} className="btn-primary">
             <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3M12 15V4m0 11l-4-4m4 4l4-4" />
             </svg>
@@ -588,10 +622,10 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       <div className="space-y-4">
         <p className="text-sm text-slate-600 dark:text-slate-300">파일 업로드 또는 GitHub 저장소에서 템플릿을 설치할 수 있습니다.</p>
 
-        {/* manifest 미리보기 — 파일을 읽은 뒤에만 열 수 있다 */}
+        {/* manifest 미리보기 — zip 을 읽은 뒤에만 열 수 있다 */}
         <button
           type="button"
-          disabled={!payload}
+          disabled={!manifest}
           onClick={() => setShowManifest((v) => !v)}
           className="flex items-center gap-1.5 text-sm font-medium text-brand-600 transition hover:text-brand-700 disabled:cursor-not-allowed disabled:text-slate-400 dark:disabled:text-slate-500"
         >
@@ -601,10 +635,16 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           </svg>
           manifest 미리보기
         </button>
-        {showManifest && payload && (
-          <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-            {JSON.stringify(payload, null, 2)}
-          </pre>
+        {showManifest && manifest && (
+          <div className="space-y-2">
+            <pre className="max-h-40 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+              {JSON.stringify(manifest, null, 2)}
+            </pre>
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-300">담긴 파일 {entries.length}개</p>
+            <pre className="max-h-40 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {entries.join('\n')}
+            </pre>
+          </div>
         )}
 
         {/* 탭 — 파일 업로드 / GitHub */}
@@ -637,40 +677,46 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
         {tab === 'file' ? (
           <div>
-            <p className="label">템플릿 파일 (.json)</p>
+            <p className="label">템플릿 파일 (.zip)</p>
             <div className="flex items-center gap-3">
-              <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => pick(e.target.files?.[0])} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".zip,application/zip"
+                hidden
+                onChange={(e) => e.target.files?.[0] && inspect(e.target.files[0])}
+              />
               <button type="button" onClick={() => fileRef.current?.click()} className="btn-secondary">
                 찾아보기
               </button>
-              <span className={`min-w-0 truncate text-sm ${fileName ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
-                {fileName || '파일이 선택되지 않음'}
+              <span className={`min-w-0 truncate text-sm ${file ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                {file?.name ?? '파일이 선택되지 않음'}
               </span>
             </div>
           </div>
         ) : (
           <div>
-            <p className="label">저장소 파일 주소</p>
+            <p className="label">저장소 zip 주소</p>
             <div className="flex items-center gap-2">
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchFromUrl()}
-                placeholder="https://github.com/사용자/저장소/blob/main/템플릿.json"
+                placeholder="https://github.com/사용자/저장소/blob/main/템플릿.zip"
                 className="input"
               />
               <button type="button" onClick={fetchFromUrl} disabled={fetching} className="btn-secondary shrink-0">
                 {fetching ? '가져오는 중...' : '불러오기'}
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">공개 저장소의 JSON 파일 주소를 붙여 넣으세요. GitHub 화면 주소는 자동으로 원본 주소로 바꿔 받습니다.</p>
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">공개 저장소의 zip 주소를 붙여 넣으세요. GitHub 화면 주소는 자동으로 원본 주소로 바꿔 받습니다.</p>
           </div>
         )}
 
         {problem && <ErrorMessage message={problem} />}
-        {payload && (
+        {manifest && (
           <p className="text-sm text-green-700 dark:text-green-400">
-            '{payload.name}' 템플릿을 확인했습니다 — 설치를 누르면 목록에 추가됩니다.
+            '{manifest.name}' 템플릿을 확인했습니다 (파일 {entries.length}개) — 설치를 누르면 목록에 추가됩니다.
           </p>
         )}
 
@@ -680,9 +726,9 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
             <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
           </svg>
           <p>
-            템플릿 파일은 반드시{' '}
-            <code className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold dark:bg-blue-900/50">wnc-template</code>{' '}
-            형식(JSON)이어야 하며, [내보내기]로 받은 파일 구조를 따라야 합니다.
+            템플릿 패키지는 반드시{' '}
+            <code className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold dark:bg-blue-900/50">template.json</code>{' '}
+            파일을 포함해야 하며, 화면(pages)·레이아웃(layouts)·부품(components) 폴더 구조를 따라야 합니다.
           </p>
         </div>
       </div>

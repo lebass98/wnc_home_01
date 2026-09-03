@@ -309,7 +309,7 @@ export default function TemplateCodePage() {
 
       <div className="grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
         {/* 왼쪽 — 구조 */}
-        <aside className="card flex max-h-[calc(100vh-11rem)] flex-col overflow-hidden lg:sticky lg:top-24">
+        <aside className="card flex max-h-[calc(100vh-13rem)] flex-col overflow-hidden lg:sticky lg:top-24">
           <div className="border-b border-slate-200 p-3 dark:border-slate-700">
             <p className="mb-2 px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">화면 / 레이아웃</p>
             <input
@@ -344,10 +344,10 @@ export default function TemplateCodePage() {
           </div>
         </aside>
 
-        {/* 오른쪽 — 코드창 */}
-        <section className="card p-5">
+        {/* 오른쪽 — 코드창. 넓은 화면에서는 세로를 꽉 채운다. */}
+        <section className="card flex flex-col p-5 lg:h-[calc(100vh-13rem)]">
           {!activeKey ? (
-            <p className="py-20 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="grid flex-1 place-items-center py-20 text-center text-sm text-slate-500 dark:text-slate-400">
               왼쪽 구조에서 고칠 화면·레이아웃·부품을 골라 주세요.
             </p>
           ) : loadError ? (
@@ -472,27 +472,32 @@ export default function TemplateCodePage() {
                 </div>
               )}
 
-              {pane.mode === 'diff' ? (
-                <>
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{pane.label}과 비교</p>
-                    <button type="button" onClick={() => setPane({ mode: 'code' })} className="btn-secondary px-2.5 py-1 text-xs">
-                      코드로 돌아가기
-                    </button>
-                  </div>
-                  <DiffView before={source.content} after={pane.content} beforeLabel="지금 코드" afterLabel={pane.label} />
-                </>
-              ) : (
-                <Suspense fallback={<Loading label="편집기 불러오는 중..." />}>
-                  <CodeEditor
-                    key={source.key}
-                    value={draft}
-                    onChange={setDraft}
-                    jump={jump}
-                    className="border border-slate-200 dark:border-slate-700"
-                  />
-                </Suspense>
-              )}
+              {/* 남은 높이를 코드가 모두 차지한다 — 길이가 넘치면 안에서 스크롤된다. */}
+              <div className="flex min-h-[28rem] flex-1 flex-col lg:min-h-0">
+                {pane.mode === 'diff' ? (
+                  <>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{pane.label}과 비교</p>
+                      <button type="button" onClick={() => setPane({ mode: 'code' })} className="btn-secondary px-2.5 py-1 text-xs">
+                        코드로 돌아가기
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-auto">
+                      <DiffView before={source.content} after={pane.content} beforeLabel="지금 코드" afterLabel={pane.label} />
+                    </div>
+                  </>
+                ) : (
+                  <Suspense fallback={<Loading label="편집기 불러오는 중..." />}>
+                    <CodeEditor
+                      key={source.key}
+                      value={draft}
+                      onChange={setDraft}
+                      jump={jump}
+                      className="cm-wnc-fill h-full border border-slate-200 dark:border-slate-700"
+                    />
+                  </Suspense>
+                )}
+              </div>
             </>
           )}
         </section>

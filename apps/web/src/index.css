@@ -153,6 +153,14 @@
   .cm-wnc .cm-editor {
     height: 28rem;
   }
+  /* 남은 자리를 모두 채우는 편집기.
+     부모가 높이를 정해 주는 넓은 화면에서만 쓴다 — 좁은 화면에서는 부모 높이가 없어
+     파일 길이만큼 끝없이 늘어나므로 기본 높이(28rem)를 그대로 둔다. */
+  @media (min-width: 1024px) {
+    .cm-wnc-fill .cm-editor {
+      height: 100%;
+    }
+  }
   .cm-wnc .cm-editor.cm-focused {
     outline: none;
   }

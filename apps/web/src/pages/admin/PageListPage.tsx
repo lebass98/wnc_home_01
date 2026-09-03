@@ -6,7 +6,6 @@ import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { pickMenu, useSiteMenu } from '../../lib/menus'
 import { invalidatePageLayouts } from '../../lib/pageLayouts'
-import SitePageCodeModal from '../../components/SitePageCodeModal'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination, RowMenu } from '../../components/ui'
 
 const ICON = {
@@ -75,10 +74,9 @@ export default function PageListPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
 
-  // --- 선택(에디터 페이지만) · 코드 창 ---
+  // --- 선택(에디터 페이지만) ---
   const [selected, setSelected] = useState<number[]>([])
   const [working, setWorking] = useState(false)
-  const [codeOpen, setCodeOpen] = useState<SitePageInfo | null>(null)
 
   const siteMenu = useSiteMenu()
   const gnbUrls = useMemo(() => {
@@ -120,13 +118,6 @@ export default function PageListPage() {
   }, [])
 
   useEffect(load, [load])
-
-  /** 코드 파일만 다시 읽는다 — 코드 창에서 저장·되돌리기한 뒤 크기·수정일을 맞춘다. */
-  function reloadCode() {
-    api<SitePageInfo[]>('/site-pages', { auth: true })
-      .then(setCodePages)
-      .catch(() => {})
-  }
 
   const rows = useMemo<Row[]>(() => {
     const code: Row[] = codePages.map((c) => ({
@@ -463,7 +454,7 @@ export default function PageListPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => row.code?.available && setCodeOpen(row.code)}
+                          onClick={() => row.code?.available && navigate(`/admin/pages/code/${row.code.key}`)}
                           className="block max-w-full truncate text-left font-medium text-slate-900 hover:text-brand-600 dark:text-slate-100"
                         >
                           {row.title}
@@ -559,7 +550,7 @@ export default function PageListPage() {
                         {row.code && (
                           <button
                             type="button"
-                            onClick={() => setCodeOpen(row.code!)}
+                            onClick={() => navigate(`/admin/pages/code/${row.code!.key}`)}
                             disabled={!row.code.available}
                             className="btn-primary px-2.5 py-1 text-xs"
                             title={row.code.available ? '이 화면의 실제 소스 코드를 고칩니다' : '데모 모드에서는 볼 수 없습니다'}
@@ -597,7 +588,6 @@ export default function PageListPage() {
         메뉴 관리에 같은 주소의 링크가 켜져 있는지를 뜻합니다.
       </p>
 
-      {codeOpen && <SitePageCodeModal item={codeOpen} onClose={() => setCodeOpen(null)} onChanged={reloadCode} />}
     </>
   )
 }

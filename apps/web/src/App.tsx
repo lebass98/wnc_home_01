@@ -28,6 +28,7 @@ import ProductListPage from './pages/admin/ProductListPage'
 import ProductEditPage from './pages/admin/ProductEditPage'
 import CategoryPage from './pages/admin/CategoryPage'
 import PageListPage from './pages/admin/PageListPage'
+import SitePageEditPage from './pages/admin/SitePageEditPage'
 import TemplatesPage from './pages/admin/TemplatesPage'
 import PageEditPage from './pages/admin/PageEditPage'
 import PageDetailPage from './pages/admin/PageDetailPage'
@@ -109,6 +110,7 @@ export default function App() {
             <Route path="pages/new" element={<PageEditPage />} />
             <Route path="pages/:id" element={<PageEditPage />} />
             <Route path="pages/:id/detail" element={<PageDetailPage />} />
+            <Route path="pages/code/:key" element={<SitePageEditPage />} />
             <Route path="templates" element={<TemplatesPage />} />
             <Route path="popups" element={<PopupListPage />} />
             <Route path="popups/new" element={<PopupEditPage />} />

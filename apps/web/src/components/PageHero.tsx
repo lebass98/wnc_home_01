@@ -1,5 +1,6 @@
-import { Link, NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import Reveal from './Reveal'
+import PageBreadcrumb, { type Crumb } from './PageBreadcrumb'
 
 export interface PageHeroTab {
   to: string
@@ -8,12 +9,8 @@ export interface PageHeroTab {
   active?: boolean
 }
 
-/** 지금 화면이 어디에 있는지 알려 주는 길 안내 — 홈 › 묶음 › 현재 화면 */
-export interface PageHeroCrumb {
-  label: string
-  /** 링크로 걸 주소 — 없으면 글자만 보인다(현재 화면). */
-  to?: string
-}
+/** 지금 화면이 어디에 있는지 알려 주는 길 안내 — 홈 · 묶음 · 현재 화면 */
+export type PageHeroCrumb = Crumb
 
 /**
  * 서브 페이지 상단 공통 히어로.
@@ -38,23 +35,6 @@ export default function PageHero({
       style={{ background: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)' }}
     >
       <div className="container-wnc pb-16 pt-36 text-center sm:pb-20 sm:pt-40">
-        {breadcrumb && breadcrumb.length > 0 && (
-          <Reveal as="nav" className="mb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-white/60" aria-label="현재 위치">
-            {breadcrumb.map((crumb, i) => (
-              <span key={`${crumb.label}-${i}`} className="flex items-center gap-2">
-                {i > 0 && <span aria-hidden>›</span>}
-                {crumb.to ? (
-                  <Link to={crumb.to} className="transition hover:text-white">
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span className="text-white/85">{crumb.label}</span>
-                )}
-              </span>
-            ))}
-          </Reveal>
-        )}
-
         <Reveal>
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">{title}</h1>
         </Reveal>
@@ -80,6 +60,12 @@ export default function PageHero({
                 {tab.label}
               </NavLink>
             ))}
+          </Reveal>
+        )}
+
+        {breadcrumb && breadcrumb.length > 0 && (
+          <Reveal index={3} className="mt-10">
+            <PageBreadcrumb crumbs={breadcrumb} />
           </Reveal>
         )}
       </div>

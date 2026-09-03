@@ -117,12 +117,27 @@ export default function PolicySubLayout({ title, description, tabs, prologue, ch
   const { pathname } = useLocation()
   const siteMenu = useSiteMenu()
 
-  // 길 안내 — 사이트맵에서 이 화면이 속한 묶음을 찾아 '홈 › 묶음 › 현재 화면' 으로 만든다.
-  const group = findGroup(pickMenu(siteMenu, 'sitemap'), pathname)
+  // 길 안내 — 사이트맵을 읽어 '홈 · 묶음 · 현재 화면' 세 칸으로 만든다.
+  // 묶음 칸에는 다른 묶음들을, 현재 화면 칸에는 같은 묶음의 화면들을 담아 눌러서 옮겨 갈 수 있게 한다.
+  const sitemap = pickMenu(siteMenu, 'sitemap')
+  const group = findGroup(sitemap, pathname)
+  /** 묶음을 눌렀을 때 갈 곳 — 자기 주소가 없으면 첫 하위 화면으로 보낸다. */
+  const groupHref = (g: (typeof sitemap)[number]) => g.url || g.children[0]?.url || '/'
+
   const crumbs: PageHeroCrumb[] = [
-    { label: '홈', to: '/' },
-    ...(group ? [{ label: group.label, to: group.url || undefined }] : []),
-    { label: title },
+    { label: '홈', to: '/', home: true },
+    ...(group
+      ? [
+          {
+            label: group.label,
+            items: sitemap.filter((g) => g.children.length > 0 || g.url).map((g) => ({ label: g.label, to: groupHref(g) })),
+          },
+        ]
+      : []),
+    {
+      label: title,
+      items: group?.children.filter((c) => c.url).map((c) => ({ label: c.label, to: c.url })) ?? [],
+    },
   ]
 
   return (

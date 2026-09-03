@@ -133,8 +133,6 @@ export default function TemplatesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const safePage = Math.min(page, totalPages)
   const paged = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE)
-  const rangeStart = filtered.length === 0 ? 0 : (safePage - 1) * PER_PAGE + 1
-  const rangeEnd = Math.min(filtered.length, safePage * PER_PAGE)
 
   return (
     <div>
@@ -317,10 +315,7 @@ export default function TemplatesPage() {
             )}
           </div>
 
-          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} edges />
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            총 {filtered.length}개 중 {rangeStart}-{rangeEnd}개 표시
-          </p>
+          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} total={filtered.length} pageSize={PER_PAGE} />
         </div>
       )}
 

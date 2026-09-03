@@ -581,7 +581,7 @@ export default function PageListPage() {
         )}
       </div>
 
-      {!loading && filtered.length > 0 && <Pagination page={current} totalPages={totalPages} onChange={setPage} edges />}
+      {!loading && <Pagination page={current} totalPages={totalPages} onChange={setPage} total={filtered.length} pageSize={pageSize} />}
 
       <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
         코드 화면은 항상 공개이며 '수정'에서 실제 소스를 보고 고칠 수 있습니다(저장 전 원본은 백업으로 남습니다). GNB 표시는

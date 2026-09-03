@@ -152,7 +152,7 @@ export default function ContactListPage() {
           </div>
         )}
 
-        {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} />}
+        {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} total={data.total} pageSize={data.pageSize} />}
       </div>
 
       {/* 상세 드로어 */}

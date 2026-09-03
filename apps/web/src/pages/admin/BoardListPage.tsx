@@ -304,7 +304,7 @@ export default function BoardListPage() {
         )}
 
         {!loading && filtered.length > 0 && (
-          <Pagination page={current} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={current} totalPages={totalPages} onChange={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
         )}
       </div>
 

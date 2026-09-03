@@ -267,7 +267,7 @@ export default function FaqListPage() {
         )}
       </div>
 
-      {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} edges />}
+      {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} total={data.total} pageSize={data.pageSize} />}
     </>
   )
 }

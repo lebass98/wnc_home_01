@@ -61,76 +61,87 @@ export function ErrorMessage({ message }: { message: string }) {
   )
 }
 
-/** 목록 하단 페이지네이션 */
+/**
+ * 목록 하단 페이지네이션 — 모든 어드민 목록이 같은 모습을 쓴다.
+ * 화살표(‹ ›)와 쪽 번호를 두고, 총건수를 알면 아래에 '총 n개 중 a-b개 표시' 를 함께 보여 준다.
+ */
 export function Pagination({
   page,
   totalPages,
   onChange,
-  edges = false,
+  total,
+  pageSize,
 }: {
   page: number
   totalPages: number
   onChange: (page: number) => void
-  /** 처음/끝으로 한 번에 이동하는 « » 버튼을 함께 보여준다. */
-  edges?: boolean
+  /** 전체 건수 — 주면 아래 줄에 몇 개 중 몇 개를 보고 있는지 적는다. */
+  total?: number
+  /** 한 쪽에 보여 주는 개수 — total 과 함께 준다. */
+  pageSize?: number
 }) {
-  if (totalPages <= 1) return null
+  const showCount = typeof total === 'number' && typeof pageSize === 'number'
+  // 한 쪽뿐이고 건수도 모르면 보여 줄 것이 없다.
+  if (totalPages <= 1 && !showCount) return null
 
-  // 현재 페이지 주변 최대 5개만 노출한다.
+  // 현재 쪽 주변 최대 5개만 노출한다.
   const start = Math.max(1, Math.min(page - 2, totalPages - 4))
   const end = Math.min(totalPages, start + 4)
   const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i)
 
-  const arrow =
-    'rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent dark:text-slate-300 dark:hover:bg-slate-700'
+  const box =
+    'grid h-9 w-9 place-items-center rounded-md border text-sm transition disabled:cursor-not-allowed disabled:opacity-40'
+  const idle =
+    'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
 
   return (
-    <nav className="flex items-center justify-center gap-1 py-6">
-      {edges && (
-        <button type="button" onClick={() => onChange(1)} disabled={page <= 1} className={arrow} aria-label="첫 페이지">
-          «
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={() => onChange(page - 1)}
-        disabled={page <= 1}
-        className={arrow}
-      >
-        {edges ? '‹' : '이전'}
-      </button>
-      {pages.map((p) => (
+    <div className="py-5">
+      <nav className="flex items-center justify-center gap-1.5" aria-label="쪽 이동">
         <button
-          key={p}
           type="button"
-          onClick={() => onChange(p)}
-          className={`min-w-[2.25rem] rounded-lg px-3 py-2 text-sm font-medium transition ${
-            p === page ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'
-          }`}
+          onClick={() => onChange(page - 1)}
+          disabled={page <= 1}
+          aria-label="이전 쪽"
+          className={`${box} ${idle}`}
         >
-          {p}
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
-      ))}
-      <button
-        type="button"
-        onClick={() => onChange(page + 1)}
-        disabled={page >= totalPages}
-        className={arrow}
-      >
-        {edges ? '›' : '다음'}
-      </button>
-      {edges && (
+
+        {pages.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onChange(p)}
+            aria-current={p === page ? 'page' : undefined}
+            className={`${box} font-medium ${
+              p === page ? 'border-brand-600 bg-brand-600 text-white' : idle
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+
         <button
           type="button"
-          onClick={() => onChange(totalPages)}
+          onClick={() => onChange(page + 1)}
           disabled={page >= totalPages}
-          className={arrow}
-          aria-label="마지막 페이지"
+          aria-label="다음 쪽"
+          className={`${box} ${idle}`}
         >
-          »
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
+      </nav>
+
+      {showCount && (
+        <p className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">
+          총 {total}개 중 {total === 0 ? 0 : (page - 1) * pageSize + 1}-{Math.min(total, page * pageSize)}개 표시
+        </p>
       )}
-    </nav>
+    </div>
   )
 }
 

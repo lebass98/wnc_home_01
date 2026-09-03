@@ -31,10 +31,15 @@ export default function PageHero({
 }) {
   return (
     <section
-      className="relative"
+      className="relative z-20"
       style={{ background: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)' }}
     >
-      <div className="container-wnc pb-16 pt-36 text-center sm:pb-20 sm:pt-40">
+      {/* 길 안내 막대가 아래쪽에 붙으므로, 있을 때는 아래 여백을 그만큼 줄인다. */}
+      <div
+        className={`container-wnc pt-36 text-center sm:pt-40 ${
+          breadcrumb && breadcrumb.length > 0 ? 'pb-10' : 'pb-16 sm:pb-20'
+        }`}
+      >
         <Reveal>
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">{title}</h1>
         </Reveal>
@@ -63,8 +68,9 @@ export default function PageHero({
           </Reveal>
         )}
 
+        {/* 길 안내 — 히어로 맨 아래 왼쪽에 막대로 붙인다 */}
         {breadcrumb && breadcrumb.length > 0 && (
-          <Reveal index={3} className="mt-10">
+          <Reveal index={3} className="mt-12 text-left sm:mt-16">
             <PageBreadcrumb crumbs={breadcrumb} />
           </Reveal>
         )}

@@ -9,7 +9,8 @@ import { findGroup, pathOf, pickMenu, useSiteMenu } from '../lib/menus'
  * 아이파킹과 같은 모양으로 맞춘다.
  *  - 히어로 아래쪽 가운데에 놓는 높이 48px 막대. 테두리는 1px 그러데이션, 뒤가 비쳐 보이도록 흐림 처리
  *  - 집 아이콘(48px) 다음에 묶음·현재 화면 칸이 각각 240px, 칸 사이는 세로 실선
- *  - 칸을 누르면 아래로 펼쳐지는 풀다운. 본문(흰 바탕) 위에 겹치므로 판은 밝게, 글자는 어둡게 둔다
+ *  - 칸을 누르면 아래로 펼쳐지는 풀다운. 여닫을 때 살짝 미끄러지며 스며든다(0.2초)
+ *  - 펼친 판은 뒤가 비쳐 보이는 투명한 흐림(blur) 판이다
  *  - 좁은 화면에서는 막대가 화면 폭을 꽉 채우고 두 칸이 절반씩 나눠 갖는다
  */
 
@@ -77,7 +78,7 @@ function Caret({ open }: { open: boolean }) {
 }
 
 /** 한 칸 — 집을 뺀 나머지는 모두 이 폭·글자 모양을 쓴다. */
-const CELL = 'relative h-12 w-full px-4 text-left'
+const CELL = 'relative h-12 w-full px-4 text-left transition-colors duration-200 hover:bg-white/10'
 const LABEL = 'block w-full truncate text-sm font-bold tracking-tight text-white'
 
 export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
@@ -149,34 +150,41 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                   <Caret open={isOpen} />
                 </button>
 
-                {/* 펼친 판 — 아래 본문(흰 바탕) 위에 겹치므로 밝은 판에 어두운 글자를 쓴다 */}
-                {isOpen && (
-                  <ul className="absolute inset-x-0 top-full z-30 max-h-80 overflow-y-auto rounded-b-lg bg-white/90 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md">
-                    {crumb.items.map((item) => {
-                      // 지금 보고 있는 화면(또는 묶음)에 표시를 남긴다
-                      const current = pathOf(item.to) === pathname || item.label === crumb.label
-                      return (
-                        <li key={`${item.to}-${item.label}`}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpen(-1)
-                              navigate(item.to)
-                            }}
-                            aria-current={current ? 'page' : undefined}
-                            className={`block w-full px-4 py-2.5 text-left text-sm leading-[1.5] transition ${
-                              current
-                                ? 'font-semibold text-mint-700'
-                                : 'font-medium text-slate-800/80 hover:bg-slate-900/5 hover:text-slate-900'
-                            }`}
-                          >
-                            {item.label}
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )}
+                {/* 펼친 판 — 뒤가 비쳐 보이도록 투명한 판에 흐림(blur) 을 준다.
+                    여닫는 모션을 주려고 늘 그려 두고, 닫힌 동안에는 투명하게 눌러 둔다. */}
+                <ul
+                  aria-hidden={!isOpen}
+                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/25 bg-white/25 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 ease-out motion-reduce:transition-none ${
+                    isOpen
+                      ? 'translate-y-0 scale-y-100 opacity-100'
+                      : 'pointer-events-none -translate-y-1 scale-y-95 opacity-0'
+                  }`}
+                >
+                  {crumb.items.map((item) => {
+                    // 지금 보고 있는 화면(또는 묶음)에 표시를 남긴다
+                    const current = pathOf(item.to) === pathname || item.label === crumb.label
+                    return (
+                      <li key={`${item.to}-${item.label}`}>
+                        <button
+                          type="button"
+                          tabIndex={isOpen ? undefined : -1}
+                          onClick={() => {
+                            setOpen(-1)
+                            navigate(item.to)
+                          }}
+                          aria-current={current ? 'page' : undefined}
+                          className={`block w-full px-4 py-2.5 text-left text-sm leading-[1.5] transition ${
+                            current
+                              ? 'font-semibold text-slate-900 [text-shadow:0_1px_2px_rgba(255,255,255,0.6)]'
+                              : 'font-medium text-slate-800 hover:bg-white/30 hover:text-slate-900'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
             )
           })}

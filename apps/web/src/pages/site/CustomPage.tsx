@@ -90,7 +90,7 @@ export default function CustomPage({
       )}
       <SubPage title={title} description={page.description ?? ''} tabs={tabs} prologue={prologue}>
       <section className="container-wnc py-14 sm:py-16">
-        <div className="max-w-3xl">
+        <div className="max-w-full">
           <RichText html={content} />
 
           {/* 첨부파일 — 페이지 수정에서 올린 파일 */}

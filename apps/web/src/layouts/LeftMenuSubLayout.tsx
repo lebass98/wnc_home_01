@@ -17,7 +17,7 @@ const pathOf = (url: string) => url.split(/[?#]/)[0]
  * 지금 경로가 속한 1차 메뉴 묶음을 찾는다.
  * 자기 주소나 하위 주소가 현재 경로와 가장 길게 겹치는 묶음을 고른다.
  */
-function findGroup(menu: SiteMenuLink[], pathname: string): SiteMenuLink | null {
+export function findGroup(menu: SiteMenuLink[], pathname: string): SiteMenuLink | null {
   let best: SiteMenuLink | null = null
   let bestLen = 0
   for (const group of menu) {

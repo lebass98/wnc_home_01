@@ -15,6 +15,7 @@ export default function Reveal({
   as: Tag = 'div',
   className = '',
   style,
+  'aria-label': ariaLabel,
 }: {
   /** 색 블록처럼 내용 없이 상자만 나타낼 때는 비워 둘 수 있다. */
   children?: ReactNode
@@ -26,6 +27,8 @@ export default function Reveal({
   className?: string
   /** 배경 그라데이션처럼 클래스로 못 쓰는 값 */
   style?: CSSProperties
+  /** nav·section 으로 쓸 때 그 자리가 무엇인지 알려 준다. */
+  'aria-label'?: string
 }) {
   const ref = useRef<HTMLElement>(null)
   const [shown, setShown] = useState(false)
@@ -66,6 +69,7 @@ export default function Reveal({
   return (
     <Tag
       ref={ref}
+      aria-label={ariaLabel}
       style={{ ...style, transitionDelay: shown ? `${index * step}ms` : '0ms' }}
       className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
         shown ? 'translate-x-0 translate-y-0 opacity-100' : hidden

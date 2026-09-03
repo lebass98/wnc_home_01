@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
-import { isExternalUrl, pickMenu, useSiteMenu, type SiteMenuLink } from '../lib/menus'
+import { useCrumbs } from '../components/PageBreadcrumb'
+import { findGroup, pathOf, pickMenu, useSiteMenu, type SiteMenuLink } from '../lib/menus'
 import type { SubLayoutProps } from './index'
 import BasicSubLayout from './BasicSubLayout'
 
@@ -9,31 +10,6 @@ import BasicSubLayout from './BasicSubLayout'
  * 왼쪽에 현재 화면이 속한 메뉴 묶음을 세우고 본문을 오른쪽에 둔다.
  * 좁은 화면에서는 왼쪽 메뉴가 히어로 아래 가로 칩으로 바뀐다.
  */
-
-/** 주소의 경로 부분만 — ?category=1 같은 꼬리는 떼고 비교한다. */
-const pathOf = (url: string) => url.split(/[?#]/)[0]
-
-/**
- * 지금 경로가 속한 1차 메뉴 묶음을 찾는다.
- * 자기 주소나 하위 주소가 현재 경로와 가장 길게 겹치는 묶음을 고른다.
- */
-export function findGroup(menu: SiteMenuLink[], pathname: string): SiteMenuLink | null {
-  let best: SiteMenuLink | null = null
-  let bestLen = 0
-  for (const group of menu) {
-    for (const url of [group.url, ...group.children.map((c) => c.url)]) {
-      const p = pathOf(url)
-      if (!p || isExternalUrl(url)) continue
-      if (pathname === p || pathname.startsWith(`${p}/`)) {
-        if (p.length > bestLen) {
-          best = group
-          bestLen = p.length
-        }
-      }
-    }
-  }
-  return best
-}
 
 /** 메뉴 항목이 지금 경로를 가리키는지 */
 const isActive = (url: string, pathname: string) => pathOf(url) === pathname
@@ -97,6 +73,7 @@ export default function LeftMenuSubLayout(props: SubLayoutProps) {
   const { title, description, children } = props
   const { pathname } = useLocation()
   const siteMenu = useSiteMenu()
+  const crumbs = useCrumbs(title)
 
   // 좌측 메뉴에는 사이트맵 노출 기준을 쓴다 — GNB 에 없는 묶음(이용안내 등)도 세울 수 있다.
   const group = findGroup(pickMenu(siteMenu, 'sitemap'), pathname)
@@ -106,7 +83,7 @@ export default function LeftMenuSubLayout(props: SubLayoutProps) {
 
   return (
     <>
-      <PageHero title={title} description={description} />
+      <PageHero title={title} description={description} breadcrumb={crumbs} />
       <div className="gnb:hidden">
         <ChipMenu group={group} pathname={pathname} />
       </div>

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { findGroup, pathOf, pickMenu, useSiteMenu } from '../lib/menus'
 
 /**
  * 서브 화면 상단의 길 안내 — 홈 · 묶음 · 현재 화면을 한 줄 막대로 잇는다.
  * (참고: 아이파킹 서브 상단 위치 표시 https://www.iparking.co.kr/kr/company/summary.php)
  *
  * 아이파킹과 같은 모양으로 맞춘다.
- *  - 히어로 왼쪽에 붙는 높이 48px 막대. 테두리는 1px 그러데이션, 뒤가 비쳐 보이도록 흐림 처리
+ *  - 히어로 아래쪽 가운데에 놓는 높이 48px 막대. 테두리는 1px 그러데이션, 뒤가 비쳐 보이도록 흐림 처리
  *  - 집 아이콘(48px) 다음에 묶음·현재 화면 칸이 각각 240px, 칸 사이는 세로 실선
  *  - 칸을 누르면 아래로 펼쳐지는 풀다운. 본문(흰 바탕) 위에 겹치므로 판은 밝게, 글자는 어둡게 둔다
  *  - 좁은 화면에서는 막대가 화면 폭을 꽉 채우고 두 칸이 절반씩 나눠 갖는다
@@ -26,6 +27,38 @@ export interface Crumb {
   items?: CrumbItem[]
   /** 집 아이콘으로 보여 줄지 (맨 앞 칸) */
   home?: boolean
+}
+
+/**
+ * 사이트맵을 읽어 '홈 · 묶음 · 현재 화면' 세 칸을 만든다.
+ * 묶음 칸에는 다른 묶음들을, 현재 화면 칸에는 같은 묶음의 화면들을 담아 눌러서 옮겨 갈 수 있게 한다.
+ * 사이트맵에서 지금 경로가 속한 묶음을 못 찾으면 빈 배열을 돌려준다 (길 안내를 그리지 않는다).
+ */
+export function useCrumbs(title: string): Crumb[] {
+  const { pathname } = useLocation()
+  const sitemap = pickMenu(useSiteMenu(), 'sitemap')
+  const group = findGroup(sitemap, pathname)
+  if (!group) return []
+
+  /** 묶음을 눌렀을 때 갈 곳 — 자기 주소가 없으면 첫 하위 화면으로 보낸다. */
+  const groupHref = (g: (typeof sitemap)[number]) => g.url || g.children[0]?.url || '/'
+
+  const siblings = group.children.filter((c) => c.url)
+  // 마지막 칸은 지금 보고 있는 화면 — 사이트맵에 같은 주소가 있으면 그 이름을 쓴다.
+  // (묶음 이름과 화면 제목이 같을 때 두 칸이 겹쳐 보이지 않게 한다.)
+  const here = siblings.find((c) => pathOf(c.url) === pathname)
+
+  return [
+    { label: '홈', to: '/', home: true },
+    {
+      label: group.label,
+      items: sitemap.filter((g) => g.children.length > 0 || g.url).map((g) => ({ label: g.label, to: groupHref(g) })),
+    },
+    {
+      label: here?.label ?? title,
+      items: siblings.map((c) => ({ label: c.label, to: c.url })),
+    },
+  ]
 }
 
 function Caret({ open }: { open: boolean }) {
@@ -51,6 +84,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
   const [open, setOpen] = useState(-1)
   const ref = useRef<HTMLElement>(null)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   // 바깥을 누르거나 ESC 를 누르면 닫는다.
   useEffect(() => {
@@ -70,9 +104,9 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
   }, [open])
 
   return (
-    <nav ref={ref} aria-label="현재 위치" className="w-full sm:w-auto">
+    <nav ref={ref} aria-label="현재 위치" className="flex w-full justify-center">
       {/* 바깥 한 겹은 1px 그러데이션 테두리 역할만 한다 */}
-      <div className="rounded-lg bg-gradient-to-br from-white/25 via-white/[0.03] to-white/25 p-px sm:inline-block">
+      <div className="w-full max-w-full rounded-lg bg-gradient-to-br from-white/25 via-white/[0.03] to-white/25 p-px sm:w-auto">
         <div className="flex h-12 rounded-[7px] bg-white/[0.06] backdrop-blur-md">
           {crumbs.map((crumb, i) => {
             const isOpen = open === i
@@ -119,7 +153,8 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                 {isOpen && (
                   <ul className="absolute inset-x-0 top-full z-30 max-h-80 overflow-y-auto rounded-b-lg bg-white/90 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md">
                     {crumb.items.map((item) => {
-                      const current = item.label === crumb.label
+                      // 지금 보고 있는 화면(또는 묶음)에 표시를 남긴다
+                      const current = pathOf(item.to) === pathname || item.label === crumb.label
                       return (
                         <li key={`${item.to}-${item.label}`}>
                           <button

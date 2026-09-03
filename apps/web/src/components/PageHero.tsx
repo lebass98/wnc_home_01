@@ -34,7 +34,7 @@ export default function PageHero({
       className="relative z-20"
       style={{ background: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)' }}
     >
-      {/* 길 안내 막대가 아래쪽에 붙으므로, 있을 때는 아래 여백을 그만큼 줄인다. */}
+      {/* 길 안내 막대가 아래쪽 가운데에 붙으므로, 있을 때는 아래 여백을 그만큼 줄인다. */}
       <div
         className={`container-wnc pt-36 text-center sm:pt-40 ${
           breadcrumb && breadcrumb.length > 0 ? 'pb-10' : 'pb-16 sm:pb-20'
@@ -49,7 +49,8 @@ export default function PageHero({
           </Reveal>
         )}
 
-        {tabs && tabs.length > 0 && (
+        {/* 묶음 탭 — 길 안내 풀다운과 같은 목록이므로, 길 안내가 있으면 그리지 않는다 */}
+        {tabs && tabs.length > 0 && !(breadcrumb && breadcrumb.length > 0) && (
           <Reveal as="nav" index={2} aria-label="묶음 이동" className="mt-8 flex justify-center gap-7">
             {tabs.map((tab) => (
               <NavLink
@@ -68,9 +69,9 @@ export default function PageHero({
           </Reveal>
         )}
 
-        {/* 길 안내 — 히어로 맨 아래 왼쪽에 막대로 붙인다 */}
+        {/* 길 안내 — 히어로 맨 아래 가운데에 막대로 붙인다 */}
         {breadcrumb && breadcrumb.length > 0 && (
-          <Reveal index={3} className="mt-12 text-left sm:mt-16">
+          <Reveal index={3} className="mt-12 sm:mt-14">
             <PageBreadcrumb crumbs={breadcrumb} />
           </Reveal>
         )}

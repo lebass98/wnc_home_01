@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
-import type { PageHeroCrumb } from '../components/PageHero'
 import PageHero from '../components/PageHero'
-import { pickMenu, useSiteMenu } from '../lib/menus'
+import { useCrumbs } from '../components/PageBreadcrumb'
 import type { SubLayoutProps } from './index'
-import { findGroup } from './LeftMenuSubLayout'
 
 /**
  * 약관형 서브 — 이용약관·개인정보처리방침처럼 장(章)과 조(條)로 이어지는 문서를 위한 틀.
@@ -114,31 +112,8 @@ function PolicyBody({ children, prologue }: { children: ReactNode; prologue?: Re
 }
 
 export default function PolicySubLayout({ title, description, tabs, prologue, children }: SubLayoutProps) {
-  const { pathname } = useLocation()
-  const siteMenu = useSiteMenu()
-
-  // 길 안내 — 사이트맵을 읽어 '홈 · 묶음 · 현재 화면' 세 칸으로 만든다.
-  // 묶음 칸에는 다른 묶음들을, 현재 화면 칸에는 같은 묶음의 화면들을 담아 눌러서 옮겨 갈 수 있게 한다.
-  const sitemap = pickMenu(siteMenu, 'sitemap')
-  const group = findGroup(sitemap, pathname)
-  /** 묶음을 눌렀을 때 갈 곳 — 자기 주소가 없으면 첫 하위 화면으로 보낸다. */
-  const groupHref = (g: (typeof sitemap)[number]) => g.url || g.children[0]?.url || '/'
-
-  const crumbs: PageHeroCrumb[] = [
-    { label: '홈', to: '/', home: true },
-    ...(group
-      ? [
-          {
-            label: group.label,
-            items: sitemap.filter((g) => g.children.length > 0 || g.url).map((g) => ({ label: g.label, to: groupHref(g) })),
-          },
-        ]
-      : []),
-    {
-      label: title,
-      items: group?.children.filter((c) => c.url).map((c) => ({ label: c.label, to: c.url })) ?? [],
-    },
-  ]
+  // 길 안내 — 홈 · 묶음 · 현재 화면 (사이트맵에서 만든다)
+  const crumbs = useCrumbs(title)
 
   return (
     <>

@@ -42,6 +42,31 @@ export function isExternalUrl(url: string): boolean {
 let menuPromise: Promise<MenuItem[]> | null = null
 let categoryPromise: Promise<CategoryNode[]> | null = null
 let navPagePromise: Promise<PageListItem[]> | null = null
+/** 주소의 경로 부분만 — ?category=1 같은 꼬리는 떼고 비교한다. */
+export const pathOf = (url: string) => url.split(/[?#]/)[0]
+
+/**
+ * 지금 경로가 속한 1차 메뉴 묶음을 찾는다.
+ * 자기 주소나 하위 주소가 현재 경로와 가장 길게 겹치는 묶음을 고른다.
+ */
+export function findGroup(menu: SiteMenuLink[], pathname: string): SiteMenuLink | null {
+  let best: SiteMenuLink | null = null
+  let bestLen = 0
+  for (const group of menu) {
+    for (const url of [group.url, ...group.children.map((c) => c.url)]) {
+      const p = pathOf(url)
+      if (!p || isExternalUrl(url)) continue
+      if (pathname === p || pathname.startsWith(`${p}/`)) {
+        if (p.length > bestLen) {
+          best = group
+          bestLen = p.length
+        }
+      }
+    }
+  }
+  return best
+}
+
 const listeners = new Set<() => void>()
 
 /** 관리자에서 메뉴·분류·페이지를 고친 뒤 부른다 — 사이트 메뉴가 바로 다시 그려진다. */

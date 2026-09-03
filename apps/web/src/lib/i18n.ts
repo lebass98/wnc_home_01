@@ -61,3 +61,12 @@ export function currentLanguage(): Language {
   const lang = i18next.resolvedLanguage ?? i18next.language
   return (LANGUAGES as readonly string[]).includes(lang) ? (lang as Language) : 'ko'
 }
+
+/**
+ * 언어별 값({ko, en, ja})에서 지금 언어의 것을 고른다.
+ * 그 언어 값이 비어 있으면 한국어, 그것도 없으면 기본값을 쓴다.
+ */
+export function pickLocalized(values: Partial<Record<string, string>> | null | undefined, fallback: string): string {
+  const lang = currentLanguage()
+  return values?.[lang]?.trim() || values?.ko?.trim() || fallback
+}

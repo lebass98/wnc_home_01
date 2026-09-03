@@ -224,8 +224,14 @@ export interface DemoPage {
   sortOrder: number
   views: number
   version: number
+  /** 언어별 제목·본문 { ko, en, ja } */
+  titleI18n: Record<string, string>
+  contentI18n: Record<string, string>
+  /** 첨부파일 [{ name, url, size }] */
+  attachments: { name: string; url: string; size: number }[]
   metaTitle: string | null
   metaDescription: string | null
+  metaKeywords: string | null
   ogImage: string | null
   createdAt: string
   updatedAt: string
@@ -245,13 +251,8 @@ export interface DemoPageVersion {
   createdAt: string
 }
 
-const PAGE_SEED: [string, string, string, string, boolean][] = [
-  ['terms', '이용약관', '서비스 이용에 관한 기본 약관입니다.', '<h2>제1조 (목적)</h2><p>본 약관은 회사가 제공하는 서비스의 이용 조건과 절차를 정함을 목적으로 합니다.</p><h2>제2조 (정의)</h2><p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>', true],
-  ['privacy', '개인정보처리방침', '수집하는 개인정보 항목과 이용 목적을 안내합니다.', '<h2>1. 수집하는 개인정보 항목</h2><p>회사는 문의 접수를 위해 이름, 이메일, 연락처를 수집합니다.</p><h2>2. 보유 및 이용 기간</h2><p>수집한 정보는 문의 처리 완료 후 3년간 보관 뒤 파기합니다.</p>', true],
-  ['refund', '취소·환불 정책', '계약 해지와 환불 기준을 안내합니다.', '<h2>환불 기준</h2><p>착수 전 해지 시 전액 환불되며, 착수 후에는 진행 단계에 따라 정산합니다.</p>', true],
-  ['faq', '자주 묻는 질문', '고객님들이 자주 문의하시는 내용을 모았습니다.', '<h3>개발 기간은 얼마나 걸리나요?</h3><p>요구사항 규모에 따라 다르지만 일반적으로 6~12주가 소요됩니다.</p><h3>유지보수도 해주시나요?</h3><p>납품 후 1년간 무상 유지보수를 제공합니다.</p>', true],
-  ['partners', '파트너 안내', '함께할 협력사를 찾습니다.', '<h2>파트너십 안내</h2><p>기술 제휴와 리셀러 파트너를 상시 모집하고 있습니다.</p>', false],
-]
+// 에디터 페이지 샘플은 두지 않는다 — 새 페이지는 관리자에서 직접 만든다.
+const PAGE_SEED: [string, string, string, string, boolean][] = []
 
 export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersion[] } {
   const pages: DemoPage[] = []
@@ -271,6 +272,10 @@ export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersio
       sortOrder: i,
       views: published ? (i + 1) * 37 : 0,
       version: 1,
+      titleI18n: {},
+      contentI18n: {},
+      attachments: [],
+      metaKeywords: null,
       metaTitle: null,
       metaDescription: null,
       ogImage: null,

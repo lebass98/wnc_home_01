@@ -55,7 +55,7 @@ const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`
 
 /**
  * 페이지 관리 — 코드로 만들어진 실제 화면과 에디터로 작성한 페이지를 한 목록에서 본다.
- * 종류·상태로 거르고 제목·주소·파일로 찾는다. 코드 화면은 '코드 보기', 에디터 페이지는 수정·발행으로 관리한다.
+ * 종류·상태로 거르고 제목·주소·파일로 찾는다. 코드 화면은 '수정'(소스 편집), 에디터 페이지는 수정·발행으로 관리한다.
  */
 export default function PageListPage() {
   const navigate = useNavigate()
@@ -562,9 +562,9 @@ export default function PageListPage() {
                             onClick={() => setCodeOpen(row.code!)}
                             disabled={!row.code.available}
                             className="btn-primary px-2.5 py-1 text-xs"
-                            title={row.code.available ? '실제 소스 코드를 봅니다' : '데모 모드에서는 볼 수 없습니다'}
+                            title={row.code.available ? '이 화면의 실제 소스 코드를 고칩니다' : '데모 모드에서는 볼 수 없습니다'}
                           >
-                            코드 보기
+                            수정
                           </button>
                         )}
                         {row.page && (
@@ -593,7 +593,7 @@ export default function PageListPage() {
       {!loading && filtered.length > 0 && <Pagination page={current} totalPages={totalPages} onChange={setPage} edges />}
 
       <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-        코드 화면은 항상 공개이며 '코드 보기'에서 실제 소스를 보고 고칠 수 있습니다(저장 전 원본은 백업으로 남습니다). GNB 표시는
+        코드 화면은 항상 공개이며 '수정'에서 실제 소스를 보고 고칠 수 있습니다(저장 전 원본은 백업으로 남습니다). GNB 표시는
         메뉴 관리에 같은 주소의 링크가 켜져 있는지를 뜻합니다.
       </p>
 

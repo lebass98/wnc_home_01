@@ -186,6 +186,13 @@ function load(): DemoDb {
           parsed.nextTemplateId = 2
         }
         parsed.nextTemplateId ??= Math.max(...parsed.templates.map((t) => t.id)) + 1
+        // 이전 저장본의 페이지에 다국어·첨부 항목이 없으면 기본값을 채운다.
+        for (const pg of parsed.pages) {
+          pg.titleI18n ??= {}
+          pg.contentI18n ??= {}
+          pg.attachments ??= []
+          pg.metaKeywords ??= null
+        }
         return parsed
       }
     }
@@ -1276,6 +1283,16 @@ export function handleDemoRequest(
     return paginate(items, num('page', 1), num('pageSize', 20))
   }
 
+  if (rawPath === '/pages/slug-check' && method === 'GET') {
+    const slug = (params.get('slug') ?? '').trim()
+    const excludeId = Number(params.get('excludeId') ?? 0) || 0
+    if (!slug) return { ok: false, message: '슬러그를 입력하세요.' }
+    if (!/^[a-z0-9-]+$/.test(slug)) return { ok: false, message: '영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.' }
+    const found = db.pages.find((x) => x.slug === slug)
+    if (found && found.id !== excludeId) return { ok: false, message: '이미 사용 중인 슬러그입니다. 다른 값을 입력하세요.' }
+    return { ok: true, message: '사용 가능한 슬러그입니다.' }
+  }
+
   if (rawPath === '/pages/nav' && method === 'GET') {
     return db.pages
       .filter((p) => p.published && p.showInNav)
@@ -1324,8 +1341,12 @@ export function handleDemoRequest(
       sortOrder: input.sortOrder ?? 0,
       views: 0,
       version: 1,
+      titleI18n: input.titleI18n ?? {},
+      contentI18n: input.contentI18n ?? {},
+      attachments: input.attachments ?? [],
       metaTitle: input.metaTitle?.trim() || null,
       metaDescription: input.metaDescription?.trim() || null,
+      metaKeywords: input.metaKeywords?.trim() || null,
       ogImage: input.ogImage?.trim() || null,
       createdAt: now,
       updatedAt: now,
@@ -1408,17 +1429,30 @@ export function handleDemoRequest(
       const seo = {
         metaTitle: input.metaTitle?.trim() || null,
         metaDescription: input.metaDescription?.trim() || null,
+        metaKeywords: input.metaKeywords?.trim() || null,
         ogImage: input.ogImage?.trim() || null,
       }
-      if (page.metaTitle !== seo.metaTitle || page.metaDescription !== seo.metaDescription || page.ogImage !== seo.ogImage) {
+      if (
+        page.metaTitle !== seo.metaTitle ||
+        page.metaDescription !== seo.metaDescription ||
+        (page.metaKeywords ?? null) !== seo.metaKeywords ||
+        page.ogImage !== seo.ogImage
+      ) {
         changes.push('검색 노출')
       }
+      if (JSON.stringify(page.titleI18n ?? {}) !== JSON.stringify(input.titleI18n ?? {})) changes.push('제목')
+      if (JSON.stringify(page.contentI18n ?? {}) !== JSON.stringify(input.contentI18n ?? {})) changes.push('본문')
+      if (JSON.stringify(page.attachments ?? []) !== JSON.stringify(input.attachments ?? [])) changes.push('첨부파일')
       const changed = changes.length > 0
 
       page.slug = slug
       page.metaTitle = seo.metaTitle
       page.metaDescription = seo.metaDescription
+      page.metaKeywords = seo.metaKeywords
       page.ogImage = seo.ogImage
+      page.titleI18n = input.titleI18n ?? {}
+      page.contentI18n = input.contentI18n ?? {}
+      page.attachments = input.attachments ?? []
       page.title = input.title
       page.description = input.description || null
       page.content = input.content ?? ''

@@ -117,9 +117,17 @@ model Page {
   /// 현재 내용의 버전 번호 — versions 의 최신 version 과 같다.
   version     Int     @default(1)
 
+  /// 언어별 제목·본문 — { ko, en, ja } JSON. 비어 있는 언어는 한국어 값을 쓴다.
+  titleI18n   String @default("{}")
+  contentI18n String @default("{}")
+  /// 첨부파일 [{ name, url, size }] JSON — 최대 5개
+  attachments String @default("[]")
+
   // --- 검색 노출(SEO) — 비우면 제목·한 줄 설명·사이트 기본값을 쓴다 ---
   metaTitle       String?
   metaDescription String?
+  /// 쉼표로 구분한 검색 키워드
+  metaKeywords    String?
   /// SNS 공유 이미지 — 업로드 경로(/uploads/..) 또는 외부 URL
   ogImage         String?
 

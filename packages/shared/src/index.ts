@@ -318,13 +318,28 @@ export interface PageListItem {
   updatedAt: string
 }
 
+/** 페이지 첨부파일 — 업로드 API(/uploads/file)가 준 값 그대로 담는다. */
+export interface PageAttachment {
+  name: string
+  url: string
+  size: number
+}
+
 export interface Page extends PageListItem {
   /** TipTap 이 생성한 본문 HTML */
   content: string
+  /** 언어별 제목 — 비어 있는 언어는 기본(한국어) 제목을 쓴다 */
+  titleI18n: LocalizedText
+  /** 언어별 본문 */
+  contentI18n: LocalizedText
+  /** 첨부파일 — 최대 5개 */
+  attachments: PageAttachment[]
   /** 검색 결과 제목 — 비우면 페이지 제목 */
   metaTitle: string | null
   /** 검색 결과 설명 — 비우면 한 줄 설명, 그것도 없으면 사이트 기본값 */
   metaDescription: string | null
+  /** 쉼표로 구분한 검색 키워드 */
+  metaKeywords: string | null
   /** SNS 공유 이미지 — 비우면 사이트 기본값 */
   ogImage: string | null
 }
@@ -332,13 +347,17 @@ export interface Page extends PageListItem {
 export interface PageInput {
   slug?: string
   title: string
+  titleI18n?: LocalizedText
   description?: string | null
   content: string
+  contentI18n?: LocalizedText
+  attachments?: PageAttachment[]
   published: boolean
   showInNav: boolean
   sortOrder?: number
   metaTitle?: string | null
   metaDescription?: string | null
+  metaKeywords?: string | null
   ogImage?: string | null
 }
 

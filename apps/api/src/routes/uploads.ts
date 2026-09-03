@@ -37,6 +37,48 @@ const upload = multer({
 
 export const uploadsRouter = Router()
 
+/** 첨부파일 — 이미지 외에 PDF·ZIP 도 받는다. 개당 10MB. (페이지 첨부파일 카드가 쓴다) */
+const ALLOWED_FILE = new Map([
+  ...ALLOWED,
+  ['application/pdf', '.pdf'],
+  ['application/zip', '.zip'],
+  ['application/x-zip-compressed', '.zip'],
+])
+
+const uploadFile = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+    filename: (_req, file, cb) => {
+      const ext = ALLOWED_FILE.get(file.mimetype) ?? ''
+      cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`)
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_FILE.has(file.mimetype)) {
+      return cb(new Error('JPG, PNG, WEBP, GIF, SVG, PDF, ZIP 파일만 올릴 수 있습니다.'))
+    }
+    cb(null, true)
+  },
+})
+
+uploadsRouter.post('/file', requireAuth, (req, res) => {
+  uploadFile.single('file')(req, res, (err) => {
+    if (err) {
+      const message =
+        (err as { code?: string }).code === 'LIMIT_FILE_SIZE'
+          ? '파일 크기는 10MB 를 넘을 수 없습니다.'
+          : (err as Error).message
+      return res.status(400).json({ message })
+    }
+    if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' })
+
+    // multer 는 파일명을 latin1 로 넘겨 한글이 깨진다 — utf8 로 되살린다.
+    const name = Buffer.from(req.file.originalname, 'latin1').toString('utf8')
+    res.status(201).json({ url: `/uploads/${req.file.filename}`, name, size: req.file.size })
+  })
+})
+
 uploadsRouter.post('/', requireAuth, (req, res) => {
   upload.single('file')(req, res, (err) => {
     if (err) {

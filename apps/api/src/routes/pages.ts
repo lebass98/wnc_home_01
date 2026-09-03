@@ -9,18 +9,41 @@ export const pagesRouter = Router()
 /** 페이지 하나가 보관하는 최대 버전 수. 넘으면 가장 오래된 것부터 지운다. */
 const MAX_VERSIONS = 50
 
+/** 언어별 값 — { ko, en, ja }. 제목은 짧게, 본문은 넉넉히 받는다. */
+const localizedTitleSchema = z.record(z.enum(['ko', 'en', 'ja']), z.string().max(200)).optional()
+const localizedContentSchema = z.record(z.enum(['ko', 'en', 'ja']), z.string().max(200_000)).optional()
+
+/** 첨부파일 — 업로드 API 가 준 주소만 담는다. */
+const attachmentSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  url: z.string().trim().min(1).max(500),
+  size: z.number().int().min(0),
+})
+
 const pageInputSchema = z.object({
   slug: z.string().max(80).optional(),
   title: z.string().min(1, '제목을 입력하세요.').max(200),
+  titleI18n: localizedTitleSchema,
   description: z.string().max(300).nullable().optional(),
   content: z.string().default(''),
+  contentI18n: localizedContentSchema,
+  attachments: z.array(attachmentSchema).max(5, '첨부파일은 5개까지 올릴 수 있습니다.').optional(),
   published: z.boolean(),
   showInNav: z.boolean(),
   sortOrder: z.number().int().optional(),
   metaTitle: z.string().max(120).nullable().optional(),
   metaDescription: z.string().max(400).nullable().optional(),
+  metaKeywords: z.string().max(300).nullable().optional(),
   ogImage: z.string().max(500).nullable().optional(),
 })
+
+function parseJson<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return fallback
+  }
+}
 
 /** 빈 문자열은 '설정 안 함'으로 본다. */
 const orNull = (v: string | null | undefined) => (v?.trim() ? v.trim() : null)
@@ -83,8 +106,12 @@ function toDetail(p: PageRow) {
   return {
     ...toListItem(p),
     content: p.content,
+    titleI18n: parseJson<Record<string, string>>(p.titleI18n ?? '{}', {}),
+    contentI18n: parseJson<Record<string, string>>(p.contentI18n ?? '{}', {}),
+    attachments: parseJson<unknown[]>(p.attachments ?? '[]', []),
     metaTitle: p.metaTitle ?? null,
     metaDescription: p.metaDescription ?? null,
+    metaKeywords: p.metaKeywords ?? null,
     ogImage: p.ogImage ?? null,
   }
 }
@@ -199,6 +226,25 @@ pagesRouter.get(
   }),
 )
 
+/** 슬러그 중복 확인 — 수정 화면의 [중복 확인] 버튼이 쓴다. */
+pagesRouter.get(
+  '/slug-check',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const slug = String(req.query.slug ?? '').trim()
+    const excludeId = Number(req.query.excludeId ?? 0) || 0
+    if (!slug) return res.json({ ok: false, message: '슬러그를 입력하세요.' })
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return res.json({ ok: false, message: '영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.' })
+    }
+    const found = await prisma.page.findUnique({ where: { slug } })
+    if (found && found.id !== excludeId) {
+      return res.json({ ok: false, message: '이미 사용 중인 슬러그입니다. 다른 값을 입력하세요.' })
+    }
+    res.json({ ok: true, message: '사용 가능한 슬러그입니다.' })
+  }),
+)
+
 /** 상단 메뉴용 — 발행 + 메뉴노출 페이지만 정렬 순서대로 준다. */
 pagesRouter.get(
   '/nav',
@@ -267,9 +313,12 @@ pagesRouter.post(
     const page = await prisma.page.create({
       data: {
         slug,
-        title: data.title,
+        title: data.titleI18n?.ko?.trim() || data.title,
+        titleI18n: JSON.stringify(data.titleI18n ?? {}),
         description: data.description ?? null,
-        content: data.content,
+        content: data.contentI18n?.ko ?? data.content,
+        contentI18n: JSON.stringify(data.contentI18n ?? {}),
+        attachments: JSON.stringify(data.attachments ?? []),
         published: data.published,
         publishedAt: data.published ? new Date() : null,
         showInNav: data.showInNav,
@@ -277,6 +326,7 @@ pagesRouter.post(
         version: 1,
         metaTitle: orNull(data.metaTitle),
         metaDescription: orNull(data.metaDescription),
+        metaKeywords: orNull(data.metaKeywords),
         ogImage: orNull(data.ogImage),
       },
     })
@@ -300,18 +350,32 @@ pagesRouter.put(
     const slug = await uniqueSlug(data.slug?.trim() ? toSlug(data.slug) : toSlug(data.title), id)
     const author = await currentAuthor(req.user!.sub, req.user!.email)
 
+    // 다국어 값 — ko 가 있으면 기본 컬럼(제목·본문)도 그 값으로 맞춘다.
+    const title = data.titleI18n?.ko?.trim() || data.title
+    const content = data.contentI18n?.ko ?? data.content
+    const titleI18n = JSON.stringify(data.titleI18n ?? {})
+    const contentI18n = JSON.stringify(data.contentI18n ?? {})
+    const attachments = JSON.stringify(data.attachments ?? [])
+
     // 어떤 항목이 바뀌었는지 모아 둔다. 하나도 없으면 새 버전을 만들지 않는다.
     const changes: string[] = []
-    if (existing.title !== data.title) changes.push('제목')
+    if (existing.title !== title || (existing.titleI18n ?? '{}') !== titleI18n) changes.push('제목')
     if (existing.slug !== slug) changes.push('슬러그')
     if ((existing.description ?? null) !== (data.description ?? null)) changes.push('설명')
-    if (existing.content !== data.content) changes.push('본문')
+    if (existing.content !== content || (existing.contentI18n ?? '{}') !== contentI18n) changes.push('본문')
+    if ((existing.attachments ?? '[]') !== attachments) changes.push('첨부파일')
     if (existing.published !== data.published) changes.push('발행 상태')
     if (existing.showInNav !== data.showInNav) changes.push('메뉴 노출')
-    const seo = { metaTitle: orNull(data.metaTitle), metaDescription: orNull(data.metaDescription), ogImage: orNull(data.ogImage) }
+    const seo = {
+      metaTitle: orNull(data.metaTitle),
+      metaDescription: orNull(data.metaDescription),
+      metaKeywords: orNull(data.metaKeywords),
+      ogImage: orNull(data.ogImage),
+    }
     if (
       (existing.metaTitle ?? null) !== seo.metaTitle ||
       (existing.metaDescription ?? null) !== seo.metaDescription ||
+      (existing.metaKeywords ?? null) !== seo.metaKeywords ||
       (existing.ogImage ?? null) !== seo.ogImage
     ) {
       changes.push('검색 노출')
@@ -322,9 +386,12 @@ pagesRouter.put(
       where: { id },
       data: {
         slug,
-        title: data.title,
+        title,
+        titleI18n,
         description: data.description ?? null,
-        content: data.content,
+        content,
+        contentI18n,
+        attachments,
         published: data.published,
         publishedAt: data.published ? (existing.publishedAt ?? new Date()) : null,
         showInNav: data.showInNav,

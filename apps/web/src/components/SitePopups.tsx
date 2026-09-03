@@ -302,6 +302,16 @@ export default function SitePopups() {
     return () => document.removeEventListener('keydown', onKey)
   }, [count, closeAll])
 
+  // 암막이 깔린 동안에는 뒤쪽 화면이 스크롤되지 않게 한다.
+  useEffect(() => {
+    if (count === 0) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [count])
+
   // 카드 한 장이 화면 폭을 넘으면 비율 그대로 줄일 배율 — 폭 기준으로만 잡는다.
   const [viewWidth, setViewWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1440))
   useEffect(() => {
@@ -336,9 +346,19 @@ export default function SitePopups() {
 
   if (count === 0) return null
 
+  // 남은 카드 전부가 닫히는 중이면 암막도 함께 사라진다.
+  const dimFading = closingIds.size >= count
+
   return (
-    // 화면을 덮지 않는다 — 카드 바깥은 그대로 클릭·스크롤된다. 문서와 함께 스크롤된다.
-    <div role="region" aria-label="팝업 안내" className="pointer-events-none absolute inset-x-0 top-24 z-[60] px-4">
+    <>
+      {/* 암막 — 팝업이 떠 있는 동안 화면 전체를 어둡게 한다. 누르면 전체가 닫힌다. */}
+      <div
+        aria-hidden
+        onClick={closeAll}
+        style={{ background: 'rgba(0, 0, 0, 0.5)', opacity: dimFading ? 0 : 1 }}
+        className="fixed inset-0 z-[55] transition-opacity duration-300"
+      />
+      <div role="region" aria-label="팝업 안내" className="pointer-events-none fixed inset-x-0 top-24 z-[60] px-4">
       <div className={`mx-auto max-w-full ${mobileMulti ? 'w-full' : 'w-fit'}`}>
         {/* 전체 닫기 — 묶음 오른쪽 위 */}
         <div className="mb-3 flex justify-end">
@@ -391,5 +411,6 @@ export default function SitePopups() {
         )}
       </div>
     </div>
+    </>
   )
 }

@@ -45,6 +45,40 @@ import {
  */
 
 const STORAGE_KEY = 'wnc_demo_db'
+
+/** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
+interface DemoTemplate {
+  id: number
+  name: string
+  description: string
+  author: string
+  version: string
+  builtin: boolean
+  active: boolean
+  header: string
+  footer: string
+  pageLayouts: Record<string, string>
+  createdAt: string
+  updatedAt: string
+}
+
+function basicTemplate(): DemoTemplate {
+  const now = new Date().toISOString()
+  return {
+    id: 1,
+    name: 'Basic',
+    description: '워드앤코드 기본 템플릿',
+    author: 'wordncode',
+    version: '1.0.0',
+    builtin: true,
+    active: true,
+    header: 'basic',
+    footer: 'basic',
+    pageLayouts: { '/terms': 'left', '/privacy': 'left' },
+    createdAt: now,
+    updatedAt: now,
+  }
+}
 const TREND_DAYS = 14
 
 interface DemoDb {
@@ -58,10 +92,9 @@ interface DemoDb {
   boardSetting: DemoBoardSetting
   boards: DemoBoard[]
   popups: DemoPopup[]
-  /** 경로별 레이아웃 (basic 은 저장하지 않는다) */
-  pageLayouts: Record<string, string>
-  /** 사이트 전역 디자인 — 헤더·푸터 레이아웃 키 */
-  siteDesign: { header: string; footer: string }
+  /** 디자인 템플릿 — 활성 한 벌이 사이트에 적용된다 */
+  templates: DemoTemplate[]
+  nextTemplateId: number
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
   privacyRevisions: DemoPrivacyRevision[]
@@ -92,8 +125,8 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
-    pageLayouts: {},
-    siteDesign: { header: 'basic', footer: 'basic' },
+    templates: [basicTemplate()],
+    nextTemplateId: 2,
     posts,
     contacts,
     categories,
@@ -142,7 +175,17 @@ function load(): DemoDb {
         Array.isArray(parsed.privacyRevisions) &&
         Array.isArray(parsed.menus)
       ) {
-        parsed.siteDesign ??= { header: 'basic', footer: 'basic' }
+        // 이전 저장본(템플릿 없음)은 그때의 디자인 선택을 기본 템플릿으로 옮긴다.
+        if (!Array.isArray(parsed.templates) || parsed.templates.length === 0) {
+          const legacy = parsed as unknown as { siteDesign?: { header: string; footer: string }; pageLayouts?: Record<string, string> }
+          const base = basicTemplate()
+          base.header = legacy.siteDesign?.header ?? 'basic'
+          base.footer = legacy.siteDesign?.footer ?? 'basic'
+          if (legacy.pageLayouts && Object.keys(legacy.pageLayouts).length > 0) base.pageLayouts = { ...legacy.pageLayouts }
+          parsed.templates = [base]
+          parsed.nextTemplateId = 2
+        }
+        parsed.nextTemplateId ??= Math.max(...parsed.templates.map((t) => t.id)) + 1
         return parsed
       }
     }
@@ -416,22 +459,142 @@ export function handleDemoRequest(
   })
 
 
-  // --- 사이트 전역 디자인 (헤더·푸터) ---
-  if (rawPath === '/design' && method === 'GET') return { ...db.siteDesign }
-  if (rawPath === '/design' && method === 'PUT') {
-    if (typeof body.header === 'string') db.siteDesign.header = body.header
-    if (typeof body.footer === 'string') db.siteDesign.footer = body.footer
-    save(db)
-    return { ...db.siteDesign }
+  // --- 디자인 템플릿 — 활성 한 벌이 사이트에 적용된다 ---
+  const activeTemplate = () => {
+    let active = db.templates.find((t) => t.active)
+    if (!active) {
+      active = db.templates[0] ?? basicTemplate()
+      if (db.templates.length === 0) db.templates.push(active)
+      active.active = true
+      save(db)
+    }
+    return active
+  }
+  const templateItem = ({ ...t }: DemoTemplate) => ({ ...t, pageLayouts: { ...t.pageLayouts } })
+  const templatesSorted = () =>
+    [...db.templates].sort((a, b) => Number(b.active) - Number(a.active) || b.updatedAt.localeCompare(a.updatedAt))
+
+  if (rawPath === '/design' && method === 'GET') {
+    const t = activeTemplate()
+    return { header: t.header, footer: t.footer, updatedAt: t.updatedAt }
   }
 
-  // --- 화면별 레이아웃 ---
-  if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...db.pageLayouts }
+  // --- 화면별 레이아웃 — 활성 템플릿의 값이다 ---
+  if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...activeTemplate().pageLayouts }
   if (rawPath === '/site-pages/layouts' && method === 'PUT') {
-    if (body.layout === 'basic') delete db.pageLayouts[body.path]
-    else db.pageLayouts[body.path] = body.layout
+    const t = activeTemplate()
+    if (body.layout === 'basic') delete t.pageLayouts[body.path]
+    else t.pageLayouts[body.path] = body.layout
+    t.updatedAt = new Date().toISOString()
     save(db)
-    return { ...db.pageLayouts }
+    return { ...t.pageLayouts }
+  }
+
+  // --- 템플릿 관리 ---
+  if (rawPath === '/templates' && method === 'GET') return templatesSorted().map(templateItem)
+  if (rawPath === '/templates' && method === 'POST') {
+    const name = String(body.name ?? '').trim()
+    if (!name) throw new DemoError('템플릿 이름을 입력하세요.', 400)
+    const base = activeTemplate()
+    const now = new Date().toISOString()
+    const created: DemoTemplate = {
+      id: db.nextTemplateId++,
+      name,
+      description: String(body.description ?? '').trim() || `${base.name} 템플릿을 복제해 만든 템플릿`,
+      author: 'demo',
+      version: '1.0.0',
+      builtin: false,
+      active: false,
+      header: base.header,
+      footer: base.footer,
+      pageLayouts: { ...base.pageLayouts },
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.templates.push(created)
+    save(db)
+    return templateItem(created)
+  }
+  if (rawPath === '/templates/import' && method === 'POST') {
+    if (body.type !== 'wnc-template' || !String(body.name ?? '').trim())
+      throw new DemoError('워드앤코드 템플릿 파일이 아닙니다. 내보내기로 받은 JSON 파일을 올려 주세요.', 400)
+    const now = new Date().toISOString()
+    const created: DemoTemplate = {
+      id: db.nextTemplateId++,
+      name: String(body.name).trim(),
+      description: String(body.description ?? '').trim(),
+      author: 'demo',
+      version: String(body.version ?? '').trim() || '1.0.0',
+      builtin: false,
+      active: false,
+      header: typeof body.header === 'string' ? body.header : 'basic',
+      footer: typeof body.footer === 'string' ? body.footer : 'basic',
+      pageLayouts: body.pageLayouts && typeof body.pageLayouts === 'object' ? { ...body.pageLayouts } : {},
+      createdAt: now,
+      updatedAt: now,
+    }
+    db.templates.push(created)
+    save(db)
+    return templateItem(created)
+  }
+  const templateMatch = rawPath.match(/^\/templates\/(\d+)(\/(activate|duplicate|export))?$/)
+  if (templateMatch) {
+    const t = db.templates.find((x) => x.id === Number(templateMatch[1]))
+    if (!t) throw new DemoError('템플릿을 찾을 수 없습니다.', 404)
+    const action = templateMatch[3]
+
+    if (action === 'activate' && method === 'POST') {
+      for (const x of db.templates) x.active = false
+      t.active = true
+      save(db)
+      return templatesSorted().map(templateItem)
+    }
+    if (action === 'duplicate' && method === 'POST') {
+      const now = new Date().toISOString()
+      const created: DemoTemplate = {
+        ...t,
+        id: db.nextTemplateId++,
+        name: `${t.name} 복사본`,
+        author: 'demo',
+        builtin: false,
+        active: false,
+        pageLayouts: { ...t.pageLayouts },
+        createdAt: now,
+        updatedAt: now,
+      }
+      db.templates.push(created)
+      save(db)
+      return templateItem(created)
+    }
+    if (action === 'export' && method === 'GET') {
+      return {
+        type: 'wnc-template',
+        name: t.name,
+        description: t.description,
+        version: t.version,
+        header: t.header,
+        footer: t.footer,
+        pageLayouts: { ...t.pageLayouts },
+      }
+    }
+    if (!action && method === 'PUT') {
+      if (typeof body.name === 'string' && body.name.trim()) t.name = body.name.trim()
+      if (typeof body.description === 'string') t.description = body.description.trim()
+      if (typeof body.version === 'string' && body.version.trim()) t.version = body.version.trim()
+      if (typeof body.header === 'string') t.header = body.header
+      if (typeof body.footer === 'string') t.footer = body.footer
+      if (body.pageLayouts && typeof body.pageLayouts === 'object') t.pageLayouts = { ...body.pageLayouts }
+      t.updatedAt = new Date().toISOString()
+      save(db)
+      return templateItem(t)
+    }
+    if (!action && method === 'DELETE') {
+      if (t.builtin) throw new DemoError('기본 제공 템플릿은 삭제할 수 없습니다.', 400)
+      if (t.active) throw new DemoError('사용 중인 템플릿은 삭제할 수 없습니다. 다른 템플릿을 먼저 활성화하세요.', 400)
+      db.templates = db.templates.filter((x) => x.id !== t.id)
+      save(db)
+      return { ok: true }
+    }
   }
 
   // --- 사이트 페이지(실제 화면) — 데모에서는 파일을 읽을 수 없어 목록만 준다 ---

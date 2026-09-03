@@ -909,3 +909,34 @@ export interface SiteDesign {
 
 /** 디자인 저장값이 없을 때의 기본 — 모두 기본형을 쓴다. */
 export const DEFAULT_SITE_DESIGN: SiteDesign = { header: 'basic', footer: 'basic' }
+
+/**
+ * 디자인 템플릿 — 헤더·푸터·화면별 서브 레이아웃 선택을 한 벌로 묶은 것.
+ * 활성(active) 템플릿 한 벌이 사이트에 적용된다.
+ */
+export interface SiteTemplateInfo {
+  id: number
+  name: string
+  description: string
+  author: string
+  version: string
+  /** 기본 제공 템플릿 — 지울 수 없다. */
+  builtin: boolean
+  active: boolean
+  header: string
+  footer: string
+  pageLayouts: SitePageLayoutMap
+  createdAt: string
+  updatedAt: string
+}
+
+/** 내보내기/가져오기에 쓰는 템플릿 파일(JSON) 형식 */
+export interface SiteTemplateFile {
+  type: 'wnc-template'
+  name: string
+  description?: string
+  version?: string
+  header?: string
+  footer?: string
+  pageLayouts?: SitePageLayoutMap
+}

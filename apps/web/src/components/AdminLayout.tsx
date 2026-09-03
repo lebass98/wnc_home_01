@@ -89,10 +89,10 @@ const NAV: NavItem[] = [
     icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
   },
   {
-    to: '/admin/design',
-    label: '디자인 설정',
+    to: '/admin/templates',
+    label: '템플릿 관리',
     end: false,
-    icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v3H4V5zm0 5h16v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9zm3 3h4v4H7v-4z',
+    icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
   },
   {
     to: '/admin/menus',

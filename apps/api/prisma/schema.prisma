@@ -427,24 +427,24 @@ model MenuItem {
 }
 
 /// 프론트 화면별 레이아웃 — 페이지 관리에서 경로 단위로 고른다.
-model SitePageLayout {
-  id   Int    @id @default(autoincrement())
-  /// 화면 경로 (/about, /page/terms-of-use 등). 패턴 경로(:id 포함)는 쓰지 않는다.
-  path String @unique
-  /// basic(기본 서브) | left(좌측 메뉴 서브)
-  layout String @default("basic")
+/// 디자인 템플릿 — 헤더·푸터·화면별 서브 레이아웃 선택을 한 벌로 묶은 것.
+/// active 인 한 벌이 사이트에 적용되며, 항상 정확히 하나만 켜져 있다.
+model SiteTemplate {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String  @default("")
+  /// 만든 사람 — 로그인 계정에서 받아 적는다.
+  author      String  @default("")
+  version     String  @default("1.0.0")
+  /// 기본 제공 템플릿 여부 — 지울 수 없다.
+  builtin     Boolean @default(false)
+  active      Boolean @default(false)
+  /// 헤더·푸터 레이아웃 키 — apps/web/src/layouts 등록부의 key
+  header      String  @default("basic")
+  footer      String  @default("basic")
+  /// 경로별 서브 레이아웃 { "/terms": "left" } — SQLite 라 JSON 문자열로 담는다.
+  pageLayouts String  @default("{}")
 
-  updatedAt DateTime @updatedAt
-}
-
-/// 사이트 전역 디자인 — 헤더·푸터 등 사이트 전체에 하나만 적용되는 틀의 선택값. 항상 한 행만 쓴다.
-/// (페이지별 서브 레이아웃은 SitePageLayout, 전역 틀은 여기 — 템플릿 교체 축의 저장소)
-model SiteDesign {
-  id     Int    @id @default(autoincrement())
-  /// 헤더 레이아웃 키 — apps/web/src/layouts 등록부(HEADERS)의 key
-  header String @default("basic")
-  /// 푸터 레이아웃 키 — 등록부(FOOTERS)의 key
-  footer String @default("basic")
-
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

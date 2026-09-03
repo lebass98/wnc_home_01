@@ -7,6 +7,7 @@ import { transform } from 'esbuild'
 import { asyncHandler } from '../lib/handler.js'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../lib/auth.js'
+import { loadActiveTemplate, parseLayouts } from '../lib/templates.js'
 
 export const sitePagesRouter = Router()
 
@@ -121,17 +122,16 @@ async function listBackups(key: string) {
   )
 }
 
-/** 목록 — 파일 크기·줄 수·수정 시각·백업 수 */
-/** 화면별 레이아웃 매핑 — 홈페이지가 처음 뜰 때 읽어 가므로 공개로 둔다. */
+/** 화면별 레이아웃 매핑 — 활성 템플릿의 값이다. 홈페이지가 처음 뜰 때 읽어 가므로 공개로 둔다. */
 sitePagesRouter.get(
   '/layouts',
   asyncHandler(async (_req, res) => {
-    const rows = await prisma.sitePageLayout.findMany()
-    res.json(Object.fromEntries(rows.map((r) => [r.path, r.layout])))
+    const active = await loadActiveTemplate()
+    res.json(parseLayouts(active.pageLayouts))
   }),
 )
 
-/** 레이아웃 저장 — basic 이면 행을 지워 기본값으로 되돌린다. */
+/** 레이아웃 저장 — 활성 템플릿에 담는다. basic 이면 항목을 지워 기본값으로 되돌린다. */
 sitePagesRouter.put(
   '/layouts',
   requireAuth,
@@ -139,22 +139,17 @@ sitePagesRouter.put(
     const { path: pagePath, layout } = z
       .object({
         path: z.string().trim().min(1).max(200).regex(/^\//, '경로는 / 로 시작해야 합니다.'),
-        // 레이아웃 목록은 web 등록부가 가지므로 여기서는 키 형식만 본다. basic 은 기본값이라 행을 지운다.
+        // 레이아웃 목록은 web 등록부가 가지므로 여기서는 키 형식만 본다. basic 은 기본값이라 항목을 지운다.
         layout: z.string().trim().min(1).max(40).regex(/^[a-z0-9-]+$/i, '레이아웃 키는 영문·숫자·하이픈만 쓸 수 있습니다.'),
       })
       .parse(req.body)
 
-    if (layout === 'basic') {
-      await prisma.sitePageLayout.deleteMany({ where: { path: pagePath } })
-    } else {
-      await prisma.sitePageLayout.upsert({
-        where: { path: pagePath },
-        create: { path: pagePath, layout },
-        update: { layout },
-      })
-    }
-    const rows = await prisma.sitePageLayout.findMany()
-    res.json(Object.fromEntries(rows.map((r) => [r.path, r.layout])))
+    const active = await loadActiveTemplate()
+    const map = parseLayouts(active.pageLayouts)
+    if (layout === 'basic') delete map[pagePath]
+    else map[pagePath] = layout
+    await prisma.siteTemplate.update({ where: { id: active.id }, data: { pageLayouts: JSON.stringify(map) } })
+    res.json(map)
   }),
 )
 

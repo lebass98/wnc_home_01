@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { Page } from '@wnc/shared'
 import { api } from '../../lib/api'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import RichText from '../../components/RichText'
 import { ErrorMessage, Loading } from '../../components/ui'
 import { usePageMeta, usePageTitle } from '../../lib/seo'
@@ -59,12 +59,13 @@ export default function CustomPage() {
           미리보기 — 아직 발행되지 않아 방문자에게는 보이지 않습니다.
         </div>
       )}
-      <PageHero title={page.title} description={page.description ?? ''} />
+      <SubPage title={page.title} description={page.description ?? ''}>
       <section className="container-wnc py-14 sm:py-16">
         <div className="max-w-3xl">
           <RichText html={page.content} />
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

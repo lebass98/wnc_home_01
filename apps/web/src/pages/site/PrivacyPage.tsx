@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PrivacyRevision, PrivacyRevisionListItem } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatDate } from '../../lib/format'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 import { POLICY_TABS } from './TermsPage'
@@ -437,7 +437,7 @@ export default function PrivacyPage() {
 
   return (
     <>
-      <PageHero title="개인정보처리방침" tabs={POLICY_TABS} />
+      <SubPage title="개인정보처리방침" tabs={POLICY_TABS}>
 
       <section className="pb-24 pt-20 sm:pt-24">
         <div className="container-wnc">
@@ -597,6 +597,7 @@ export default function PrivacyPage() {
           <RevisionHistory />
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

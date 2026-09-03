@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import type { CategoryNode, Paginated, ProductListItem } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { findCategory, formatPrice } from '../../lib/category'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { EmptyState, ErrorMessage, Loading, Pagination } from '../../components/ui'
 import { usePageTitle } from '../../lib/seo'
@@ -133,7 +133,7 @@ export default function ProductsPage() {
 
   return (
     <>
-      <PageHero title="제품소개" tabs={tabs} />
+      <SubPage title="제품소개" tabs={tabs}>
 
       {/* 소개 — 영문 소제목, 큰 제목, 선, 설명 */}
       <section className="pt-24 sm:pt-28">
@@ -295,6 +295,7 @@ export default function ProductsPage() {
           </div>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

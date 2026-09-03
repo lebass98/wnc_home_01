@@ -4,7 +4,7 @@ import type { Board, BoardCategory, BoardType, Paginated, PostListItem } from '@
 import { api, qs } from '../../lib/api'
 import { boardName, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { EmptyState, Loading, Pagination } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
@@ -211,7 +211,7 @@ export default function BoardPage() {
 
   return (
     <>
-      <PageHero title="소식" tabs={tabs} />
+      <SubPage title="소식" tabs={tabs}>
 
       {/* 소개 — 영문 소제목, 큰 제목, 선, 설명 */}
       <section className="pt-24 sm:pt-28">
@@ -309,6 +309,7 @@ export default function BoardPage() {
           )}
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

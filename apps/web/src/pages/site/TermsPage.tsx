@@ -1,4 +1,4 @@
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 
@@ -190,7 +190,7 @@ export default function TermsPage() {
 
   return (
     <>
-      <PageHero title="이용약관" tabs={POLICY_TABS} />
+      <SubPage title="이용약관" tabs={POLICY_TABS}>
 
       <section className="pb-24 pt-20 sm:pt-24">
         <div className="container-wnc">
@@ -284,6 +284,7 @@ export default function TermsPage() {
           </Reveal>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

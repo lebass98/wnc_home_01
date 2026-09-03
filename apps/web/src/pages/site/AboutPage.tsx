@@ -1,4 +1,4 @@
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import SectionHeading from '../../components/SectionHeading'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
@@ -47,7 +47,7 @@ export default function AboutPage() {
 
   return (
     <>
-      <PageHero title="회사소개" tabs={ABOUT_TABS} />
+      <SubPage title="회사소개" tabs={ABOUT_TABS}>
 
       {/* 소개 — 왼쪽 제목, 오른쪽 본문 */}
       <section className="py-24 sm:py-28">
@@ -151,6 +151,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

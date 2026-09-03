@@ -58,6 +58,8 @@ interface DemoDb {
   boardSetting: DemoBoardSetting
   boards: DemoBoard[]
   popups: DemoPopup[]
+  /** 경로별 레이아웃 (basic 은 저장하지 않는다) */
+  pageLayouts: Record<string, string>
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
   privacyRevisions: DemoPrivacyRevision[]
@@ -88,6 +90,7 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
+    pageLayouts: {},
     posts,
     contacts,
     categories,
@@ -408,6 +411,15 @@ export function handleDemoRequest(
     hidePeriod: p.hidePeriod,
   })
 
+
+  // --- 화면별 레이아웃 ---
+  if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...db.pageLayouts }
+  if (rawPath === '/site-pages/layouts' && method === 'PUT') {
+    if (body.layout === 'basic') delete db.pageLayouts[body.path]
+    else db.pageLayouts[body.path] = body.layout
+    save(db)
+    return { ...db.pageLayouts }
+  }
 
   // --- 사이트 페이지(실제 화면) — 데모에서는 파일을 읽을 수 없어 목록만 준다 ---
   if (rawPath === '/site-pages' && method === 'GET') {

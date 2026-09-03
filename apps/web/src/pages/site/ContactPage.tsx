@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import type { ContactInput } from '@wnc/shared'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { api } from '../../lib/api'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { ErrorMessage } from '../../components/ui'
 import { usePageTitle, useSiteSetting } from '../../lib/seo'
@@ -72,7 +72,7 @@ export default function ContactPage() {
 
   return (
     <>
-      <PageHero title="문의하기" tabs={CONTACT_TABS} />
+      <SubPage title="문의하기" tabs={CONTACT_TABS}>
 
       {/* 소개 — 왼쪽 제목, 오른쪽 문의 절차 세 단계 */}
       <section className="pt-24 sm:pt-28">
@@ -257,6 +257,7 @@ export default function ContactPage() {
           </Reveal>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

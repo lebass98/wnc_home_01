@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Faq, FaqCategory } from '@wnc/shared'
 import { api } from '../../lib/api'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { Loading } from '../../components/ui'
 import { usePageTitle } from '../../lib/seo'
@@ -69,7 +69,7 @@ export default function FaqPage() {
 
   return (
     <>
-      <PageHero title="문의하기" tabs={CONTACT_TABS} />
+      <SubPage title="문의하기" tabs={CONTACT_TABS}>
 
       <section className="pb-24 pt-24 sm:pt-28">
         <div className="container-wnc">
@@ -214,6 +214,7 @@ export default function FaqPage() {
           </Reveal>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

@@ -425,3 +425,14 @@ model MenuItem {
 
   @@index([parentId, sortOrder])
 }
+
+/// 프론트 화면별 레이아웃 — 페이지 관리에서 경로 단위로 고른다.
+model SitePageLayout {
+  id   Int    @id @default(autoincrement())
+  /// 화면 경로 (/about, /page/terms-of-use 등). 패턴 경로(:id 포함)는 쓰지 않는다.
+  path String @unique
+  /// basic(기본 서브) | left(좌측 메뉴 서브)
+  layout String @default("basic")
+
+  updatedAt DateTime @updatedAt
+}

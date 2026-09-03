@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { PageListItem, Paginated, SitePageInfo } from '@wnc/shared'
+import type { PageLayoutType, PageListItem, Paginated, SitePageInfo, SitePageLayoutMap } from '@wnc/shared'
+import { PAGE_LAYOUT_LABEL, PAGE_LAYOUTS } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { pickMenu, useSiteMenu } from '../../lib/menus'
+import { invalidatePageLayouts } from '../../lib/pageLayouts'
 import SitePageCodeModal from '../../components/SitePageCodeModal'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination, RowMenu } from '../../components/ui'
 
@@ -60,6 +62,7 @@ export default function PageListPage() {
 
   const [codePages, setCodePages] = useState<SitePageInfo[]>([])
   const [editorPages, setEditorPages] = useState<PageListItem[]>([])
+  const [layouts, setLayouts] = useState<SitePageLayoutMap>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -101,10 +104,15 @@ export default function PageListPage() {
       return all
     }
 
-    Promise.all([api<SitePageInfo[]>('/site-pages', { auth: true }), loadEditorPages()])
-      .then(([code, editor]) => {
+    Promise.all([
+      api<SitePageInfo[]>('/site-pages', { auth: true }),
+      loadEditorPages(),
+      api<SitePageLayoutMap>('/site-pages/layouts'),
+    ])
+      .then(([code, editor, layoutMap]) => {
         setCodePages(code)
         setEditorPages(editor)
+        setLayouts(layoutMap)
         setSelected((prev) => prev.filter((id) => editor.some((p) => p.id === id)))
       })
       .catch((e: Error) => setError(e.message))
@@ -204,6 +212,21 @@ export default function PageListPage() {
     try {
       await api(`/pages/${item.id}`, { method: 'DELETE', auth: true })
       load()
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  /** 화면 레이아웃을 바꾼다 — 저장 즉시 열려 있는 사이트 화면에도 반영된다. */
+  async function changeLayout(path: string, layout: PageLayoutType) {
+    try {
+      const next = await api<SitePageLayoutMap>('/site-pages/layouts', {
+        method: 'PUT',
+        body: { path, layout },
+        auth: true,
+      })
+      setLayouts(next)
+      invalidatePageLayouts()
     } catch (e) {
       alert((e as Error).message)
     }
@@ -408,6 +431,7 @@ export default function PageListPage() {
                   <th className="w-28 px-4 py-3">종류</th>
                   <th className="px-4 py-3">주소</th>
                   <th className="w-24 px-4 py-3">상태</th>
+                  <th className="w-36 px-4 py-3">레이아웃</th>
                   <th className="w-16 px-4 py-3 text-center">GNB</th>
                   <th className="px-4 py-3">정보</th>
                   <th className="w-40 px-4 py-3">수정일</th>
@@ -460,6 +484,24 @@ export default function PageListPage() {
                         <Badge tone="green">발행</Badge>
                       ) : (
                         <Badge tone="slate">미발행</Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {row.path === '/' ? (
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                      ) : (
+                        <select
+                          value={layouts[row.path] ?? 'basic'}
+                          onChange={(e) => changeLayout(row.path, e.target.value as PageLayoutType)}
+                          className="select w-auto py-1.5 text-xs"
+                          aria-label={`${row.title} 레이아웃`}
+                        >
+                          {PAGE_LAYOUTS.map((l) => (
+                            <option key={l} value={l}>
+                              {PAGE_LAYOUT_LABEL[l]}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">

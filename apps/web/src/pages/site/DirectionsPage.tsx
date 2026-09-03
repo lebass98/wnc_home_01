@@ -1,4 +1,4 @@
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { usePageTitle, useSiteSetting } from '../../lib/seo'
@@ -17,7 +17,7 @@ export default function DirectionsPage() {
 
   return (
     <>
-      <PageHero title="회사소개" tabs={ABOUT_TABS} />
+      <SubPage title="회사소개" tabs={ABOUT_TABS}>
 
       {/* 제목 — 영문 소제목, 두 줄 제목 */}
       <section className="pt-24 sm:pt-28">
@@ -116,6 +116,7 @@ export default function DirectionsPage() {
           )}
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

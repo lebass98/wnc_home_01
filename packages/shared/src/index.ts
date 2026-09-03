@@ -875,3 +875,19 @@ export interface MenuReorderInput {
   parentId: number | null
   ids: number[]
 }
+
+/* ------------------------------------------------------------------ *
+ *  페이지 레이아웃
+ * ------------------------------------------------------------------ */
+
+/** 서브 화면의 틀 — basic(기본) | left(좌측 메뉴) */
+export const PAGE_LAYOUTS = ['basic', 'left'] as const
+export type PageLayoutType = (typeof PAGE_LAYOUTS)[number]
+
+export const PAGE_LAYOUT_LABEL: Record<PageLayoutType, string> = {
+  basic: '기본 서브',
+  left: '좌측 메뉴 서브',
+}
+
+/** 경로 → 레이아웃 매핑. 없는 경로는 basic 으로 본다. */
+export type SitePageLayoutMap = Record<string, PageLayoutType>

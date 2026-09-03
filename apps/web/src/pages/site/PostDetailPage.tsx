@@ -4,7 +4,7 @@ import type { Paginated, Post, PostListItem } from '@wnc/shared'
 import { boardName, useBoards } from '../../lib/boards'
 import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { ErrorMessage, Loading } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
@@ -71,7 +71,7 @@ export default function PostDetailPage() {
 
   return (
     <>
-      <PageHero title="소식" tabs={tabs} />
+      <SubPage title="소식" tabs={tabs}>
 
       <section className="pb-24 pt-24 sm:pt-28">
         <div className="container-wnc">
@@ -158,6 +158,7 @@ export default function PostDetailPage() {
           )}
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

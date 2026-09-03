@@ -5,6 +5,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
 import { transform } from 'esbuild'
 import { asyncHandler } from '../lib/handler.js'
+import { prisma } from '../lib/prisma.js'
 import { requireAuth } from '../lib/auth.js'
 
 export const sitePagesRouter = Router()
@@ -114,6 +115,41 @@ async function listBackups(key: string) {
 }
 
 /** 목록 — 파일 크기·줄 수·수정 시각·백업 수 */
+/** 화면별 레이아웃 매핑 — 홈페이지가 처음 뜰 때 읽어 가므로 공개로 둔다. */
+sitePagesRouter.get(
+  '/layouts',
+  asyncHandler(async (_req, res) => {
+    const rows = await prisma.sitePageLayout.findMany()
+    res.json(Object.fromEntries(rows.map((r) => [r.path, r.layout])))
+  }),
+)
+
+/** 레이아웃 저장 — basic 이면 행을 지워 기본값으로 되돌린다. */
+sitePagesRouter.put(
+  '/layouts',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { path: pagePath, layout } = z
+      .object({
+        path: z.string().trim().min(1).max(200).regex(/^\//, '경로는 / 로 시작해야 합니다.'),
+        layout: z.enum(['basic', 'left']),
+      })
+      .parse(req.body)
+
+    if (layout === 'basic') {
+      await prisma.sitePageLayout.deleteMany({ where: { path: pagePath } })
+    } else {
+      await prisma.sitePageLayout.upsert({
+        where: { path: pagePath },
+        create: { path: pagePath, layout },
+        update: { layout },
+      })
+    }
+    const rows = await prisma.sitePageLayout.findMany()
+    res.json(Object.fromEntries(rows.map((r) => [r.path, r.layout])))
+  }),
+)
+
 sitePagesRouter.get(
   '/',
   requireAuth,

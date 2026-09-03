@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import PageHero from '../../components/PageHero'
+import SubPage from '../../components/SubPage'
 import SectionHeading from '../../components/SectionHeading'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
@@ -45,7 +45,7 @@ export default function ServicesPage() {
 
   return (
     <>
-      <PageHero title="사업분야" tabs={ABOUT_TABS} />
+      <SubPage title="사업분야" tabs={ABOUT_TABS}>
 
       {/* 소개 — 왼쪽 제목, 오른쪽에 작은 제목을 단 본문 두 묶음 */}
       <section className="py-24 sm:py-28">
@@ -107,6 +107,7 @@ export default function ServicesPage() {
           </Reveal>
         </div>
       </section>
+      </SubPage>
     </>
   )
 }

@@ -301,7 +301,7 @@ export default function PageListPage() {
             [
               ['all', '전체', rows.length],
               ['code', '코드 화면', counts.code],
-              ['editor', '에디터 페이지', counts.editor],
+              ['editor', '에디터', counts.editor],
             ] as const
           ).map(([k, label, n]) => (
             <button
@@ -359,7 +359,7 @@ export default function PageListPage() {
       {/* 일괄 처리 — 에디터 페이지만 */}
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
         <span className="text-sm text-slate-600 dark:text-slate-400">
-          에디터 페이지 <span className="font-semibold text-slate-900 dark:text-slate-100">{selected.length}</span>개 선택됨
+          에디터 <span className="font-semibold text-slate-900 dark:text-slate-100">{selected.length}</span>개 선택됨
         </span>
         <span className="text-sm text-slate-500 dark:text-slate-400">상태 변경:</span>
         <button
@@ -415,7 +415,7 @@ export default function PageListPage() {
                         )
                       }
                       className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                      aria-label="에디터 페이지 전체 선택"
+                      aria-label="에디터 전체 선택"
                     />
                   </th>
                   <th className="px-4 py-3">페이지</th>
@@ -470,7 +470,7 @@ export default function PageListPage() {
                       ) : row.kind === 'code' ? (
                         <Badge tone="blue">코드 화면</Badge>
                       ) : (
-                        <Badge tone="amber">에디터 페이지</Badge>
+                        <Badge tone="amber">에디터</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-400">{row.path || '—'}</td>

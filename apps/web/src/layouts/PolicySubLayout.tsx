@@ -111,13 +111,20 @@ function PolicyBody({ children, prologue }: { children: ReactNode; prologue?: Re
   )
 }
 
-export default function PolicySubLayout({ title, description, tabs, prologue, children }: SubLayoutProps) {
+export default function PolicySubLayout({ title, description, tabs, prologue, bgImage, eyebrow, children }: SubLayoutProps) {
   // 길 안내 — 홈 · 묶음 · 현재 화면 (사이트맵에서 만든다)
   const crumbs = useCrumbs(title)
 
   return (
     <>
-      <PageHero title={title} description={description} tabs={tabs} breadcrumb={crumbs} />
+      <PageHero
+        title={title}
+        description={description}
+        tabs={tabs}
+        breadcrumb={crumbs}
+        bgImage={bgImage}
+        eyebrow={eyebrow}
+      />
 
       {/* 본문 — 화면들이 쓰는 폭 제한(container-wnc·max-w-3xl)은 이 안에서 풀어,
           안내 상자·목차와 같은 폭으로 놓는다. */}

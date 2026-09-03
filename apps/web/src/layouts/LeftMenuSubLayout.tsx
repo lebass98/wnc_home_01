@@ -70,7 +70,7 @@ function ChipMenu({ group, pathname }: { group: SiteMenuLink; pathname: string }
 }
 
 export default function LeftMenuSubLayout(props: SubLayoutProps) {
-  const { title, description, children } = props
+  const { title, description, bgImage, eyebrow, children } = props
   const { pathname } = useLocation()
   const siteMenu = useSiteMenu()
   const crumbs = useCrumbs(title)
@@ -83,7 +83,13 @@ export default function LeftMenuSubLayout(props: SubLayoutProps) {
 
   return (
     <>
-      <PageHero title={title} description={description} breadcrumb={crumbs} />
+      <PageHero
+        title={title}
+        description={description}
+        breadcrumb={crumbs}
+        bgImage={bgImage}
+        eyebrow={eyebrow}
+      />
       <div className="gnb:hidden">
         <ChipMenu group={group} pathname={pathname} />
       </div>

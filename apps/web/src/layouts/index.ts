@@ -34,6 +34,10 @@ export interface SubLayoutProps {
   /** 본문 위에 덧붙이는 내용 — 약관형에서 개인정보 처리표시(라벨링)에 쓴다. */
   prologue?: ReactNode
   children: ReactNode
+  /** 서브 비주얼 배경 이미지 (미지정 시 경로별 자동 선택) */
+  bgImage?: string
+  /** 영문 소제목 (미지정 시 경로별 자동 선택) */
+  eyebrow?: string
 }
 
 export interface LayoutDef {

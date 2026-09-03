@@ -292,16 +292,6 @@ export default function SitePopups() {
     setTimeout(() => setClosed(true), CLOSE_MS)
   }, [layers])
 
-  // ESC 로도 전체를 닫는다.
-  useEffect(() => {
-    if (count === 0) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeAll()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [count, closeAll])
-
   // 암막이 깔린 동안에는 뒤쪽 화면이 스크롤되지 않게 한다.
   useEffect(() => {
     if (count === 0) return
@@ -351,10 +341,10 @@ export default function SitePopups() {
 
   return (
     <>
-      {/* 암막 — 팝업이 떠 있는 동안 화면 전체를 어둡게 한다. 누르면 전체가 닫힌다. */}
+      {/* 암막 — 팝업이 떠 있는 동안 화면 전체를 어둡게만 한다.
+          닫기는 반드시 버튼(창닫기·그만보기·전체 닫기)으로만 한다. */}
       <div
         aria-hidden
-        onClick={closeAll}
         style={{ background: 'rgba(0, 0, 0, 0.5)', opacity: dimFading ? 0 : 1 }}
         className="fixed inset-0 z-[55] transition-opacity duration-300"
       />

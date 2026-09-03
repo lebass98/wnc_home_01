@@ -116,6 +116,57 @@
   .prose-wnc hr {
     @apply border-slate-200 dark:border-slate-700;
   }
+
+  /* 약관형 문서 — 이용약관·개인정보처리방침 (참고: 인천국제공항 이용약관)
+     본문은 관리자가 쓴 HTML 그대로이고, 여기서 읽기 좋은 모습만 입힌다. */
+  .policy-doc .prose-wnc {
+    @apply text-[0.95rem] leading-[1.9];
+  }
+  /* 본문 구역(container-wnc py-14)의 위 여백은 목차가 대신하므로 없앤다. */
+  .policy-doc > div > section {
+    @apply pt-0;
+  }
+  /* 장(章) — 굵은 밑줄 제목. 첫 장은 목차 바로 아래라 위 여백을 줄인다. */
+  .policy-doc .prose-wnc h2 {
+    @apply mt-14 border-b-2 border-slate-900 pb-4 text-2xl font-bold tracking-tight;
+  }
+  .policy-doc .prose-wnc > h2:first-child {
+    @apply mt-0;
+  }
+  /* 조(條) — 조문마다 옅은 구분선으로 끊는다 */
+  .policy-doc .prose-wnc h3 {
+    @apply mt-8 text-lg font-bold;
+  }
+  .policy-doc .prose-wnc h3 ~ h3 {
+    @apply border-t border-slate-200 pt-8;
+  }
+  /* 항 — ①②③ 대신 번호를 그대로 쓰고 줄 간격을 넓힌다 */
+  .policy-doc .prose-wnc ol {
+    @apply mt-3 space-y-2.5 pl-5;
+  }
+  .policy-doc .prose-wnc ol ul {
+    @apply mt-1.5 list-none space-y-1 pl-0 text-slate-600;
+  }
+  .policy-doc .prose-wnc ol ul > li {
+    counter-increment: policy-sub;
+  }
+  .policy-doc .prose-wnc ol > li {
+    counter-reset: policy-sub;
+  }
+  .policy-doc .prose-wnc ol ul > li::before {
+    content: counter(policy-sub) ') ';
+  }
+  /* 표 — 처리방침의 수집 항목·보유 기간 표 */
+  .policy-doc .prose-wnc table {
+    @apply mt-4 w-full border-t-2 border-slate-900 text-left text-[0.9rem];
+  }
+  .policy-doc .prose-wnc thead tr {
+    @apply bg-slate-50 text-sm font-semibold text-slate-900;
+  }
+  .policy-doc .prose-wnc th,
+  .policy-doc .prose-wnc td {
+    @apply border-b border-slate-200 px-4 py-3 align-top;
+  }
   .prose-wnc strong {
     @apply font-semibold text-slate-900 dark:text-slate-100;
   }

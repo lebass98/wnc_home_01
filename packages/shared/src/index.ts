@@ -806,6 +806,7 @@ export const SITE_PAGES: SitePageDef[] = [
   { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
   { key: 'layoutBasic', label: '레이아웃: 기본 서브', path: '', file: '../../layouts/BasicSubLayout.tsx', description: '전체 폭 본문 서브 틀', kind: 'layout' },
   { key: 'layoutLeft', label: '레이아웃: 좌측 메뉴 서브', path: '', file: '../../layouts/LeftMenuSubLayout.tsx', description: '좌측 메뉴 + 본문 서브 틀', kind: 'layout' },
+  { key: 'layoutPolicy', label: '레이아웃: 약관형 서브', path: '', file: '../../layouts/PolicySubLayout.tsx', description: '약관 문서용 서브 틀 (안내 상자·조문 목차)', kind: 'layout' },
   { key: 'layoutHeaderBasic', label: '레이아웃: 기본 헤더', path: '', file: '../../layouts/BasicHeader.tsx', description: '로고 왼쪽 · 펼침 2차 메뉴 헤더', kind: 'layout' },
   { key: 'layoutHeaderCenter', label: '레이아웃: 센터 헤더', path: '', file: '../../layouts/CenterHeader.tsx', description: '로고 가운데 · 드롭다운 메뉴 헤더', kind: 'layout' },
   { key: 'layoutFooterBasic', label: '레이아웃: 기본 푸터', path: '', file: '../../layouts/BasicFooter.tsx', description: '베이지 바탕 가운데 정렬 푸터', kind: 'layout' },

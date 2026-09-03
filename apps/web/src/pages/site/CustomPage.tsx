@@ -24,6 +24,7 @@ export default function CustomPage({
   slug: slugProp,
   tabs,
   appendix,
+  prologue,
 }: {
   /** 라우트 파라미터 대신 고정 슬러그로 열 때 (/terms, /privacy 등 고정 주소) */
   slug?: string
@@ -31,6 +32,8 @@ export default function CustomPage({
   tabs?: PageHeroTab[]
   /** 본문 아래 덧붙일 내용 (개인정보 개정이력 등) */
   appendix?: ReactNode
+  /** 본문 위에 덧붙일 내용 (개인정보 처리표시 라벨링 등) — 약관형 레이아웃이 쓴다 */
+  prologue?: ReactNode
 }) {
   const { slug: slugParam } = useParams<{ slug: string }>()
   const slug = slugProp ?? slugParam
@@ -85,7 +88,7 @@ export default function CustomPage({
           미리보기 — 아직 발행되지 않아 방문자에게는 보이지 않습니다.
         </div>
       )}
-      <SubPage title={title} description={page.description ?? ''} tabs={tabs}>
+      <SubPage title={title} description={page.description ?? ''} tabs={tabs} prologue={prologue}>
       <section className="container-wnc py-14 sm:py-16">
         <div className="max-w-3xl">
           <RichText html={content} />

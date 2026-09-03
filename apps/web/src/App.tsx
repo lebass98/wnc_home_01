@@ -16,6 +16,7 @@ import ContactPage from './pages/site/ContactPage'
 import FaqPage from './pages/site/FaqPage'
 import CustomPage from './pages/site/CustomPage'
 import PrivacyRevisionHistory from './components/PrivacyRevisionHistory'
+import PrivacyLabels from './components/PrivacyLabels'
 
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/admin/LoginPage'
@@ -86,7 +87,14 @@ export default function App() {
             <Route path="/terms" element={<CustomPage slug="terms" tabs={POLICY_TABS} />} />
             <Route
               path="/privacy"
-              element={<CustomPage slug="privacy" tabs={POLICY_TABS} appendix={<PrivacyRevisionHistory />} />}
+              element={
+                <CustomPage
+                  slug="privacy"
+                  tabs={POLICY_TABS}
+                  prologue={<PrivacyLabels />}
+                  appendix={<PrivacyRevisionHistory />}
+                />
+              }
             />
             {/* 관리자가 만든 일반 페이지 */}
             <Route path="/page/:slug" element={<CustomPage />} />

@@ -4,6 +4,7 @@ import type { PageHeroTab } from '../components/PageHero'
 import type { SiteMenuLink } from '../lib/menus'
 import BasicSubLayout from './BasicSubLayout'
 import LeftMenuSubLayout from './LeftMenuSubLayout'
+import PolicySubLayout from './PolicySubLayout'
 import BasicHeader from './BasicHeader'
 import CenterHeader from './CenterHeader'
 import BasicFooter from './BasicFooter'
@@ -30,6 +31,8 @@ export interface SubLayoutProps {
   description?: string
   /** 히어로 아래 작은 탭 — 레이아웃이 쓸지 말지 정한다. */
   tabs?: PageHeroTab[]
+  /** 본문 위에 덧붙이는 내용 — 약관형에서 개인정보 처리표시(라벨링)에 쓴다. */
+  prologue?: ReactNode
   children: ReactNode
 }
 
@@ -44,6 +47,7 @@ export interface LayoutDef {
 export const LAYOUTS: LayoutDef[] = [
   { key: 'basic', label: '기본 서브', description: '전체 폭 본문. 히어로 아래에 작은 탭이 붙는다.', component: BasicSubLayout },
   { key: 'left', label: '좌측 메뉴 서브', description: '왼쪽에 메뉴 묶음, 오른쪽에 본문. 좁은 화면에서는 가로 칩.', component: LeftMenuSubLayout },
+  { key: 'policy', label: '약관형 서브', description: '좌측 메뉴 + 약관 문서. 안내 상자와 조문 목차를 자동으로 붙인다.', component: PolicySubLayout },
 ]
 
 /** key 로 레이아웃을 찾는다 — 모르는 값이면 기본 서브를 쓴다. */

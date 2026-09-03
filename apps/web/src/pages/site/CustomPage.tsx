@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import type { PageHeroTab } from '../../components/PageHero'
 import { useTranslation } from 'react-i18next'
 import type { Page } from '@wnc/shared'
 import { api } from '../../lib/api'
@@ -19,8 +20,20 @@ function formatSize(bytes: number): string {
  * 제목·본문은 언어 선택에 따라 바뀌고, 없는 언어는 한국어로 보여 준다.
  * ?preview=1 로 열면 로그인한 관리자에게는 미발행 페이지도 보인다. (관리자 화면의 '실제 화면 미리보기')
  */
-export default function CustomPage() {
-  const { slug } = useParams<{ slug: string }>()
+export default function CustomPage({
+  slug: slugProp,
+  tabs,
+  appendix,
+}: {
+  /** 라우트 파라미터 대신 고정 슬러그로 열 때 (/terms, /privacy 등 고정 주소) */
+  slug?: string
+  /** 히어로 아래 작은 탭 */
+  tabs?: PageHeroTab[]
+  /** 본문 아래 덧붙일 내용 (개인정보 개정이력 등) */
+  appendix?: ReactNode
+}) {
+  const { slug: slugParam } = useParams<{ slug: string }>()
+  const slug = slugProp ?? slugParam
   const [params] = useSearchParams()
   const preview = params.get('preview') === '1'
   const [page, setPage] = useState<Page | null>(null)
@@ -72,7 +85,7 @@ export default function CustomPage() {
           미리보기 — 아직 발행되지 않아 방문자에게는 보이지 않습니다.
         </div>
       )}
-      <SubPage title={title} description={page.description ?? ''}>
+      <SubPage title={title} description={page.description ?? ''} tabs={tabs}>
       <section className="container-wnc py-14 sm:py-16">
         <div className="max-w-3xl">
           <RichText html={content} />
@@ -106,6 +119,8 @@ export default function CustomPage() {
               </ul>
             </div>
           )}
+
+          {appendix}
         </div>
       </section>
       </SubPage>

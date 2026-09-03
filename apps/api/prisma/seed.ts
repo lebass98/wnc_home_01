@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client'
+// 공용 패키지는 CJS 로 읽혀 이름 내보내기를 못 쓴다 — 원본 파일을 상대 경로로 직접 읽는다.
+import { DEFAULT_PRIVACY_PAGE, DEFAULT_TERMS_PAGE } from '../../../packages/shared/src/policyContent'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -190,6 +192,41 @@ async function main() {
           views: Math.floor(Math.random() * 300) + 10,
           sortOrder: i,
           createdAt: daysAgo(i % 14),
+        },
+      })
+    }
+  }
+
+  // 기본 정책 페이지 — /terms, /privacy 가 이 내용을 보여 준다. 내용은 [페이지 관리]에서 고친다.
+  if ((await prisma.page.count()) === 0) {
+    for (const [i, def] of [DEFAULT_TERMS_PAGE, DEFAULT_PRIVACY_PAGE].entries()) {
+      const created = await prisma.page.create({
+        data: {
+          slug: def.slug,
+          title: def.title,
+          description: def.description,
+          content: def.content,
+          published: true,
+          publishedAt: daysAgo(10),
+          showInNav: false,
+          sortOrder: i,
+          version: 1,
+          createdAt: daysAgo(10),
+        },
+      })
+      await prisma.pageVersion.create({
+        data: {
+          pageId: created.id,
+          version: 1,
+          title: def.title,
+          description: def.description,
+          content: def.content,
+          published: true,
+          showInNav: false,
+          note: '최초 생성',
+          authorId: admin.id,
+          authorName: admin.name,
+          createdAt: created.createdAt,
         },
       })
     }

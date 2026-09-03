@@ -15,8 +15,7 @@ import PostDetailPage from './pages/site/PostDetailPage'
 import ContactPage from './pages/site/ContactPage'
 import FaqPage from './pages/site/FaqPage'
 import CustomPage from './pages/site/CustomPage'
-import TermsPage from './pages/site/TermsPage'
-import PrivacyPage from './pages/site/PrivacyPage'
+import PrivacyRevisionHistory from './components/PrivacyRevisionHistory'
 
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/admin/LoginPage'
@@ -58,6 +57,12 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return user ? children : <Navigate to="/admin/login" replace />
 }
 
+/** 이용약관·개인정보처리방침 묶음의 탭 */
+const POLICY_TABS = [
+  { to: '/terms', label: '이용약관' },
+  { to: '/privacy', label: '개인정보처리방침' },
+]
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -77,8 +82,11 @@ export default function App() {
             <Route path="/board/:id" element={<PostDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/contact/faq" element={<FaqPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<CustomPage slug="terms" tabs={POLICY_TABS} />} />
+            <Route
+              path="/privacy"
+              element={<CustomPage slug="privacy" tabs={POLICY_TABS} appendix={<PrivacyRevisionHistory />} />}
+            />
             {/* 관리자가 만든 일반 페이지 */}
             <Route path="/page/:slug" element={<CustomPage />} />
           </Route>

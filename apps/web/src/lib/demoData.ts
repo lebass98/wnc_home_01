@@ -1,5 +1,5 @@
 import type { BoardCategory, Branch, Contact, ContactStatus, MenuAutoChildren, Post } from '@wnc/shared'
-import { DEFAULT_COMPANY } from '@wnc/shared'
+import { DEFAULT_COMPANY, DEFAULT_PRIVACY_PAGE, DEFAULT_TERMS_PAGE } from '@wnc/shared'
 
 /**
  * 데모 모드 초기 데이터.
@@ -251,8 +251,10 @@ export interface DemoPageVersion {
   createdAt: string
 }
 
-// 에디터 페이지 샘플은 두지 않는다 — 새 페이지는 관리자에서 직접 만든다.
-const PAGE_SEED: [string, string, string, string, boolean][] = []
+// 기본 정책 페이지 — /terms, /privacy 가 이 내용을 보여 준다. 그 외 샘플은 두지 않는다.
+const PAGE_SEED: [string, string, string, string, boolean][] = [DEFAULT_TERMS_PAGE, DEFAULT_PRIVACY_PAGE].map(
+  (d) => [d.slug, d.title, d.description, d.content, true],
+)
 
 export function createDemoPages(): { pages: DemoPage[]; versions: DemoPageVersion[] } {
   const pages: DemoPage[] = []

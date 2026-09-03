@@ -26,8 +26,6 @@ const SITE_PAGES = [
   { key: 'postDetail', label: '소식 상세', path: '/board/:id', file: 'PostDetailPage.tsx', description: '글 한 건의 상세' },
   { key: 'contact', label: '문의하기', path: '/contact', file: 'ContactPage.tsx', description: '문의 절차 · 연락처 · 양식' },
   { key: 'faq', label: '자주 묻는 질문', path: '/contact/faq', file: 'FaqPage.tsx', description: '분류 탭과 아코디언' },
-  { key: 'terms', label: '이용약관', path: '/terms', file: 'TermsPage.tsx', description: '조문 목차와 본문' },
-  { key: 'privacy', label: '개인정보처리방침', path: '/privacy', file: 'PrivacyPage.tsx', description: '라벨링 · 목차 · 본문 · 개정이력' },
   { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
   // 서브 레이아웃 — 파일은 apps/web/src/layouts 에 있다. 목록은 web 의 등록부(index.ts)가 갖는다.
   { key: 'layoutBasic', label: '레이아웃: 기본 서브', path: '', file: '../../layouts/BasicSubLayout.tsx', description: '전체 폭 본문 서브 틀', kind: 'layout' },

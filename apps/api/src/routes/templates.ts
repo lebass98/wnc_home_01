@@ -8,6 +8,9 @@ import { ensureBuiltin, loadActiveTemplate, parseLayouts, toTemplateResponse } f
 import {
   applyToLive,
   countFiles,
+  listApplyBackupFiles,
+  listApplyBackups,
+  restoreApplyBackup,
   hasFiles,
   listFiles,
   packZip,
@@ -186,6 +189,44 @@ templatesRouter.post('/import-zip', requireAuth, (req, res) => {
     }
   })
 })
+
+/**
+ * 적용 기록 — 템플릿을 켤 때 덮어쓰기 전 남겨 둔 원본 목록.
+ * 되돌리면 그 시점의 사이트 파일로 돌아간다.
+ */
+templatesRouter.get(
+  '/apply-backups',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(await listApplyBackups())
+  }),
+)
+
+/** 그 기록에 담긴 파일 목록 */
+templatesRouter.get(
+  '/apply-backups/:stamp',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    try {
+      res.json(await listApplyBackupFiles(req.params.stamp))
+    } catch (e) {
+      res.status(400).json({ message: (e as Error).message })
+    }
+  }),
+)
+
+/** 되돌리기 — 되돌리기 직전 모습도 새 기록으로 남는다. */
+templatesRouter.post(
+  '/apply-backups/:stamp/restore',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    try {
+      res.json(await restoreApplyBackup(req.params.stamp))
+    } catch (e) {
+      res.status(400).json({ message: (e as Error).message })
+    }
+  }),
+)
 
 /** 보관된 파일 목록 — 어떤 파일이 담겨 있는지 보여 준다. */
 templatesRouter.get(

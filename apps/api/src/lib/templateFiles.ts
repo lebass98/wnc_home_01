@@ -240,3 +240,68 @@ export async function applyToLive(id: number): Promise<{ applied: number; backup
   }
   return { applied, backup: stamp }
 }
+
+/** 적용 백업 이름인지 — 시각 형식만 다룬다. 바깥 경로로 새지 않게 한다. */
+function isStamp(name: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T[\d-]+Z$/.test(name)
+}
+
+export interface ApplyBackup {
+  /** 폴더 이름이자 식별자 — 되돌릴 때 그대로 보낸다. */
+  stamp: string
+  createdAt: string
+  files: number
+}
+
+/**
+ * 템플릿을 적용하기 전 남겨 둔 원본 목록 — 최근 것이 위다.
+ * 되돌리면 그 시점의 사이트 파일로 되돌아간다.
+ */
+export async function listApplyBackups(): Promise<ApplyBackup[]> {
+  if (!existsSync(APPLY_BACKUP_DIR)) return []
+  const names = (await readdir(APPLY_BACKUP_DIR)).filter(isStamp).sort().reverse()
+  return Promise.all(
+    names.map(async (stamp) => {
+      const dir = path.join(APPLY_BACKUP_DIR, stamp)
+      let files = 0
+      for (const folder of FOLDERS) files += (await listSources(path.join(dir, folder))).length
+      // 폴더 이름이 곧 시각이다. '2026-09-03T09-52-46-792Z' → ISO 로 되돌린다.
+      const iso = stamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z')
+      return { stamp, createdAt: iso, files }
+    }),
+  )
+}
+
+/** 이 백업에 담긴 파일 목록 — 되돌리기 전에 무엇이 바뀌는지 보여 준다. */
+export async function listApplyBackupFiles(stamp: string): Promise<{ folder: Folder; files: string[] }[]> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const dir = path.join(APPLY_BACKUP_DIR, stamp)
+  return Promise.all(FOLDERS.map(async (folder) => ({ folder, files: await listSources(path.join(dir, folder)) })))
+}
+
+/**
+ * 백업 시점의 파일로 사이트를 되돌린다.
+ * 되돌리기 직전 모습도 새 백업으로 남겨, 되돌린 것을 다시 되돌릴 수 있다.
+ */
+export async function restoreApplyBackup(stamp: string): Promise<{ restored: number; backup: string }> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const dir = path.join(APPLY_BACKUP_DIR, stamp)
+  if (!existsSync(dir)) throw new Error('백업을 찾을 수 없습니다.')
+
+  const newStamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const newBackup = path.join(APPLY_BACKUP_DIR, newStamp)
+  let restored = 0
+
+  for (const folder of FOLDERS) {
+    const names = await listSources(path.join(dir, folder))
+    if (names.length === 0) continue
+    await mkdir(path.join(newBackup, folder), { recursive: true })
+    for (const name of names) {
+      const target = path.join(LIVE[folder], name)
+      if (existsSync(target)) await copyFile(target, path.join(newBackup, folder, name))
+      await copyFile(path.join(dir, folder, name), target)
+      restored += 1
+    }
+  }
+  return { restored, backup: newStamp }
+}

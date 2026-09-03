@@ -499,6 +499,11 @@ export function handleDemoRequest(
 
   // --- 템플릿 관리 ---
   if (rawPath === '/templates' && method === 'GET') return templatesSorted().map((t) => ({ ...templateItem(t), files: 0 }))
+  // 적용 기록 — 데모에는 사이트 파일이 없어 비어 있다.
+  if (rawPath === '/templates/apply-backups' && method === 'GET') return []
+  if (rawPath.startsWith('/templates/apply-backups/')) {
+    throw new DemoError('GitHub Pages 데모에서는 사이트 파일을 되돌릴 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  }
   if (rawPath === '/templates/import-zip' && method === 'POST') {
     throw new DemoError('GitHub Pages 데모에서는 템플릿 파일(zip)을 설치할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
   }
@@ -546,6 +551,9 @@ export function handleDemoRequest(
     db.templates.push(created)
     save(db)
     return templateItem(created)
+  }
+  if (/^\/templates\/\d+\/snapshot$/.test(rawPath)) {
+    throw new DemoError('GitHub Pages 데모에서는 사이트 파일을 담을 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
   }
   const templateMatch = rawPath.match(/^\/templates\/(\d+)(\/(activate|duplicate|export))?$/)
   if (templateMatch) {

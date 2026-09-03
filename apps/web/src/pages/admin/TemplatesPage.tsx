@@ -3,6 +3,7 @@ import { unzipSync } from 'fflate'
 import { Link } from 'react-router-dom'
 import type { SiteTemplateFile, SiteTemplateInfo } from '@wnc/shared'
 import { api } from '../../lib/api'
+import { formatStamp } from '../../lib/format'
 import { invalidateSiteDesign } from '../../lib/siteDesign'
 import { invalidatePageLayouts } from '../../lib/pageLayouts'
 import { FOOTERS, HEADERS } from '../../layouts'
@@ -14,6 +15,13 @@ import { Badge, EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination
  */
 
 const PER_PAGE = 10
+
+/** 적용 기록 한 줄 — 서버가 내려주는 모양 */
+interface ApplyBackupItem {
+  stamp: string
+  createdAt: string
+  files: number
+}
 
 /** 등록부에서 레이아웃 이름을 찾는다 — 등록이 지워진 키는 키 그대로 보여 준다. */
 const headerLabel = (key: string) => HEADERS.find((h) => h.key === key)?.label ?? key
@@ -49,6 +57,7 @@ export default function TemplatesPage() {
   const [metaTarget, setMetaTarget] = useState<SiteTemplateInfo | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   async function load() {
     try {
@@ -90,6 +99,27 @@ export default function TemplatesPage() {
       setRows(res.templates)
       refreshSite()
       alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.`)
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  /** 지금 사이트 모습을 이 템플릿에 담는다 — 코드 편집으로 고친 내용을 갈무리할 때. */
+  async function snapshot(row: SiteTemplateInfo) {
+    if (
+      !confirm(
+        `지금 사이트 모습을 '${row.name}' 템플릿에 담을까요?\n\n` +
+          '이 템플릿에 보관돼 있던 파일은 지금 사이트 파일로 바뀝니다.',
+      )
+    )
+      return
+    setWorking(true)
+    try {
+      const next = await api<SiteTemplateInfo>(`/templates/${row.id}/snapshot`, { method: 'POST', auth: true })
+      setRows((prev) => prev?.map((r) => (r.id === next.id ? next : r)) ?? null)
+      alert(`파일 ${next.files ?? 0}개를 담았습니다.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -169,6 +199,12 @@ export default function TemplatesPage() {
               <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 9a7.5 7.5 0 0113-2.2M18.5 15a7.5 7.5 0 01-13 2.2" />
               </svg>
+            </button>
+            <button type="button" onClick={() => setHistoryOpen(true)} className="btn-secondary">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v6h6M3.5 13a9 9 0 105-8.5L3 9M12 7v5l4 2" />
+              </svg>
+              적용 기록
             </button>
             <button type="button" onClick={() => setImportOpen(true)} className="btn-secondary">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -307,6 +343,15 @@ export default function TemplatesPage() {
                           icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z',
                           onClick: () => setMetaTarget(row),
                         },
+                        ...(row.active
+                          ? [
+                              {
+                                label: '현재 사이트 담기',
+                                icon: 'M5 13l4 4L19 7M4 20h16',
+                                onClick: () => snapshot(row),
+                              },
+                            ]
+                          : []),
                         {
                           label: '복제',
                           icon: 'M8 8h10a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V10a2 2 0 012-2zm8-4H6a2 2 0 00-2 2v10',
@@ -372,6 +417,7 @@ export default function TemplatesPage() {
           }}
         />
       )}
+      {historyOpen && <ApplyHistoryModal onClose={() => setHistoryOpen(false)} />}
       {importOpen && (
         <ImportModal
           onClose={() => setImportOpen(false)}
@@ -382,6 +428,129 @@ export default function TemplatesPage() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * 적용 기록 — 템플릿을 켤 때 덮어쓰기 전 남겨 둔 사이트 원본 목록.
+ * 되돌리면 그 시점의 화면·레이아웃·부품 파일로 사이트가 돌아간다.
+ */
+function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
+  const [items, setItems] = useState<ApplyBackupItem[] | null>(null)
+  const [error, setError] = useState('')
+  const [openStamp, setOpenStamp] = useState('')
+  const [files, setFiles] = useState<{ folder: string; files: string[] }[]>([])
+  const [working, setWorking] = useState(false)
+
+  function load() {
+    api<ApplyBackupItem[]>('/templates/apply-backups', { auth: true })
+      .then(setItems)
+      .catch((e: Error) => setError(e.message))
+  }
+  useEffect(load, [])
+
+  /** 담긴 파일 목록을 펼쳐 본다 — 되돌리기 전에 무엇이 바뀌는지 확인한다. */
+  async function toggle(stamp: string) {
+    if (openStamp === stamp) {
+      setOpenStamp('')
+      return
+    }
+    try {
+      setFiles(await api<{ folder: string; files: string[] }[]>(`/templates/apply-backups/${stamp}`, { auth: true }))
+      setOpenStamp(stamp)
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  async function restore(item: ApplyBackupItem) {
+    if (
+      !confirm(
+        `${formatStamp(item.createdAt)} 시점으로 사이트를 되돌릴까요?\n\n` +
+          `파일 ${item.files}개가 그때 내용으로 덮어써집니다.\n지금 모습도 새 기록으로 남아 다시 되돌릴 수 있습니다.`,
+      )
+    )
+      return
+    setWorking(true)
+    try {
+      const res = await api<{ restored: number }>(`/templates/apply-backups/${item.stamp}/restore`, {
+        method: 'POST',
+        auth: true,
+      })
+      load()
+      alert(`파일 ${res.restored}개를 되돌렸습니다. 홈페이지를 새로고침하면 바로 보입니다.`)
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  return (
+    <Modal
+      title="템플릿 적용 기록"
+      onClose={onClose}
+      wide
+      footer={
+        <button type="button" onClick={onClose} className="btn-secondary">
+          닫기
+        </button>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          템플릿을 켜면 사이트 파일이 덮어써지기 전에 원본이 여기에 남습니다. 최근 것이 위이며, 되돌리면 그 시점의 화면으로 돌아갑니다.
+        </p>
+
+        {error && <ErrorMessage message={error} />}
+        {!items ? (
+          <Loading />
+        ) : items.length === 0 ? (
+          <EmptyState label="아직 적용 기록이 없습니다. 템플릿을 켜면 그때의 원본이 남습니다." />
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item) => (
+              <li key={item.stamp} className="rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{formatStamp(item.createdAt)}</p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">파일 {item.files}개</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button type="button" onClick={() => toggle(item.stamp)} className="btn-secondary px-2.5 py-1 text-xs">
+                      {openStamp === item.stamp ? '파일 접기' : '담긴 파일'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => restore(item)}
+                      disabled={working}
+                      className="btn-secondary px-2.5 py-1 text-xs"
+                    >
+                      이 시점으로 되돌리기
+                    </button>
+                  </div>
+                </div>
+
+                {openStamp === item.stamp && (
+                  <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+                    {files.map((group) => (
+                      <div key={group.folder} className="mb-2 last:mb-0">
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          {group.folder} ({group.files.length})
+                        </p>
+                        <p className="mt-0.5 break-words text-xs text-slate-500 dark:text-slate-400">
+                          {group.files.join(', ') || '없음'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Modal>
   )
 }
 

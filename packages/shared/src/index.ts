@@ -789,6 +789,10 @@ export const SITE_PAGES: SitePageDef[] = [
   { key: 'custom', label: '관리자 페이지 틀', path: '/page/:slug', file: 'CustomPage.tsx', description: '페이지 관리에서 만든 페이지를 보여 주는 틀' },
   { key: 'layoutBasic', label: '레이아웃: 기본 서브', path: '', file: '../../layouts/BasicSubLayout.tsx', description: '전체 폭 본문 서브 틀', kind: 'layout' },
   { key: 'layoutLeft', label: '레이아웃: 좌측 메뉴 서브', path: '', file: '../../layouts/LeftMenuSubLayout.tsx', description: '좌측 메뉴 + 본문 서브 틀', kind: 'layout' },
+  { key: 'layoutHeaderBasic', label: '레이아웃: 기본 헤더', path: '', file: '../../layouts/BasicHeader.tsx', description: '로고 왼쪽 · 펼침 2차 메뉴 헤더', kind: 'layout' },
+  { key: 'layoutHeaderCenter', label: '레이아웃: 센터 헤더', path: '', file: '../../layouts/CenterHeader.tsx', description: '로고 가운데 · 드롭다운 메뉴 헤더', kind: 'layout' },
+  { key: 'layoutFooterBasic', label: '레이아웃: 기본 푸터', path: '', file: '../../layouts/BasicFooter.tsx', description: '베이지 바탕 가운데 정렬 푸터', kind: 'layout' },
+  { key: 'layoutFooterSimple', label: '레이아웃: 심플 푸터', path: '', file: '../../layouts/SimpleFooter.tsx', description: '어두운 바탕 한 단 푸터', kind: 'layout' },
 ]
 
 /** 목록 항목 — 파일 상태를 함께 준다. */
@@ -892,3 +896,16 @@ export type PageLayoutType = string
 
 /** 경로 → 레이아웃 매핑. 없는 경로는 basic 으로 본다. */
 export type SitePageLayoutMap = Record<string, PageLayoutType>
+
+/**
+ * 사이트 전역 디자인 — 헤더·푸터처럼 사이트 전체에 하나만 적용되는 틀의 선택값.
+ * 값은 apps/web/src/layouts 등록부(HEADERS·FOOTERS)의 key 다.
+ */
+export interface SiteDesign {
+  header: string
+  footer: string
+  updatedAt?: string
+}
+
+/** 디자인 저장값이 없을 때의 기본 — 모두 기본형을 쓴다. */
+export const DEFAULT_SITE_DESIGN: SiteDesign = { header: 'basic', footer: 'basic' }

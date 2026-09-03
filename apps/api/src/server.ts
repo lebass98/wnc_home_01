@@ -17,6 +17,7 @@ import { faqsRouter } from './routes/faqs.js'
 import { privacyRevisionsRouter } from './routes/privacyRevisions.js'
 import { sitePagesRouter } from './routes/sitePages.js'
 import { menusRouter } from './routes/menus.js'
+import { designRouter } from './routes/design.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
 
 const app = express()
@@ -44,6 +45,7 @@ app.use('/api/faqs', faqsRouter)
 app.use('/api/privacy-revisions', privacyRevisionsRouter)
 app.use('/api/site-pages', sitePagesRouter)
 app.use('/api/menus', menusRouter)
+app.use('/api/design', designRouter)
 app.use('/api/uploads', uploadsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))

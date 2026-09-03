@@ -89,6 +89,12 @@ const NAV: NavItem[] = [
     icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
   },
   {
+    to: '/admin/design',
+    label: '디자인 설정',
+    end: false,
+    icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v3H4V5zm0 5h16v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9zm3 3h4v4H7v-4z',
+  },
+  {
     to: '/admin/menus',
     label: '메뉴 관리',
     end: false,

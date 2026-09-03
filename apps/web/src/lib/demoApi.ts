@@ -60,6 +60,8 @@ interface DemoDb {
   popups: DemoPopup[]
   /** 경로별 레이아웃 (basic 은 저장하지 않는다) */
   pageLayouts: Record<string, string>
+  /** 사이트 전역 디자인 — 헤더·푸터 레이아웃 키 */
+  siteDesign: { header: string; footer: string }
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
   privacyRevisions: DemoPrivacyRevision[]
@@ -91,6 +93,7 @@ function seed(): DemoDb {
   const menus = createDemoMenus()
   return {
     pageLayouts: {},
+    siteDesign: { header: 'basic', footer: 'basic' },
     posts,
     contacts,
     categories,
@@ -139,6 +142,7 @@ function load(): DemoDb {
         Array.isArray(parsed.privacyRevisions) &&
         Array.isArray(parsed.menus)
       ) {
+        parsed.siteDesign ??= { header: 'basic', footer: 'basic' }
         return parsed
       }
     }
@@ -411,6 +415,15 @@ export function handleDemoRequest(
     hidePeriod: p.hidePeriod,
   })
 
+
+  // --- 사이트 전역 디자인 (헤더·푸터) ---
+  if (rawPath === '/design' && method === 'GET') return { ...db.siteDesign }
+  if (rawPath === '/design' && method === 'PUT') {
+    if (typeof body.header === 'string') db.siteDesign.header = body.header
+    if (typeof body.footer === 'string') db.siteDesign.footer = body.footer
+    save(db)
+    return { ...db.siteDesign }
+  }
 
   // --- 화면별 레이아웃 ---
   if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...db.pageLayouts }

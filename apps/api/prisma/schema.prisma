@@ -436,3 +436,15 @@ model SitePageLayout {
 
   updatedAt DateTime @updatedAt
 }
+
+/// 사이트 전역 디자인 — 헤더·푸터 등 사이트 전체에 하나만 적용되는 틀의 선택값. 항상 한 행만 쓴다.
+/// (페이지별 서브 레이아웃은 SitePageLayout, 전역 틀은 여기 — 템플릿 교체 축의 저장소)
+model SiteDesign {
+  id     Int    @id @default(autoincrement())
+  /// 헤더 레이아웃 키 — apps/web/src/layouts 등록부(HEADERS)의 key
+  header String @default("basic")
+  /// 푸터 레이아웃 키 — 등록부(FOOTERS)의 key
+  footer String @default("basic")
+
+  updatedAt DateTime @updatedAt
+}

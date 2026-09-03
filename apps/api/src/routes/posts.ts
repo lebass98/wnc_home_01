@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { optionalAuth, requireAuth } from '../lib/auth.js'
 
 export const postsRouter = Router()
 
@@ -70,9 +70,10 @@ function toDetail(post: PostWithAuthor) {
  */
 postsRouter.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const { page, pageSize, category, q } = listQuerySchema.parse(req.query)
-    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.headers.authorization)
+    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const where = {
       ...(includeDrafts ? {} : { published: true }),
@@ -103,6 +104,7 @@ postsRouter.get(
 
 postsRouter.get(
   '/:id',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
@@ -112,7 +114,7 @@ postsRouter.get(
       include: { author: { select: { name: true } } },
     })
     if (!post) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
-    if (!post.published && !req.headers.authorization) {
+    if (!post.published && !req.user) {
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
     }
 

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { optionalAuth, requireAuth, requireAdmin } from '../lib/auth.js'
 
 export const boardsRouter = Router()
 
@@ -87,8 +87,9 @@ async function toItem(board: Record<string, any>) {
 /** 목록. 공개 사이트는 노출 중인 게시판만 받고, 관리자는 includeHidden=1 로 전부 본다. */
 boardsRouter.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
-    const includeHidden = req.query.includeHidden === '1' && Boolean(req.headers.authorization)
+    const includeHidden = req.query.includeHidden === '1' && Boolean(req.user)
     const boards = await prisma.board.findMany({
       where: includeHidden ? {} : { published: true },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -120,6 +121,7 @@ function toWriteData(data: z.infer<typeof boardInputSchema>, slug: string) {
 boardsRouter.get(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
@@ -133,6 +135,7 @@ boardsRouter.get(
 boardsRouter.post(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = boardInputSchema.parse(req.body)
     const slug = await uniqueSlug(toSlug(data.slug?.trim() ? data.slug : data.name))
@@ -147,6 +150,7 @@ boardsRouter.post(
 boardsRouter.put(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
@@ -174,6 +178,7 @@ boardsRouter.put(
 boardsRouter.delete(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })

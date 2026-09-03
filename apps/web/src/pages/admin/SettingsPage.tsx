@@ -703,7 +703,7 @@ function ImageDropzone({
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
               {uploading ? '업로드 중...' : '파일을 드래그하거나 클릭하여 업로드'}
             </p>
-            <p className="mt-1 text-xs text-slate-400">JPG, PNG, WEBP, GIF, SVG · 최대 5MB</p>
+            <p className="mt-1 text-xs text-slate-400">JPG, PNG, WEBP, GIF · 최대 5MB</p>
           </>
         )}
       </div>

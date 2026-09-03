@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { requireAuth, requireAdmin } from '../lib/auth.js'
 
 export const menusRouter = Router()
 
@@ -114,6 +114,7 @@ menusRouter.get(
 menusRouter.get(
   '/admin',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     res.json(await loadTree(false))
   }),
@@ -122,6 +123,7 @@ menusRouter.get(
 menusRouter.post(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = inputSchema.parse(req.body)
     const parentId = await assertParent(data.parentId)
@@ -140,6 +142,7 @@ menusRouter.post(
 menusRouter.put(
   '/reorder',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { parentId, ids } = reorderSchema.parse(req.body)
     const siblings = await prisma.menuItem.findMany({ where: { parentId } })
@@ -156,6 +159,7 @@ menusRouter.put(
 menusRouter.put(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     const found = await prisma.menuItem.findUnique({ where: { id }, include: { children: true } })
@@ -186,6 +190,7 @@ menusRouter.put(
 menusRouter.patch(
   '/:id/flags',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     const data = flagsSchema.parse(req.body)
@@ -199,6 +204,7 @@ menusRouter.patch(
 menusRouter.delete(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     const found = await prisma.menuItem.findUnique({ where: { id } })

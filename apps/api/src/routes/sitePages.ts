@@ -6,7 +6,7 @@ import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
 import { transform } from 'esbuild'
 import { asyncHandler } from '../lib/handler.js'
 import { prisma } from '../lib/prisma.js'
-import { requireAuth } from '../lib/auth.js'
+import { requireAuth, requireAdmin } from '../lib/auth.js'
 import { loadActiveTemplate, parseLayouts } from '../lib/templates.js'
 
 export const sitePagesRouter = Router()
@@ -155,6 +155,7 @@ sitePagesRouter.get(
 sitePagesRouter.put(
   '/layouts',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { path: pagePath, layout } = z
       .object({
@@ -181,6 +182,7 @@ sitePagesRouter.put(
 sitePagesRouter.get(
   '/tree',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     /** 파일에서 '../../components/X' 형태의 가져오기를 뽑아 부품 이름 목록을 만든다. */
     const usedComponents = async (file: string): Promise<string[]> => {
@@ -259,6 +261,7 @@ sitePagesRouter.get(
 sitePagesRouter.get(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     const items = await Promise.all(
       SITE_PAGES.map(async (def) => {
@@ -285,6 +288,7 @@ sitePagesRouter.get(
 sitePagesRouter.get(
   '/:key/source',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const def = findDef(req.params.key)
     const file = filePathOf(req.params.key)
@@ -300,6 +304,7 @@ sitePagesRouter.get(
 sitePagesRouter.put(
   '/:key/source',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const def = findDef(req.params.key)
     const file = filePathOf(req.params.key)
@@ -339,6 +344,7 @@ sitePagesRouter.put(
 sitePagesRouter.post(
   '/:key/check',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const def = findDef(req.params.key)
     if (!def) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
@@ -351,6 +357,7 @@ sitePagesRouter.post(
 sitePagesRouter.get(
   '/:key/backups',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     if (!findDef(req.params.key)) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
     res.json(await listBackups(req.params.key))
@@ -361,6 +368,7 @@ sitePagesRouter.get(
 sitePagesRouter.get(
   '/:key/backups/:name',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     if (!findDef(req.params.key)) return res.status(404).json({ message: '등록되지 않은 화면입니다.' })
     const name = path.basename(req.params.name)
@@ -374,6 +382,7 @@ sitePagesRouter.get(
 sitePagesRouter.post(
   '/:key/backups/:name/restore',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const def = findDef(req.params.key)
     const file = filePathOf(req.params.key)

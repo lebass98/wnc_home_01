@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { requireAuth, requireAdmin } from '../lib/auth.js'
 
 export const boardSettingsRouter = Router()
 
@@ -58,6 +58,7 @@ boardSettingsRouter.get(
 boardSettingsRouter.put(
   '/seo',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = seoInputSchema.parse(req.body)
     const existing = await loadSetting()
@@ -76,6 +77,7 @@ boardSettingsRouter.put(
 boardSettingsRouter.post(
   '/seo/cache-reset',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     const existing = await loadSetting()
     cached = null

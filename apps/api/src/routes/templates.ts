@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { requireAuth, requireAdmin } from '../lib/auth.js'
 import multer from 'multer'
 import { ensureBuiltin, loadActiveTemplate, parseLayouts, toTemplateResponse } from '../lib/templates.js'
 import {
@@ -77,6 +77,7 @@ function manifestOf(row: { name: string; description: string; version: string; a
 templatesRouter.get(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     res.json(await listAll())
   }),
@@ -86,6 +87,7 @@ templatesRouter.get(
 templatesRouter.post(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, description } = z.object({ name: nameSchema, description: descriptionSchema.optional() }).parse(req.body)
     const base = await loadActiveTemplate()
@@ -110,6 +112,7 @@ templatesRouter.post(
 templatesRouter.post(
   '/import',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = z
       .object({
@@ -148,7 +151,8 @@ const uploadZip = multer({
   },
 })
 
-templatesRouter.post('/import-zip', requireAuth, (req, res) => {
+templatesRouter.post('/import-zip', requireAuth,
+  requireAdmin, (req, res) => {
   uploadZip.single('file')(req, res, async (err) => {
     try {
       if (err) {
@@ -197,6 +201,7 @@ templatesRouter.post('/import-zip', requireAuth, (req, res) => {
 templatesRouter.get(
   '/apply-backups',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (_req, res) => {
     res.json(await listApplyBackups())
   }),
@@ -206,6 +211,7 @@ templatesRouter.get(
 templatesRouter.get(
   '/apply-backups/:stamp',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     try {
       res.json(await listApplyBackupFiles(req.params.stamp))
@@ -219,6 +225,7 @@ templatesRouter.get(
 templatesRouter.post(
   '/apply-backups/:stamp/restore',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     try {
       res.json(await restoreApplyBackup(req.params.stamp))
@@ -232,6 +239,7 @@ templatesRouter.post(
 templatesRouter.get(
   '/:id/files',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -243,6 +251,7 @@ templatesRouter.get(
 templatesRouter.post(
   '/:id/snapshot',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -255,6 +264,7 @@ templatesRouter.post(
 templatesRouter.put(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -291,6 +301,7 @@ templatesRouter.put(
 templatesRouter.post(
   '/:id/activate',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -319,6 +330,7 @@ templatesRouter.post(
 templatesRouter.post(
   '/:id/duplicate',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -347,6 +359,7 @@ templatesRouter.post(
 templatesRouter.get(
   '/:id/export',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
@@ -366,6 +379,7 @@ templatesRouter.get(
 templatesRouter.delete(
   '/:id',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })

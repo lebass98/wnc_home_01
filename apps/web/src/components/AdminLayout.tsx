@@ -13,6 +13,8 @@ interface NavLeaf {
   label: string
   end: boolean
   icon: string
+  /** 사이트 전체 설정·구조를 바꾸는 화면 — 최고관리자(ADMIN)에게만 보인다. */
+  adminOnly?: boolean
   /** 이 경로들로 시작할 때는 활성 처리하지 않는다 (형제 메뉴가 담당하는 화면). */
   notWhen?: string[]
 }
@@ -24,6 +26,8 @@ interface NavGroup {
   match: string
   icon: string
   children: NavLeaf[]
+  /** 사이트 전체 설정·구조를 바꾸는 화면 — 최고관리자(ADMIN)에게만 보인다. */
+  adminOnly?: boolean
 }
 
 type NavItem = NavLeaf | NavGroup
@@ -41,6 +45,7 @@ const NAV: NavItem[] = [
     to: '/admin/settings',
     label: '환경설정',
     end: false,
+    adminOnly: true,
     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
   },
   {
@@ -92,12 +97,14 @@ const NAV: NavItem[] = [
     to: '/admin/templates',
     label: '템플릿 관리',
     end: false,
+    adminOnly: true,
     icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
   },
   {
     to: '/admin/menus',
     label: '메뉴 관리',
     end: false,
+    adminOnly: true,
     icon: 'M4 6h16M4 12h10M4 18h7',
   },
   {
@@ -160,7 +167,11 @@ export default function AdminLayout() {
     return key ? t(key) : label
   }
 
-  const nav: NavItem[] = NAV.map((item) => {
+  const { user, logout } = useAuth()
+  // 편집자(EDITOR)에게는 사이트 전체 설정·구조 화면을 감춘다 — 서버도 403 으로 막는다.
+  const isAdmin = user?.role === 'ADMIN'
+
+  const nav: NavItem[] = NAV.filter((item) => isAdmin || !item.adminOnly).map((item) => {
     if (!isGroup(item) || item.label !== '게시판 관리') return item
     const shortcuts: NavLeaf[] = boards
       .filter((b) => b.showInAdminMenu)
@@ -172,7 +183,6 @@ export default function AdminLayout() {
       }))
     return { ...item, children: [...item.children, ...shortcuts] }
   })
-  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)

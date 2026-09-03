@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { requireAuth, requireAdmin } from '../lib/auth.js'
 
 export const settingsRouter = Router()
 
@@ -164,6 +164,7 @@ settingsRouter.get(
 settingsRouter.put(
   '/',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = settingInputSchema.parse(req.body)
     const existing = await loadSetting()
@@ -186,6 +187,7 @@ settingsRouter.put(
 settingsRouter.put(
   '/seo',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = seoInputSchema.parse(req.body)
     const existing = await loadSetting()
@@ -199,6 +201,7 @@ settingsRouter.put(
 settingsRouter.put(
   '/company',
   requireAuth,
+  requireAdmin,
   asyncHandler(async (req, res) => {
     const data = companyInputSchema.parse(req.body)
     const existing = await loadSetting()

@@ -35,6 +35,23 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+/**
+ * 토큰이 있으면 검증해 req.user 를 채우고, 없거나 잘못됐으면 그냥 통과시킨다.
+ * 공개 목록·상세에서 '로그인한 관리자면 비공개 것도 보여 준다' 를 판단할 때 쓴다.
+ * (헤더가 붙어 있는지만 보면 아무 문자열로도 비공개 자료가 새어 나가므로 반드시 검증한다.)
+ */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization
+  if (header?.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(header.slice(7), env.jwtSecret) as unknown as AuthPayload
+    } catch {
+      // 잘못된 토큰은 없는 것으로 본다 — 공개 자료는 그대로 보여 준다.
+    }
+  }
+  next()
+}
+
 /** ADMIN 역할만 통과시킨다. requireAuth 뒤에 사용한다. */
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (req.user?.role !== 'ADMIN') {

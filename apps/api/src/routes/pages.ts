@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { optionalAuth, requireAuth } from '../lib/auth.js'
 
 export const pagesRouter = Router()
 
@@ -174,9 +174,10 @@ async function currentAuthor(userId: number, email: string) {
  */
 pagesRouter.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const { page, pageSize, status, sort, field, q } = listQuerySchema.parse(req.query)
-    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.headers.authorization)
+    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const search = q
       ? field === 'title'
@@ -260,10 +261,11 @@ pagesRouter.get(
 /** slug 로 조회 — 공개 사이트가 쓴다. */
 pagesRouter.get(
   '/slug/:slug',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const page = await prisma.page.findUnique({ where: { slug: req.params.slug } })
     if (!page) return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
-    if (!page.published && !req.headers.authorization) {
+    if (!page.published && !req.user) {
       return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
     }
 

@@ -9,12 +9,16 @@ export const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads')
 
 if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true })
 
+/**
+ * 올릴 수 있는 이미지 형식.
+ * SVG 는 받지 않는다 — 안에 스크립트를 담을 수 있고, 같은 도메인에서 열리면
+ * 관리자 화면을 노리는 공격에 쓰일 수 있다. 로고처럼 꼭 필요하면 PNG·WEBP 로 올린다.
+ */
 const ALLOWED = new Map([
   ['image/jpeg', '.jpg'],
   ['image/png', '.png'],
   ['image/webp', '.webp'],
   ['image/gif', '.gif'],
-  ['image/svg+xml', '.svg'],
 ])
 
 const upload = multer({
@@ -29,7 +33,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED.has(file.mimetype)) {
-      return cb(new Error('이미지 파일(JPG, PNG, WEBP, GIF, SVG)만 업로드할 수 있습니다.'))
+      return cb(new Error('이미지 파일(JPG, PNG, WEBP, GIF)만 업로드할 수 있습니다. SVG 는 보안상 받지 않습니다.'))
     }
     cb(null, true)
   },
@@ -56,7 +60,7 @@ const uploadFile = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_FILE.has(file.mimetype)) {
-      return cb(new Error('JPG, PNG, WEBP, GIF, SVG, PDF, ZIP 파일만 올릴 수 있습니다.'))
+      return cb(new Error('JPG, PNG, WEBP, GIF, PDF, ZIP 파일만 올릴 수 있습니다. SVG 는 보안상 받지 않습니다.'))
     }
     cb(null, true)
   },

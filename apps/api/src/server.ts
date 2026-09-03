@@ -28,7 +28,19 @@ app.use(cors({ origin: env.corsOrigin }))
 app.use(express.json({ limit: '10mb' }))
 
 // 업로드된 이미지를 정적으로 서빙한다.
-app.use('/uploads', express.static(UPLOAD_DIR))
+// 확장자와 다른 내용이 실행되지 않도록 nosniff 를 붙이고,
+// 예전에 올라간 SVG 가 열리더라도 스크립트가 돌지 않도록 가둬 둔다.
+app.use(
+  '/uploads',
+  express.static(UPLOAD_DIR, {
+    setHeaders: (res, filePath) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff')
+      if (filePath.toLowerCase().endsWith('.svg')) {
+        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+      }
+    },
+  }),
+)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRouter)

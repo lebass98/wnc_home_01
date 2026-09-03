@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
-import { requireAuth } from '../lib/auth.js'
+import { optionalAuth, requireAuth } from '../lib/auth.js'
 
 export const productsRouter = Router()
 
@@ -84,9 +84,10 @@ async function categoryWithDescendants(rootId: number): Promise<number[]> {
 
 productsRouter.get(
   '/',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const { page, pageSize, category, q, sort } = listQuerySchema.parse(req.query)
-    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.headers.authorization)
+    const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const categoryIds = category ? await categoryWithDescendants(category) : null
 
@@ -134,6 +135,7 @@ productsRouter.get(
 
 productsRouter.get(
   '/:id',
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
@@ -143,7 +145,7 @@ productsRouter.get(
       include: { category: { select: { name: true } } },
     })
     if (!product) return res.status(404).json({ message: '제품을 찾을 수 없습니다.' })
-    if (!product.published && !req.headers.authorization) {
+    if (!product.published && !req.user) {
       return res.status(404).json({ message: '제품을 찾을 수 없습니다.' })
     }
 

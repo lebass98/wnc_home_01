@@ -86,7 +86,7 @@ export default function MobileNavDrawer({
   if (!mounted) return null
 
   return (
-    <div className="fixed inset-0 z-[65] md:hidden" role="dialog" aria-modal aria-label="메뉴">
+    <div className="fixed inset-0 z-[65] gnb:hidden" role="dialog" aria-modal aria-label="메뉴">
       {/* 색이 깔린 판 — 오른쪽에서 밀려 들어오며 서서히 나타난다. */}
       <div
         ref={panelRef}

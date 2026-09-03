@@ -147,7 +147,7 @@ export default function SiteLayout() {
         <div
           aria-hidden={!megaOpen}
           style={{ height: megaOpen ? `${megaHeight}rem` : 0 }}
-          className={`absolute inset-x-0 top-full hidden overflow-hidden transition-[height] duration-200 ease-in-out md:block ${
+          className={`absolute inset-x-0 top-full hidden overflow-hidden transition-[height] duration-200 ease-in-out gnb:block ${
             transparent ? 'bg-black/70 backdrop-blur-sm' : 'border-b border-slate-200 bg-white/95 shadow-lg backdrop-blur'
           }`}
         />
@@ -167,7 +167,7 @@ export default function SiteLayout() {
             1차 메뉴 — 참고 템플릿처럼 각 열(li)의 높이가 헤더 높이에서 판 높이만큼 늘어나며
             아래에 있던 2차 메뉴가 드러난다. 열은 넘치는 부분을 잘라 두어 닫혀 있을 땐 보이지 않는다.
           */}
-          <nav className="hidden h-full items-start gap-0 self-start md:flex" onMouseEnter={() => setMegaOpen(true)}>
+          <nav className="hidden h-full items-start gap-0 self-start gnb:flex" onMouseEnter={() => setMegaOpen(true)}>
             {menu.map((item) => (
               <div
                 key={item.id}
@@ -177,7 +177,7 @@ export default function SiteLayout() {
                 <MenuLink
                   item={item}
                   className={({ isActive }) =>
-                    `relative flex h-[4.5rem] items-center px-[31px] text-[1.05rem] font-semibold tracking-tight transition ${
+                    `relative flex h-[4.5rem] items-center whitespace-nowrap px-[31px] text-[1.05rem] font-semibold tracking-tight transition ${
                       transparent
                         ? isActive
                           ? 'text-white'
@@ -200,7 +200,7 @@ export default function SiteLayout() {
 
                 {/* 2차 메뉴 — 열이 늘어나면서 위에서부터 드러난다. */}
                 {item.children.length > 0 && (
-                  <ul className="absolute left-0 top-[4.5rem] flex w-48 flex-col gap-2.5 px-[31px] pt-5">
+                  <ul className="absolute left-0 top-[4.5rem] flex w-48 flex-col gap-2.5 whitespace-nowrap px-[31px] pt-5">
                     {item.children.map((child) => (
                       <li key={child.id}>
                         <MenuLink
@@ -249,7 +249,7 @@ export default function SiteLayout() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className={`-mr-1 rounded-lg p-2 md:hidden ${
+            className={`-mr-1 rounded-lg p-2 gnb:hidden ${
               transparent ? 'text-white hover:bg-white/15' : 'text-slate-600 hover:bg-slate-100'
             }`}
             aria-label="메뉴 열기"

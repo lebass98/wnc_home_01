@@ -36,6 +36,11 @@ export default {
         /* 사이트 전체 콘텐츠 최대 폭 */
         site: '1440px',
       },
+      screens: {
+        /* GNB 가 펼쳐지는 최소 폭. 메뉴 5개 + 언어·팝업·사이트맵이 온전히 서려면
+           약 1280px 이 필요해, 그 아래(태블릿 포함)는 햄버거 메뉴를 쓴다. */
+        gnb: '1280px',
+      },
       /* 사이트 전체 글꼴은 프리텐다드로 통일한다. mono 도 프리텐다드로 묶어 다른 글꼴이 끼어들지 않게 한다. */
       fontFamily: {
         sans: ['Pretendard Variable', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],

@@ -65,8 +65,10 @@ export function layoutComponent(key: string): ComponentType<SubLayoutProps> {
 export interface SiteHeaderProps {
   /** GNB 에 보일 1차 메뉴 (2차 포함) */
   menu: SiteMenuLink[]
-  /** 로고 글자 */
+  /** 로고 글자 — 로고 이미지가 없을 때 쓴다. */
   logo: string
+  /** [환경설정]에서 올린 사이트 타이틀 이미지. 있으면 글자 대신 이 그림을 건다. */
+  logoImage?: string | null
   /** 어두운 히어로 위에 투명하게 얹힌 상태 — 스크롤을 내리면 꺼진다. */
   transparent: boolean
   /** 햄버거를 눌렀을 때 — 모바일 메뉴 판을 연다. */

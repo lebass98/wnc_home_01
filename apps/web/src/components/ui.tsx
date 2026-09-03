@@ -274,11 +274,14 @@ export function ToggleSwitch({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean
   onChange: (checked: boolean) => void
   /** 화면에 글자가 따로 있을 때 스크린리더용으로 쓴다. */
   label: string
+  /** 아직 쓸 수 없는 설정을 잠가 둘 때 */
+  disabled?: boolean
 }) {
   return (
     <button
@@ -286,10 +289,11 @@ export function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 shrink-0 rounded-full transition ${
         checked ? 'bg-brand-600' : 'bg-slate-300 dark:bg-slate-600'
-      }`}
+      } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       <span
         className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${

@@ -9,7 +9,7 @@ import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 // 편집기는 무거우므로 필요할 때 내려받는다 (제품·페이지·팝업 편집과 같은 방식).
 const RichEditor = lazy(() => import('../../components/RichEditor'))
 
-const EMPTY: PostInput = { category: '', title: '', content: '', thumbnail: null, published: true }
+const EMPTY: PostInput = { category: '', title: '', content: '', thumbnail: null, subCategory: null, published: true }
 
 export default function PostEditPage() {
   const boards = useBoards(true)
@@ -31,6 +31,7 @@ export default function PostEditPage() {
           title: post.title,
           content: post.content,
           thumbnail: post.thumbnail,
+          subCategory: post.subCategory,
           published: post.published,
         }),
       )
@@ -40,6 +41,19 @@ export default function PostEditPage() {
 
   function set<K extends keyof PostInput>(key: K, value: PostInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  /** 지금 고른 게시판에 정해 둔 글 분류 — 없으면 분류 칸을 그리지 않는다. */
+  const subCategories = boards.find((b) => b.slug === form.category)?.categories ?? []
+
+  /** 게시판을 바꾸면 그 게시판에 없는 분류는 비운다. */
+  function setBoard(slug: string) {
+    const next = boards.find((b) => b.slug === slug)?.categories ?? []
+    setForm((prev) => ({
+      ...prev,
+      category: slug as BoardCategory,
+      subCategory: prev.subCategory && next.includes(prev.subCategory) ? prev.subCategory : null,
+    }))
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -88,7 +102,7 @@ export default function PostEditPage() {
                 id="category"
                 required
                 value={form.category}
-                onChange={(e) => set('category', e.target.value as BoardCategory)}
+                onChange={(e) => setBoard(e.target.value)}
                 className="select"
               >
                 <option value="">게시판 선택</option>
@@ -115,6 +129,28 @@ export default function PostEditPage() {
               />
             </div>
           </div>
+
+          {/* 글 분류 — [게시판 관리]에서 그 게시판에 분류를 정해 둔 경우에만 나온다. */}
+          {subCategories.length > 0 && (
+            <div className="sm:max-w-[12rem]">
+              <label htmlFor="subCategory" className="label">
+                분류
+              </label>
+              <select
+                id="subCategory"
+                value={form.subCategory ?? ''}
+                onChange={(e) => set('subCategory', e.target.value || null)}
+                className="select"
+              >
+                <option value="">분류 없음</option>
+                {subCategories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* 대표 이미지 — 카드형·갤러리형 게시판 목록에 그림으로 걸린다. */}
           <ThumbnailInput

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { Paginated, Post, PostListItem } from '@wnc/shared'
-import { boardName, useBoards } from '../../lib/boards'
+import { boardName, showViewsOf, useBoards } from '../../lib/boards'
 import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import SubPage from '../../components/SubPage'
@@ -102,9 +102,12 @@ export default function PostDetailPage() {
                   <span>
                     등록일 <span className="ml-1 tabular-nums text-slate-900">{formatDate(post.createdAt)}</span>
                   </span>
-                  <span>
-                    조회 <span className="ml-1 tabular-nums text-slate-900">{post.views}</span>
-                  </span>
+                  {/* 조회수는 [게시판 관리]의 '조회수 표시' 를 켠 게시판에서만 보여 준다. */}
+                  {showViewsOf(boards, post.category) && (
+                    <span>
+                      조회 <span className="ml-1 tabular-nums text-slate-900">{post.views}</span>
+                    </span>
+                  )}
                 </Reveal>
               </header>
 

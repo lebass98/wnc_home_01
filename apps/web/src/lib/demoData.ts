@@ -68,6 +68,8 @@ export function createDemoPosts(): DemoPost[] {
     content: `${content}\n\n자세한 내용은 담당자에게 문의해 주시기 바랍니다.\n감사합니다.`,
     // 대표 이미지는 비워 둔다 — 카드형·갤러리형 목록은 기본 배경으로 그려진다.
     thumbnail: null,
+    // 게시판에 분류를 정해 두지 않았으므로 비워 둔다.
+    subCategory: null,
     // 마지막 한 건은 임시저장 상태로 둔다.
     published: i !== POST_SEED.length - 1,
     views: ((i * 37) % 280) + 20,

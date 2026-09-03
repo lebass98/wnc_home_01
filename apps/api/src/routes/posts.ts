@@ -18,6 +18,13 @@ const postInputSchema = z.object({
     .max(2000, '이미지 주소가 너무 깁니다.')
     .nullish()
     .transform((v) => v || null),
+  /** 글 분류 — 게시판에 정해 둔 분류 중 하나. 저장 전에 실제로 있는 분류인지 확인한다. */
+  subCategory: z
+    .string()
+    .trim()
+    .max(40, '분류 이름이 너무 깁니다.')
+    .nullish()
+    .transform((v) => v || null),
   published: z.boolean(),
 })
 
@@ -25,13 +32,32 @@ const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   category: z.string().trim().min(1).max(40).optional(),
+  /** 게시판 안의 글 분류로 거른다. */
+  subCategory: z.string().trim().min(1).max(40).optional(),
   q: z.string().trim().min(1).optional(),
 })
 
-/** 없는 게시판으로 글을 저장하지 못하게 막는다. */
-async function assertBoardExists(slug: string) {
+/**
+ * 없는 게시판으로 글을 저장하지 못하게 막고,
+ * 글 분류도 그 게시판에 정해 둔 것 중 하나인지 확인한다.
+ */
+async function assertBoardExists(slug: string, subCategory?: string | null) {
   const board = await prisma.board.findUnique({ where: { slug } })
   if (!board) throw Object.assign(new Error('없는 게시판입니다.'), { status: 400 })
+
+  if (!subCategory) return
+  let list: string[] = []
+  try {
+    list = JSON.parse(board.categories) as string[]
+  } catch {
+    list = []
+  }
+  if (!list.includes(subCategory)) {
+    throw Object.assign(
+      new Error(`'${subCategory}' 는 이 게시판의 분류가 아닙니다. [게시판 관리]에서 분류를 먼저 추가하세요.`),
+      { status: 400 },
+    )
+  }
 }
 
 type PostWithAuthor = { author: { name: string } } & Record<string, any>
@@ -53,6 +79,7 @@ function toListItem(post: PostWithAuthor) {
     title: post.title,
     excerpt: excerptOf(post.content),
     thumbnail: post.thumbnail ?? null,
+    subCategory: post.subCategory ?? null,
     published: post.published,
     views: post.views,
     authorName: post.author.name,
@@ -72,12 +99,13 @@ postsRouter.get(
   '/',
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { page, pageSize, category, q } = listQuerySchema.parse(req.query)
+    const { page, pageSize, category, subCategory, q } = listQuerySchema.parse(req.query)
     const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const where = {
       ...(includeDrafts ? {} : { published: true }),
       ...(category ? { category } : {}),
+      ...(subCategory ? { subCategory } : {}),
       ...(q ? { OR: [{ title: { contains: q } }, { content: { contains: q } }] } : {}),
     }
 
@@ -133,7 +161,7 @@ postsRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const data = postInputSchema.parse(req.body)
-    await assertBoardExists(data.category)
+    await assertBoardExists(data.category, data.subCategory)
 
     const post = await prisma.post.create({
       data: { ...data, authorId: req.user!.sub },
@@ -151,7 +179,7 @@ postsRouter.put(
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
 
     const data = postInputSchema.parse(req.body)
-    await assertBoardExists(data.category)
+    await assertBoardExists(data.category, data.subCategory)
 
     const existing = await prisma.post.findUnique({ where: { id } })
     if (!existing) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })

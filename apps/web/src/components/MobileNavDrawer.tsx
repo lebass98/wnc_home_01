@@ -52,6 +52,7 @@ export default function MobileNavDrawer({
   open,
   menu,
   logo,
+  logoImage,
   onClose,
   onOpenSitemap,
 }: {
@@ -60,6 +61,8 @@ export default function MobileNavDrawer({
   menu: SiteMenuLink[]
   /** 판 위쪽에 보여 줄 로고 글자 */
   logo: string
+  /** [환경설정]에서 올린 사이트 타이틀 이미지 */
+  logoImage?: string | null
   onClose: () => void
   onOpenSitemap: () => void
 }) {
@@ -96,8 +99,12 @@ export default function MobileNavDrawer({
       >
         {/* 로고 · 닫기 — 상단 메뉴와 같은 높이에 둔다. */}
         <div className="flex h-[4.5rem] items-center justify-between px-5">
-          <Link to="/" onClick={onClose} className="text-lg font-bold tracking-[0.25em] text-white">
-            {logo}
+          <Link to="/" onClick={onClose} aria-label={logo}>
+            {logoImage ? (
+              <img src={logoImage} alt={logo} className="h-7 w-auto max-w-[11rem] object-contain" />
+            ) : (
+              <span className="text-lg font-bold tracking-[0.25em] text-white">{logo}</span>
+            )}
           </Link>
           <button
             type="button"

@@ -7,7 +7,13 @@ import type { SiteHeaderProps } from './index'
  * 센터 헤더 — 위 줄 가운데에 로고, 아래 줄 가운데에 1차 메뉴 두 줄 구성.
  * 2차 메뉴는 각 항목 아래 드롭다운 카드로 열린다. 좁은 화면은 기본 헤더처럼 한 줄 + 햄버거다.
  */
-export default function CenterHeader({ menu, logo, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
+/** 로고 — 타이틀 이미지를 올렸으면 그림을, 없으면 글자를 건다. */
+function Logo({ logo, logoImage, className }: { logo: string; logoImage?: string | null; className: string }) {
+  if (logoImage) return <img src={logoImage} alt={logo} className="h-8 w-auto max-w-[13rem] object-contain" />
+  return <span className={className}>{logo}</span>
+}
+
+export default function CenterHeader({ menu, logo, logoImage, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   return (
     <header
       style={{ top: 'var(--demo-banner-h)' }}
@@ -20,8 +26,12 @@ export default function CenterHeader({ menu, logo, transparent, onOpenMobile, on
       {/* 넓은 화면 — 로고 줄 */}
       <div className="hidden gnb:block">
         <div className="relative flex h-[4.5rem] items-center justify-center px-7">
-          <Link to="/" className={`text-2xl font-bold tracking-[0.3em] ${transparent ? 'text-white' : 'text-slate-900'}`}>
-            {logo}
+          <Link to="/" aria-label={logo}>
+            <Logo
+              logo={logo}
+              logoImage={logoImage}
+              className={`text-2xl font-bold tracking-[0.3em] ${transparent ? 'text-white' : 'text-slate-900'}`}
+            />
           </Link>
           {/* 오른쪽 — 언어 선택 · 팝업 다시 열기 · 사이트맵 */}
           <div className="absolute right-7 flex items-center gap-4">
@@ -107,8 +117,12 @@ export default function CenterHeader({ menu, logo, transparent, onOpenMobile, on
 
       {/* 좁은 화면 — 로고 왼쪽 + 햄버거 한 줄 */}
       <div className="flex h-[4.5rem] items-center justify-between px-3 sm:px-4 gnb:hidden">
-        <Link to="/" className={`text-xl font-bold tracking-[0.25em] ${transparent ? 'text-white' : 'text-slate-900'}`}>
-          {logo}
+        <Link to="/" aria-label={logo}>
+          <Logo
+            logo={logo}
+            logoImage={logoImage}
+            className={`text-xl font-bold tracking-[0.25em] ${transparent ? 'text-white' : 'text-slate-900'}`}
+          />
         </Link>
         <button
           type="button"

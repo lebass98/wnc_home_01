@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Board, BoardCategory, BoardType, Paginated, PostListItem } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
-import { boardName, useBoards } from '../../lib/boards'
+import { boardDescription, boardName, showViewsOf, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
 import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
@@ -55,17 +55,23 @@ function BasicTable({
   showBoard,
   onOpen,
 }: Omit<ListProps, 'items'> & { data: Paginated<PostListItem>; onOpen: (id: number) => void }) {
+  // 조회수를 보여 주는 게시판이 하나도 없으면 '조회' 열 자체를 없앤다.
+  // (전체 탭처럼 여러 게시판이 섞이면 열은 두고, 끈 게시판의 칸만 비운다.)
+  const anyViews = data.items.some((p) => showViewsOf(boards, p.category))
+  // 게시판 하나를 보고 있고 그 안에 분류가 쓰이면 '분류' 열에 글 분류를 보여 준다.
+  const showSub = !showBoard && data.items.some((p) => p.subCategory)
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-center text-[0.95rem]">
         <thead>
           <tr className="h-14 border-b-2 border-slate-900 text-sm font-medium text-slate-900">
             <th className="w-20 font-medium">번호</th>
-            {showBoard && <th className="w-28 font-medium">분류</th>}
+            {(showBoard || showSub) && <th className="w-28 font-medium">분류</th>}
             <th className="text-left font-medium">제목</th>
             <th className="w-24 font-medium">작성자</th>
             <th className="w-36 font-medium">등록일</th>
-            <th className="w-20 font-medium">조회</th>
+            {anyViews && <th className="w-20 font-medium">조회</th>}
           </tr>
         </thead>
         <tbody>
@@ -76,7 +82,11 @@ function BasicTable({
               className="group h-20 cursor-pointer border-b border-slate-200 font-light text-slate-800 transition hover:bg-slate-50"
             >
               <td className="tabular-nums text-slate-500">{data.total - ((data.page - 1) * data.pageSize + i)}</td>
-              {showBoard && <td className="text-sm text-mint-600">{boardName(boards, post.category)}</td>}
+              {showBoard ? (
+                <td className="text-sm text-mint-600">{boardName(boards, post.category)}</td>
+              ) : (
+                showSub && <td className="text-sm text-mint-600">{post.subCategory ?? '-'}</td>
+              )}
               <td className="text-left">
                 <span className="line-clamp-1 font-normal text-slate-900 transition group-hover:text-mint-700">
                   {post.title}
@@ -84,7 +94,11 @@ function BasicTable({
               </td>
               <td className="text-slate-600">{post.authorName}</td>
               <td className="tabular-nums text-slate-500">{formatDate(post.createdAt)}</td>
-              <td className="tabular-nums text-slate-500">{post.views}</td>
+              {anyViews && (
+                <td className="tabular-nums text-slate-500">
+                  {showViewsOf(boards, post.category) ? post.views : ''}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -115,7 +129,7 @@ function CardList({ items, boards, showBoard }: ListProps) {
               <p className="mt-3 line-clamp-2 text-[0.95rem] leading-[1.8] text-slate-600">{post.excerpt}</p>
               <div className="mt-auto flex items-center gap-4 pt-5 tabular-nums text-sm text-slate-400">
                 <span>{formatDate(post.createdAt)}</span>
-                <span>조회 {post.views}</span>
+                {showViewsOf(boards, post.category) && <span>조회 {post.views}</span>}
               </div>
             </div>
           </Link>
@@ -167,15 +181,22 @@ export default function BoardPage() {
   // 상단 탭 — 전체와 노출 중인 게시판들. 하나씩 들어가 보는 구조라 탭마다 주소가 다르다.
   const tabs = [
     { to: '/board', label: '전체', active: category === '' },
-    ...boards.map((b) => ({ to: `/board?category=${b.slug}`, label: b.name, active: category === b.slug })),
+    // 탭 이름도 [게시판 관리]에 넣어 둔 언어별 이름을 따른다.
+    ...boards.map((b) => ({
+      to: `/board?category=${b.slug}`,
+      label: boardName(boards, b.slug),
+      active: category === b.slug,
+    })),
   ]
 
   // 게시판을 고르지 않았으면 '게시판 목록', 골랐으면 '게시판 글 목록' 템플릿을 쓴다.
   useBoardSeo(category ? 'board' : 'list', {
-    board_name: current?.name,
-    board_description: current?.description ?? undefined,
+    board_name: current ? boardName(boards, current.slug) : undefined,
+    board_description: current ? boardDescription(current) || undefined : undefined,
   })
   const page = Number(searchParams.get('page') ?? 1)
+  /** 게시판 안의 글 분류 — [게시판 관리]에서 분류를 정해 둔 게시판에서만 쓴다. */
+  const sub = searchParams.get('sub') ?? ''
   const q = searchParams.get('q') ?? ''
   const scope = searchParams.get('scope') ?? 'all'
 
@@ -191,12 +212,18 @@ export default function BoardPage() {
   useEffect(() => {
     setLoading(true)
     api<Paginated<PostListItem>>(
-      `/posts${qs({ page, pageSize: PAGE_SIZE, category: category || undefined, q: q || undefined })}`,
+      `/posts${qs({
+        page,
+        pageSize: PAGE_SIZE,
+        category: category || undefined,
+        subCategory: sub || undefined,
+        q: q || undefined,
+      })}`,
     )
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [page, category, q])
+  }, [page, category, sub, q])
 
   /** 탭·검색·페이지를 하나의 쿼리스트링으로 관리한다. */
   function update(next: Record<string, string>) {
@@ -211,9 +238,10 @@ export default function BoardPage() {
   const key = current?.slug ?? 'all'
   // 전체 탭은 여러 게시판이 섞이므로 기본형(표)으로 보여 준다.
   const type: BoardType = current?.type ?? 'basic'
-  const title = current ? [current.name] : ['워드앤코드의', '새로운 소식']
+  const title = current ? [boardName(boards, current.slug)] : ['워드앤코드의', '새로운 소식']
   const desc =
-    current?.description ?? '공지사항과 새로운 소식, 언론에 보도된 이야기를 한자리에서 전해 드립니다.'
+    (current && boardDescription(current)) ||
+    '공지사항과 새로운 소식, 언론에 보도된 이야기를 한자리에서 전해 드립니다.'
 
   return (
     <>
@@ -287,6 +315,30 @@ export default function BoardPage() {
               </button>
             </form>
           </div>
+
+          {/* 분류 — [게시판 관리]에서 이 게시판에 분류를 정해 뒀을 때만 나온다. */}
+          {current && current.categories.length > 0 && (
+            <nav aria-label="글 분류" className="mt-6 flex flex-wrap gap-2">
+              {['', ...current.categories].map((c) => {
+                const on = sub === c
+                return (
+                  <button
+                    key={c || 'all'}
+                    type="button"
+                    onClick={() => update({ sub: c, page: '' })}
+                    aria-current={on ? 'true' : undefined}
+                    className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                      on
+                        ? 'border-slate-900 bg-slate-900 font-semibold text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-900 hover:text-slate-900'
+                    }`}
+                  >
+                    {c || '전체'}
+                  </button>
+                )
+              })}
+            </nav>
+          )}
 
           {/* 목록 — 게시판 유형에 따라 기본형(표)·카드형·갤러리형으로 다르게 보여 준다. */}
           <div className="mt-10">

@@ -316,18 +316,21 @@ export default function BoardEditPage() {
                     onChange={(v) => set('categories', v)}
                   />
                   <p className="mt-2 text-sm text-amber-600 dark:text-amber-500">
-                    분류를 삭제해도 해당 분류의 게시글은 유지되며, &lsquo;미분류&rsquo; 필터에서 조회할 수
-                    있습니다.
+                    여기에 넣은 분류는 글 작성 화면의 [분류] 칸과 홈페이지 목록의 분류 단추가 됩니다.
+                    분류를 지워도 그 분류로 저장된 글은 그대로 남습니다.
                   </p>
                 </Row>
 
+                {/* 비밀글은 아직 홈페이지 쪽 동작이 없다 — 켜도 달라지는 게 없어 잠가 둔다. */}
                 <Row
-                  title={t('board.form.secretMode')}
+                  title={`${t('board.form.secretMode')} (준비 중)`}
+                  description="글에 비밀번호를 걸어 작성자와 관리자만 열어 보는 기능입니다. 홈페이지 쪽 동작을 아직 만들지 않아 지금은 고를 수 없습니다."
                   control={
                     <select
                       value={form.secretMode}
+                      disabled
                       onChange={(e) => set('secretMode', e.target.value as SecretMode)}
-                      className="input w-40"
+                      className="input w-40 cursor-not-allowed opacity-50"
                       aria-label={t('board.form.secretMode')}
                     >
                       {SECRET_MODES.map((m) => (
@@ -351,14 +354,16 @@ export default function BoardEditPage() {
                   }
                 />
 
+                {/* 신고도 마찬가지 — 접수 화면([게시판 신고현황])이 아직 비어 있다. */}
                 <Row
-                  title={t('board.form.useReport')}
-                  description={t('board.form.useReportHint')}
+                  title={`${t('board.form.useReport')} (준비 중)`}
+                  description="방문자가 부적절한 글을 신고하는 기능입니다. 접수·처리 화면을 아직 만들지 않아 지금은 켤 수 없습니다."
                   control={
                     <ToggleSwitch
                       checked={form.useReport}
                       onChange={(v) => set('useReport', v)}
                       label={t('board.form.useReport')}
+                      disabled
                     />
                   }
                 />

@@ -16,7 +16,8 @@ import MobileNavDrawer from './MobileNavDrawer'
 export default function SiteLayout() {
   useSiteSeo()
   // 푸터 회사 정보 — 설정을 받기 전에는 기본값으로 그린다.
-  const company = useSiteSetting() ?? DEFAULT_COMPANY
+  const setting = useSiteSetting()
+  const company = setting ?? DEFAULT_COMPANY
   const design = useSiteDesign()
   const [open, setOpen] = useState(false)
   const [sitemapOpen, setSitemapOpen] = useState(false)
@@ -27,6 +28,8 @@ export default function SiteLayout() {
   const menu = pickMenu(siteMenu, 'gnb')
   const footerMenu = pickMenu(siteMenu, 'footer')
   const logo = company.companyNameEn || company.companyName
+  // [환경설정]의 '사이트 타이틀 이미지' 를 올렸으면 헤더 로고로 그 그림을 쓴다.
+  const logoImage = setting?.titleImage ?? null
 
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
@@ -69,12 +72,14 @@ export default function SiteLayout() {
         open={open}
         menu={menu}
         logo={logo}
+        logoImage={logoImage}
         onClose={() => setOpen(false)}
         onOpenSitemap={() => setSitemapOpen(true)}
       />
       <Header
         menu={menu}
         logo={logo}
+        logoImage={logoImage}
         transparent={transparent}
         onOpenMobile={() => setOpen(true)}
         onOpenSitemap={() => setSitemapOpen(true)}

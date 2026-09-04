@@ -41,17 +41,59 @@
     padding: 1px;
     border-radius: inherit;
     pointer-events: none;
+    /* 밝은 띠가 두 번 지나가는 그러데이션. 폭을 3배로 두고 자리를 옮겨 흐르게 만든다. */
     background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.4) 0%,
-      rgba(255, 255, 255, 0.04) 40%,
-      rgba(255, 255, 255, 0.04) 60%,
-      rgba(255, 255, 255, 0.4) 100%
+      115deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.45) 12%,
+      rgba(255, 255, 255, 0.05) 26%,
+      rgba(255, 255, 255, 0.05) 60%,
+      rgba(255, 255, 255, 0.55) 72%,
+      rgba(255, 255, 255, 0.05) 86%
     );
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    transition: background-position 900ms ease;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
+  }
+  /* 올리면 띠가 테두리를 따라 흘러 빛이 스치는 것처럼 보인다. */
+  .border-gradient:hover::before {
+    background-position: 0% 0;
+  }
+  /* 올리면 표면에도 빛 한 줄이 스쳐 지나간다. 테두리 흐름과 같은 시간으로 맞춘다. */
+  .border-gradient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.28) 50%,
+      transparent 65%
+    );
+    background-size: 250% 100%;
+    background-position: 120% 0;
+    transition: background-position 900ms ease, opacity 300ms ease;
+  }
+  .border-gradient:hover::after {
+    opacity: 1;
+    background-position: -20% 0;
+  }
+  /* 움직임을 줄이도록 설정한 사용자에게는 흐르지 않게 한다. */
+  @media (prefers-reduced-motion: reduce) {
+    .border-gradient::before,
+    .border-gradient::after {
+      transition: none;
+    }
+    .border-gradient:hover::after {
+      opacity: 0;
+    }
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition

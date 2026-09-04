@@ -89,9 +89,10 @@ export default function PageHero({
   const currentEyebrow = eyebrow !== undefined ? eyebrow : autoMeta.eyebrow
 
   return (
-    <section className="relative z-20 min-h-[320px] overflow-hidden bg-slate-950 sm:min-h-[360px]">
-      {/* 서브 비주얼 배경 이미지 및 다층 오버레이 — 어떤 해상도에서도 화면 폭에 꽉 차게 비율 유지 */}
-      <div className="absolute inset-0 z-0">
+    <section className="relative z-20 min-h-[320px] bg-slate-950 sm:min-h-[360px]">
+      {/* 서브 비주얼 배경 이미지 및 다층 오버레이 — 어떤 해상도에서도 화면 폭에 꽉 차게 비율 유지.
+          자르기(overflow-hidden)는 이 상자에만 둔다. 히어로에 두면 길 안내의 펼친 판까지 잘린다. */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
         <img
           src={currentBgImage}
           alt=""

@@ -54,6 +54,7 @@ export default function CustomPage({
     title: page ? page.metaTitle || title : null,
     description: page ? page.metaDescription || page.description : null,
     image: page?.ogImage ?? null,
+    keywords: page?.metaKeywords ?? null,
   })
 
   useEffect(() => {

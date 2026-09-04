@@ -204,8 +204,9 @@ export default function PopupEditPage() {
 
   if (loading) return <Loading />
 
-  // 일반 윈도우 팝업은 브라우저 창으로 열려 화면 안 위치를 우리가 정하지 않는다.
-  const usesPosition = form.windowType !== 'window'
+  // 위치는 '일반 윈도우' 로 열 때만 쓰인다 — 브라우저 창을 그 자리에 띄운다.
+  // 고정·이동 레이어는 홈페이지에서 화면 가운데 묶음으로 나란히 뜨므로 위치 값을 쓰지 않는다.
+  const usesPosition = form.windowType === 'window'
 
   return (
     <>
@@ -342,7 +343,8 @@ export default function PopupEditPage() {
             </div>
             {!usesPosition && (
               <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                일반 윈도우 팝업창은 브라우저가 위치를 정하므로 이 값은 쓰이지 않습니다.
+                고정 레이어·이동 가능한 레이어는 화면 가운데에 묶음으로 나란히 떠서 이 값을 쓰지 않습니다. 창 형태를 '일반 윈도우'
+                로 두면 그 자리에 창을 띄웁니다.
               </p>
             )}
           </Row>

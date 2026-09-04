@@ -182,6 +182,9 @@ function GeneralForm({ setting }: { setting: SiteSetting }) {
           <label htmlFor="adminEmail" className="label">
             관리자 이메일 <span className="text-red-500">*</span>
           </label>
+          <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
+            [문의 관리]에서 '이메일 답장'을 누르면 이 주소를 참조(cc)로 넣어 답장 사본이 함께 남습니다.
+          </p>
           <input
             id="adminEmail"
             required

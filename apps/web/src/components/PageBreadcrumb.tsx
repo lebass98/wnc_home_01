@@ -65,7 +65,7 @@ export function useCrumbs(title: string): Crumb[] {
 function Caret({ open }: { open: boolean }) {
   return (
     <svg
-      className={`absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white transition-transform ${
+      className={`absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition-transform ${
         open ? 'rotate-180' : ''
       }`}
       fill="currentColor"
@@ -77,9 +77,12 @@ function Caret({ open }: { open: boolean }) {
   )
 }
 
-/** 한 칸 — 집을 뺀 나머지는 모두 이 폭·글자 모양을 쓴다. */
-const CELL = 'relative h-12 w-full px-4 text-left transition-colors duration-200 hover:bg-white/10'
-const LABEL = 'block w-full truncate text-sm font-bold tracking-tight text-white'
+/**
+ * 한 칸 — 집을 뺀 나머지는 모두 이 폭·글자 모양을 쓴다.
+ * 칸에는 올렸을 때 바뀌는 효과를 두지 않는다. 눌러서 판이 열리는 것만으로 충분하다.
+ */
+const CELL = 'relative h-12 w-full px-4 text-left'
+const LABEL = 'block w-full truncate text-sm font-bold tracking-tight text-slate-800'
 
 export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
   const [open, setOpen] = useState(-1)
@@ -107,7 +110,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
   return (
     <nav ref={ref} aria-label="현재 위치" className="flex w-full justify-center">
       {/* 바탕은 고른 반투명 한 겹, 테두리만 그러데이션(.border-gradient) 이다 */}
-      <div className="border-gradient relative w-full max-w-full rounded-lg bg-white/[0.07] backdrop-blur-md sm:w-auto">
+      <div className="border-gradient relative w-full max-w-full rounded-lg bg-white/80 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-md sm:w-auto">
         <div className="flex h-12">
           {crumbs.map((crumb, i) => {
             const isOpen = open === i
@@ -119,7 +122,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                   key="home"
                   to={crumb.to ?? '/'}
                   aria-label={crumb.label}
-                  className="mx-2 flex h-12 w-12 shrink-0 items-center justify-center text-white/90 transition hover:text-white"
+                  className="mx-2 flex h-12 w-12 shrink-0 items-center justify-center text-slate-700"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 11l9-8 9 8M5.5 9.5V20h13V9.5M10 20v-6h4v6" />
@@ -130,7 +133,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
             // 칸 하나 — 왼쪽에 세로 실선을 둔다
             const cell =
-              'relative min-w-0 flex-1 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-px before:-translate-y-1/2 before:bg-white/25 sm:w-60 sm:flex-none'
+              'relative min-w-0 flex-1 before:absolute before:left-0 before:top-1/2 before:h-6 before:w-px before:-translate-y-1/2 before:bg-slate-300 sm:w-60 sm:flex-none'
 
             // 고를 것이 없으면 글자만
             if (!crumb.items || crumb.items.length === 0) {
@@ -154,7 +157,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                     여닫는 모션을 주려고 늘 그려 두고, 닫힌 동안에는 투명하게 눌러 둔다. */}
                 <ul
                   aria-hidden={!isOpen}
-                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/25 bg-white/40 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 ease-out motion-reduce:transition-none ${
+                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/60 bg-white/65 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-200 ease-out motion-reduce:transition-none ${
                     isOpen
                       ? 'translate-y-0 scale-y-100 opacity-100'
                       : 'pointer-events-none -translate-y-1 scale-y-95 opacity-0'
@@ -175,8 +178,8 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                           aria-current={current ? 'page' : undefined}
                           className={`block w-full px-4 py-2.5 text-left text-sm leading-[1.5] transition ${
                             current
-                              ? 'font-semibold text-slate-900 [text-shadow:0_1px_2px_rgba(255,255,255,0.6)]'
-                              : 'font-medium text-slate-800 hover:bg-white/30 hover:text-slate-900'
+                              ? 'font-semibold text-red-600'
+                              : 'font-medium text-slate-800 hover:bg-black/[0.06] hover:text-slate-900'
                           }`}
                         >
                           {item.label}

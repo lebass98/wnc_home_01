@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Contact, ContactStatus, Paginated } from '@wnc/shared'
 import { CONTACT_STATUS_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
+import { useSiteSetting } from '../../lib/seo'
 import { formatDateTime } from '../../lib/format'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
 
@@ -9,6 +10,20 @@ const STATUS_TONE = { NEW: 'red', IN_PROGRESS: 'amber', DONE: 'green' } as const
 const STATUSES: ContactStatus[] = ['NEW', 'IN_PROGRESS', 'DONE']
 
 export default function ContactListPage() {
+  // 답장 메일에 참조로 넣을 관리자 이메일 — [환경설정 > 일반]에서 정한다.
+  const adminEmail = useSiteSetting()?.adminEmail?.trim() ?? ''
+
+  /**
+   * 메일 앱으로 답장을 연다.
+   * 관리자 이메일을 참조(cc)로 넣어 답장 사본이 관리자 메일함에도 남게 한다.
+   */
+  const replyHref = (c: Contact) => {
+    const params = new URLSearchParams()
+    if (adminEmail) params.set('cc', adminEmail)
+    params.set('subject', `[문의 답변] ${c.name}님의 문의`)
+    return `mailto:${c.email}?${params.toString()}`
+  }
+
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<ContactStatus | ''>('')
   const [keyword, setKeyword] = useState('')
@@ -243,7 +258,7 @@ export default function ContactListPage() {
 
             <footer className="border-t border-slate-200 p-6 dark:border-slate-700">
               <div className="flex gap-3">
-                <a href={`mailto:${selected.email}`} className="btn-secondary flex-1">
+                <a href={replyHref(selected)} className="btn-secondary flex-1">
                   이메일 답장
                 </a>
                 <button type="button" onClick={() => handleDelete(selected)} className="btn-danger">

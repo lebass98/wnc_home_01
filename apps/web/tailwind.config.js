@@ -41,10 +41,11 @@ export default {
            약 1280px 이 필요해, 그 아래(태블릿 포함)는 햄버거 메뉴를 쓴다. */
         gnb: '1280px',
       },
-      /* 사이트 전체 글꼴은 프리텐다드로 통일한다. mono 도 프리텐다드로 묶어 다른 글꼴이 끼어들지 않게 한다. */
+      /* 홈페이지·관리자 모두 프리텐다드 GOV 로 통일한다.
+         mono 도 같은 글꼴로 묶어 다른 글꼴이 끼어들지 않게 한다. */
       fontFamily: {
-        sans: ['Pretendard Variable', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
+        sans: ['Pretendard GOV Variable', 'Pretendard GOV', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['Pretendard GOV Variable', 'Pretendard GOV', 'system-ui', 'sans-serif'],
       },
     },
   },

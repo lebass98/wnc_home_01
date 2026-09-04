@@ -10,7 +10,7 @@
   html {
     scroll-behavior: smooth;
     /* 사이트 전체 글꼴 — 프리텐다드. tailwind 의 font-sans 와 같은 값이다. */
-    font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
+    font-family: 'Pretendard GOV Variable', 'Pretendard GOV', system-ui, -apple-system, sans-serif;
   }
   /* 입력칸·버튼은 브라우저 기본 글꼴을 쓰므로 따로 물려준다. */
   button, input, select, textarea {

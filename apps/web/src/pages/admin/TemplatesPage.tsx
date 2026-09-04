@@ -48,7 +48,6 @@ function TemplateIcon() {
 export default function TemplatesPage() {
   const [rows, setRows] = useState<SiteTemplateInfo[] | null>(null)
   const [error, setError] = useState('')
-  const [tab, setTab] = useState<'user' | 'admin'>('user')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [working, setWorking] = useState(false)
@@ -219,42 +218,9 @@ export default function TemplatesPage() {
         }
       />
 
-      {/* 탭 */}
-      <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
-        <nav className="-mb-px flex gap-1">
-          {(
-            [
-              { key: 'user', label: '유저 템플릿' },
-              { key: 'admin', label: '관리자 템플릿' },
-            ] as const
-          ).map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={`border-b-2 px-5 py-3 text-sm font-semibold transition ${
-                tab === t.key
-                  ? 'border-brand-600 text-brand-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
       {error && <ErrorMessage message={error} />}
 
-      {tab === 'admin' ? (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">관리자 템플릿</h2>
-          <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">관리자 화면에 적용되는 템플릿을 관리합니다.</p>
-          <div className="mt-4">
-            <EmptyState label="관리자 화면 템플릿은 아직 제공되지 않습니다. 오른쪽 위의 다크 모드 전환으로 밝기를 바꿀 수 있습니다." />
-          </div>
-        </div>
-      ) : !rows ? (
+      {!rows ? (
         <Loading />
       ) : (
         <div className="card p-6">

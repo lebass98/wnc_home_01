@@ -183,7 +183,7 @@ export function useSiteSeo() {
 /** 게시판 설정은 화면마다 다시 받지 않도록 한 번만 불러 온다. */
 let boardSettingPromise: Promise<BoardSetting> | null = null
 
-function loadBoardSetting(): Promise<BoardSetting> {
+export function loadBoardSetting(): Promise<BoardSetting> {
   boardSettingPromise ??= api<BoardSetting>('/board-settings')
   return boardSettingPromise
 }
@@ -231,4 +231,22 @@ export function useBoardSeo(kind: BoardPageKind, vars: Record<string, string | u
       alive = false
     }
   }, [kind, key])
+}
+
+/**
+ * 게시판 환경설정 — 홈페이지 게시판 목록이 한 쪽에 몇 건을 보일지,
+ * 'NEW' 를 며칠까지 붙일지 같은 값을 읽는다. 한 번 받아 두고 화면끼리 나눠 쓴다.
+ */
+export function useBoardSetting(): BoardSetting | null {
+  const [setting, setSetting] = useState<BoardSetting | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadBoardSetting()
+      .then((s) => alive && setSetting(s))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  return setting
 }

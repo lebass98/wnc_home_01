@@ -570,6 +570,16 @@ export const BOARD_SEO_VARIABLES = {
 } as const
 
 export interface BoardSetting {
+  // --- 기본설정: 홈페이지 게시판 목록 노출 ---
+  listCount: number
+  newDays: number
+  showAuthor: boolean
+  showSearch: boolean
+  // --- 게시판 설정: 신고 접수 ---
+  reportEnabled: boolean
+  /** 줄바꿈으로 구분한 신고 사유 */
+  reportReasons: string
+  reportHideAt: number
   seoListTitle: string
   seoListDescription: string
   seoBoardTitle: string
@@ -581,6 +591,47 @@ export interface BoardSetting {
   seoServePost: boolean
   seoCacheResetAt: string
   updatedAt: string
+}
+
+/** 게시판 환경설정 > 기본설정 저장 입력 */
+export interface BoardBasicInput {
+  listCount: number
+  newDays: number
+  showAuthor: boolean
+  showSearch: boolean
+}
+
+/** 게시판 환경설정 > 게시판 설정(신고) 저장 입력 */
+export interface BoardReportInput {
+  reportEnabled: boolean
+  reportReasons: string
+  reportHideAt: number
+}
+
+/** 신고 상태 */
+export const REPORT_STATUSES = ['NEW', 'DONE', 'REJECTED'] as const
+export type ReportStatus = (typeof REPORT_STATUSES)[number]
+export const REPORT_STATUS_LABEL: Record<ReportStatus, string> = {
+  NEW: '접수',
+  DONE: '처리완료',
+  REJECTED: '반려',
+}
+
+/** 관리자 [게시판 신고현황] 한 줄 */
+export interface PostReportItem {
+  id: number
+  postId: number
+  /** 신고당한 글 — 지워졌으면 null */
+  postTitle: string | null
+  boardSlug: string | null
+  reason: string
+  detail: string
+  status: ReportStatus
+  memo: string
+  /** 이 글에 쌓인 신고 수 */
+  postReportCount: number
+  postHidden: boolean
+  createdAt: string
 }
 
 export interface BoardSeoInput {

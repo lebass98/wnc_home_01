@@ -32,10 +32,39 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// 접수된 신고 수 — 자동 가림 기준과 관리자 목록 표시에 쓴다.
+  reportCount Int     @default(0)
+  /// 신고가 쌓여 목록에서 가려졌는지 — 관리자가 처리하면 다시 보인다.
+  hiddenByReport Boolean @default(false)
+
   authorId Int
   author   User @relation(fields: [authorId], references: [id])
+  reports  PostReport[]
 
   @@index([category, createdAt])
+}
+
+/// 방문자가 접수한 게시글 신고 — 관리자 [게시판 신고현황]에서 처리한다.
+model PostReport {
+  id     Int  @id @default(autoincrement())
+  postId Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// 신고 사유 — 게시판 환경설정에 적어 둔 사유 중 하나
+  reason String
+  /// 신고자가 덧붙인 설명
+  detail String @default("")
+  /// 같은 사람이 같은 글을 거듭 신고하지 못하게 막는 데 쓴다.
+  ip     String @default("")
+  /// NEW(접수) | DONE(처리) | REJECTED(반려)
+  status String @default("NEW")
+  /// 처리하며 남긴 메모
+  memo   String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([postId])
 }
 
 model Contact {
@@ -259,6 +288,24 @@ model BoardSetting {
   /// 게시글 상세 페이지
   seoPostTitle       String @default("{board_name} - {post_title}")
   seoPostDescription String @default("")
+
+  // --- 기본설정: 홈페이지 게시판 목록이 어떻게 보일지 ---
+  /// 한 쪽에 보여 줄 글 수
+  listCount   Int     @default(10)
+  /// 며칠 안에 올라온 글에 'NEW' 를 붙일지. 0 이면 붙이지 않는다.
+  newDays     Int     @default(3)
+  /// 목록에 작성자를 보여 줄지
+  showAuthor  Boolean @default(true)
+  /// 목록 위에 검색 상자를 둘지
+  showSearch  Boolean @default(true)
+
+  // --- 게시판 설정: 신고 접수 ---
+  /// 신고 받기를 쓸지 — 꺼 두면 게시판별 설정과 상관없이 신고 버튼이 없다.
+  reportEnabled Boolean @default(true)
+  /// 고를 수 있는 신고 사유 — 줄바꿈으로 구분한다.
+  reportReasons String  @default("욕설·비방\n광고·홍보\n음란물\n개인정보 노출\n기타")
+  /// 신고가 이만큼 쌓이면 글을 목록에서 가린다. 0 이면 가리지 않는다.
+  reportHideAt  Int     @default(0)
 
   /// 검색 봇에게 메타 정보를 제공할 페이지
   seoServeList  Boolean @default(true)

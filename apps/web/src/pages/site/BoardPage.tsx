@@ -7,7 +7,7 @@ import { formatDate } from '../../lib/format'
 import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { EmptyState, Loading, Pagination } from '../../components/ui'
-import { useBoardSeo } from '../../lib/seo'
+import { useBoardSeo, useBoardSetting } from '../../lib/seo'
 
 const PAGE_SIZE = 10
 
@@ -48,13 +48,37 @@ interface ListProps {
   showBoard: boolean
 }
 
+/** 올라온 지 얼마 안 된 글인지 — 기간은 [게시판 환경설정 > 기본설정]에서 정한다. */
+function isNew(createdAt: string, days: number): boolean {
+  if (days <= 0) return false
+  return Date.now() - new Date(createdAt).getTime() < days * 24 * 60 * 60 * 1000
+}
+
+/** 새 글 표시 */
+function NewBadge() {
+  return (
+    <span className="ml-2 inline-flex items-center rounded-full bg-mint-500 px-1.5 py-0.5 align-middle text-[10px] font-bold leading-none text-white">
+      NEW
+    </span>
+  )
+}
+
 /** 기본형 — 번호·제목·작성자·등록일·조회 표. 머리글 아래 굵은 검정 선, 행마다 옅은 선. */
 function BasicTable({
   data,
   boards,
   showBoard,
   onOpen,
-}: Omit<ListProps, 'items'> & { data: Paginated<PostListItem>; onOpen: (id: number) => void }) {
+  showAuthor,
+  newDays,
+}: Omit<ListProps, 'items'> & {
+  data: Paginated<PostListItem>
+  onOpen: (id: number) => void
+  /** 작성자 열을 보일지 — 환경설정 값 */
+  showAuthor: boolean
+  /** 'NEW' 를 붙일 기간(일) */
+  newDays: number
+}) {
   // 조회수를 보여 주는 게시판이 하나도 없으면 '조회' 열 자체를 없앤다.
   // (전체 탭처럼 여러 게시판이 섞이면 열은 두고, 끈 게시판의 칸만 비운다.)
   const anyViews = data.items.some((p) => showViewsOf(boards, p.category))
@@ -69,7 +93,7 @@ function BasicTable({
             <th className="w-20 font-medium">번호</th>
             {(showBoard || showSub) && <th className="w-28 font-medium">분류</th>}
             <th className="text-left font-medium">제목</th>
-            <th className="w-24 font-medium">작성자</th>
+            {showAuthor && <th className="w-24 font-medium">작성자</th>}
             <th className="w-36 font-medium">등록일</th>
             {anyViews && <th className="w-20 font-medium">조회</th>}
           </tr>
@@ -90,9 +114,10 @@ function BasicTable({
               <td className="text-left">
                 <span className="line-clamp-1 font-normal text-slate-900 transition group-hover:text-mint-700">
                   {post.title}
+                  {isNew(post.createdAt, newDays) && <NewBadge />}
                 </span>
               </td>
-              <td className="text-slate-600">{post.authorName}</td>
+              {showAuthor && <td className="text-slate-600">{post.authorName}</td>}
               <td className="tabular-nums text-slate-500">{formatDate(post.createdAt)}</td>
               {anyViews && (
                 <td className="tabular-nums text-slate-500">
@@ -173,6 +198,12 @@ function GalleryList({ items, boards, showBoard }: ListProps) {
  */
 export default function BoardPage() {
   const boards = useBoards()
+  // 목록이 보이는 방식은 [게시판 환경설정 > 기본설정]에서 정한다.
+  const boardSetting = useBoardSetting()
+  const listCount = boardSetting?.listCount ?? PAGE_SIZE
+  const showAuthor = boardSetting?.showAuthor ?? true
+  const showSearch = boardSetting?.showSearch ?? true
+  const newDays = boardSetting?.newDays ?? 0
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const category = (searchParams.get('category') ?? '') as BoardCategory | ''
@@ -214,7 +245,7 @@ export default function BoardPage() {
     api<Paginated<PostListItem>>(
       `/posts${qs({
         page,
-        pageSize: PAGE_SIZE,
+        pageSize: listCount,
         category: category || undefined,
         subCategory: sub || undefined,
         q: q || undefined,
@@ -223,7 +254,8 @@ export default function BoardPage() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [page, category, sub, q])
+    // 한 쪽에 몇 건을 보일지는 환경설정에서 오므로, 설정이 도착하면 다시 받는다.
+  }, [page, category, sub, q, listCount])
 
   /** 탭·검색·페이지를 하나의 쿼리스트링으로 관리한다. */
   function update(next: Record<string, string>) {
@@ -278,6 +310,7 @@ export default function BoardPage() {
               총 <span className="font-bold">{data?.total ?? 0}</span>건의 글이 등록되어 있습니다.
             </p>
 
+            {showSearch && (
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -314,6 +347,7 @@ export default function BoardPage() {
                 </svg>
               </button>
             </form>
+            )}
           </div>
 
           {/* 분류 — [게시판 관리]에서 이 게시판에 분류를 정해 뒀을 때만 나온다. */}
@@ -351,7 +385,14 @@ export default function BoardPage() {
             ) : type === 'gallery' ? (
               <GalleryList items={data.items} boards={boards} showBoard={!current} />
             ) : (
-              <BasicTable data={data} boards={boards} showBoard={!current} onOpen={(id) => navigate(`/board/${id}`)} />
+              <BasicTable
+                data={data}
+                boards={boards}
+                showBoard={!current}
+                showAuthor={showAuthor}
+                newDays={newDays}
+                onOpen={(id) => navigate(`/board/${id}`)}
+              />
             )}
           </div>
 

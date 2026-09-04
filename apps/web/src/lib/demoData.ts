@@ -391,6 +391,13 @@ export function createDemoSetting(): DemoSetting {
 /* --------------------------- 게시판 환경설정 --------------------------- */
 
 export interface DemoBoardSetting {
+  listCount: number
+  newDays: number
+  showAuthor: boolean
+  showSearch: boolean
+  reportEnabled: boolean
+  reportReasons: string
+  reportHideAt: number
   seoListTitle: string
   seoListDescription: string
   seoBoardTitle: string
@@ -407,6 +414,13 @@ export interface DemoBoardSetting {
 export function createDemoBoardSetting(): DemoBoardSetting {
   const now = isoDaysAgo(0)
   return {
+    listCount: 10,
+    newDays: 3,
+    showAuthor: true,
+    showSearch: true,
+    reportEnabled: true,
+    reportReasons: '욕설·비방\n광고·홍보\n음란물\n개인정보 노출\n기타',
+    reportHideAt: 0,
     seoListTitle: '{site_name}',
     seoListDescription: '',
     seoBoardTitle: '{board_name}',

@@ -1686,6 +1686,23 @@ export function handleDemoRequest(
     return db.boardSetting
   }
 
+  if (rawPath === '/board-settings/basic' && method === 'PUT') {
+    db.boardSetting = { ...db.boardSetting, ...body, updatedAt: new Date().toISOString() }
+    save(db)
+    return db.boardSetting
+  }
+  if (rawPath === '/board-settings/report' && method === 'PUT') {
+    db.boardSetting = { ...db.boardSetting, ...body, updatedAt: new Date().toISOString() }
+    save(db)
+    return db.boardSetting
+  }
+  // 신고 — 데모에는 접수함이 없다.
+  if (rawPath === '/reports' && method === 'GET') {
+    return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 }
+  }
+  if (rawPath.startsWith('/reports')) {
+    throw new DemoError('GitHub Pages 데모에서는 신고를 접수하거나 처리할 수 없습니다.', 400)
+  }
   if (rawPath === '/board-settings/seo' && method === 'PUT') {
     db.boardSetting = {
       ...db.boardSetting,

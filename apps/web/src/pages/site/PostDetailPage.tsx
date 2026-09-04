@@ -5,6 +5,7 @@ import { boardName, showViewsOf, useBoards } from '../../lib/boards'
 import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import SubPage from '../../components/SubPage'
+import PostReportButton from '../../components/PostReportButton'
 import Reveal from '../../components/Reveal'
 import RichText from '../../components/RichText'
 import { ErrorMessage, Loading } from '../../components/ui'
@@ -151,8 +152,9 @@ export default function PostDetailPage() {
                 ))}
               </ul>
 
-              {/* 목록 버튼 — 참고 템플릿처럼 검정 바탕의 작은 버튼 */}
-              <div className="mt-10 flex justify-end">
+              {/* 신고 · 목록 — 신고 받기를 켜 두었을 때만 왼쪽에 신고가 선다. */}
+              <div className="mt-10 flex items-center justify-between gap-4">
+                <PostReportButton postId={post.id} />
                 <Link
                   to={listTo}
                   className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-mint-600"

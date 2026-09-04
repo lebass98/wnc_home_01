@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import type { BoardSeoInput, BoardSetting } from '@wnc/shared'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import type { BoardBasicInput, BoardReportInput, BoardSeoInput, BoardSetting } from '@wnc/shared'
 import { BOARD_SEO_VARIABLES } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
-import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
+import { ErrorMessage, Loading, PageHeader, ToggleSwitch } from '../../components/ui'
 
 const TABS = [
   { key: 'basic', label: '기본설정' },
@@ -59,17 +59,230 @@ export default function BoardSettingsPage() {
         <Loading />
       ) : tab === 'seo' ? (
         <SeoTab setting={setting} onSaved={setSetting} />
+      ) : tab === 'basic' ? (
+        <BasicTab setting={setting} onSaved={setSetting} />
       ) : (
-        <div className="card p-6 sm:p-8">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            {tab === 'basic' ? '기본설정' : '게시판 설정'}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            설정 항목은 아직 준비 중입니다.
-          </p>
-        </div>
+        <ReportTab setting={setting} onSaved={setSetting} />
       )}
     </>
+  )
+}
+
+/** 설정 한 줄 — 이름·설명을 왼쪽에, 입력을 오른쪽에 둔다. */
+function Field({
+  label,
+  description,
+  children,
+}: {
+  label: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="grid gap-2 border-b border-slate-100 py-5 first:pt-0 last:border-0 last:pb-0 sm:grid-cols-[16rem_minmax(0,1fr)] sm:gap-6 dark:border-slate-700">
+      <div>
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</p>
+        {description && <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{description}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  )
+}
+
+/** 저장 단추와 알림을 함께 두는 아래 줄 */
+function SaveRow({ saving, notice }: { saving: boolean; notice: string }) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+      <button type="submit" disabled={saving} className="btn-primary">
+        {saving ? '저장 중...' : '저장'}
+      </button>
+      {notice && <p className="text-sm text-green-700 dark:text-green-400">{notice}</p>}
+    </div>
+  )
+}
+
+/**
+ * 기본설정 — 홈페이지 게시판 목록이 어떻게 보일지 정한다.
+ * 여기서 정한 값은 소식 목록 화면이 그대로 읽는다.
+ */
+function BasicTab({ setting, onSaved }: { setting: BoardSetting; onSaved: (s: BoardSetting) => void }) {
+  const [form, setForm] = useState<BoardBasicInput>({
+    listCount: setting.listCount,
+    newDays: setting.newDays,
+    showAuthor: setting.showAuthor,
+    showSearch: setting.showSearch,
+  })
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  const set = <K extends keyof BoardBasicInput>(key: K, value: BoardBasicInput[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setNotice('')
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      onSaved(await api<BoardSetting>('/board-settings/basic', { method: 'PUT', body: form, auth: true }))
+      setNotice('저장했습니다. 홈페이지 소식 목록에 바로 반영됩니다.')
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card p-6 sm:p-8">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">기본설정</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">홈페이지 소식(게시판) 목록이 보이는 방식입니다.</p>
+
+      {error && (
+        <div className="mt-4">
+          <ErrorMessage message={error} />
+        </div>
+      )}
+
+      <div className="mt-6">
+        <Field label="한 쪽에 보여 줄 글 수" description="목록 한 쪽에 몇 건씩 보여 줄지 정합니다. (5~100)">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <input
+              type="number"
+              min={5}
+              max={100}
+              value={form.listCount}
+              onChange={(e) => set('listCount', Number(e.target.value))}
+              className="input w-28"
+              aria-label="한 쪽에 보여 줄 글 수"
+            />
+            <span>건</span>
+          </div>
+        </Field>
+
+        <Field
+          label="새 글 표시 기간"
+          description="이 기간 안에 올라온 글에 'NEW' 를 붙입니다. 0 이면 붙이지 않습니다."
+        >
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <input
+              type="number"
+              min={0}
+              max={30}
+              value={form.newDays}
+              onChange={(e) => set('newDays', Number(e.target.value))}
+              className="input w-28"
+              aria-label="새 글 표시 기간"
+            />
+            <span>일 이내</span>
+          </div>
+        </Field>
+
+        <Field label="목록에 작성자 표시" description="끄면 목록에서 작성자 칸을 감춥니다.">
+          <ToggleSwitch checked={form.showAuthor} onChange={(v) => set('showAuthor', v)} label="목록에 작성자 표시" />
+        </Field>
+
+        <Field label="목록에 검색 상자 표시" description="끄면 방문자가 목록에서 검색할 수 없습니다.">
+          <ToggleSwitch checked={form.showSearch} onChange={(v) => set('showSearch', v)} label="목록에 검색 상자 표시" />
+        </Field>
+      </div>
+
+      <SaveRow saving={saving} notice={notice} />
+    </form>
+  )
+}
+
+/**
+ * 게시판 설정 — 신고 접수 방식을 정한다.
+ * 접수된 신고는 [게시판 신고현황]에서 처리한다.
+ */
+function ReportTab({ setting, onSaved }: { setting: BoardSetting; onSaved: (s: BoardSetting) => void }) {
+  const [form, setForm] = useState<BoardReportInput>({
+    reportEnabled: setting.reportEnabled,
+    reportReasons: setting.reportReasons,
+    reportHideAt: setting.reportHideAt,
+  })
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  const set = <K extends keyof BoardReportInput>(key: K, value: BoardReportInput[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setNotice('')
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      onSaved(await api<BoardSetting>('/board-settings/report', { method: 'PUT', body: form, auth: true }))
+      setNotice('저장했습니다.')
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="card p-6 sm:p-8">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">게시판 설정</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        방문자가 부적절한 글을 알려 오는 신고 기능입니다. 접수된 신고는{' '}
+        <Link to="/admin/posts/reports" className="font-medium text-brand-600 hover:text-brand-700">
+          게시판 신고현황
+        </Link>
+        에서 처리합니다.
+      </p>
+
+      {error && (
+        <div className="mt-4">
+          <ErrorMessage message={error} />
+        </div>
+      )}
+
+      <div className="mt-6">
+        <Field label="신고 받기" description="끄면 홈페이지 글에서 신고 단추가 사라집니다.">
+          <ToggleSwitch checked={form.reportEnabled} onChange={(v) => set('reportEnabled', v)} label="신고 받기" />
+        </Field>
+
+        <Field label="신고 사유" description="한 줄에 하나씩 적습니다. 방문자는 이 중에서 고릅니다.">
+          <textarea
+            rows={5}
+            maxLength={500}
+            value={form.reportReasons}
+            onChange={(e) => set('reportReasons', e.target.value)}
+            disabled={!form.reportEnabled}
+            className="input resize-y"
+            aria-label="신고 사유"
+          />
+        </Field>
+
+        <Field
+          label="자동으로 가리기"
+          description="한 글에 신고가 이만큼 쌓이면 목록에서 감춥니다. 신고현황에서 처리하면 다시 보입니다. 0 이면 감추지 않습니다."
+        >
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={form.reportHideAt}
+              onChange={(e) => set('reportHideAt', Number(e.target.value))}
+              disabled={!form.reportEnabled}
+              className="input w-28"
+              aria-label="자동으로 가릴 신고 수"
+            />
+            <span>건 이상이면 감춤</span>
+          </div>
+        </Field>
+      </div>
+
+      <SaveRow saving={saving} notice={notice} />
+    </form>
   )
 }
 

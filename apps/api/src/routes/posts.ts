@@ -103,7 +103,8 @@ postsRouter.get(
     const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const where = {
-      ...(includeDrafts ? {} : { published: true }),
+      // 신고가 쌓여 가려 둔 글은 방문자에게 보이지 않는다. 관리자 목록에는 그대로 둔다.
+      ...(includeDrafts ? {} : { published: true, hiddenByReport: false }),
       ...(category ? { category } : {}),
       ...(subCategory ? { subCategory } : {}),
       ...(q ? { OR: [{ title: { contains: q } }, { content: { contains: q } }] } : {}),
@@ -142,7 +143,8 @@ postsRouter.get(
       include: { author: { select: { name: true } } },
     })
     if (!post) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
-    if (!post.published && !req.user) {
+    // 비공개 글과 신고로 가려 둔 글은 관리자에게만 보인다.
+    if ((!post.published || post.hiddenByReport) && !req.user) {
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
     }
 

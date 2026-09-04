@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
@@ -297,8 +297,11 @@ export default function AdminLayout() {
       </nav>
 
       <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
-        <Link
-          to="/"
+        {/* 홈페이지 보기 — 관리 화면을 두고 새 창으로 연다. */}
+        <a
+          href={import.meta.env.BASE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
           <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -309,7 +312,7 @@ export default function AdminLayout() {
             />
           </svg>
           {t('nav.viewSite')}
-        </Link>
+        </a>
       </div>
     </div>
   )

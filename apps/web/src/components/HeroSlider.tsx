@@ -114,7 +114,9 @@ export default function HeroSlider({
 
   return (
     <section
-      className="relative h-[34rem] overflow-hidden bg-slate-950 sm:h-[42rem]"
+      /* 메인 비주얼은 첫 화면을 꽉 채운다. 주소창이 접혔다 펴지는 모바일에서는
+         100vh 가 들쭉날쭉하므로, 이를 지원하는 브라우저에서는 100dvh 를 쓴다. */
+      className="relative h-screen h-[100dvh] overflow-hidden bg-slate-950"
       aria-roledescription="carousel"
       aria-label="메인 배너"
     >

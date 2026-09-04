@@ -109,8 +109,14 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
   return (
     <nav ref={ref} aria-label="현재 위치" className="flex w-full justify-center">
-      {/* 바탕은 고른 반투명 한 겹, 테두리만 그러데이션(.border-gradient) 이다 */}
-      <div className="border-gradient relative w-full max-w-full rounded-lg bg-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:w-auto">
+      {/*
+        바탕은 고른 반투명 한 겹, 테두리만 그러데이션(.border-gradient) 이다.
+        흐림은 이 상자가 아니라 아래에 깐 형제 층이 맡는다 — 상자에 걸면
+        그 안에 든 펼친 판이 흐릴 바탕을 잃어(부모가 배경 기준점을 가로챈다)
+        판만 투명해지고 뿌옇게 되지 않는다.
+      */}
+      <div className="border-gradient relative w-full max-w-full rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.25)] sm:w-auto">
+        <div className="absolute inset-0 -z-10 rounded-md bg-white/10 backdrop-blur-sm" aria-hidden />
         <div className="flex h-12">
           {crumbs.map((crumb, i) => {
             const isOpen = open === i
@@ -158,7 +164,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
                     여닫는 모션을 주려고 늘 그려 두고, 닫힌 동안에는 투명하게 눌러 둔다. */}
                 <ul
                   aria-hidden={!isOpen}
-                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/20 bg-slate-900/65 pb-2 shadow-[0_18px_40px_rgba(0,0,0,0.3)] backdrop-blur-2xl transition duration-200 ease-out motion-reduce:transition-none ${
+                  className={`absolute inset-x-0 top-full z-30 max-h-80 origin-top overflow-y-auto rounded-b-lg border-x border-b border-white/20 bg-slate-900/65 pb-2 shadow-[0_15px_20px_rgba(0,0,0,0.1)] backdrop-blur-md transition duration-200 ease-out motion-reduce:transition-none ${
                     isOpen
                       ? 'translate-y-0 scale-y-100 opacity-100'
                       : 'pointer-events-none -translate-y-1 scale-y-95 opacity-0'

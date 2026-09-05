@@ -38,7 +38,7 @@ const asset = (path: string) => `${baseUrl}${path}`
  */
 export function resolveSubVisual(pathname: string): SubVisualMeta {
   if (pathname === '/about/directions') {
-    return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: 'LOCATION & DIRECTIONS' }
+    return { image: asset('/images/subvisual/subvisual_directions.jpg'), eyebrow: 'LOCATION & DIRECTIONS' }
   }
   if (pathname === '/about' || pathname.startsWith('/about/')) {
     return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: 'ABOUT US' }
@@ -53,16 +53,16 @@ export function resolveSubVisual(pathname: string): SubVisualMeta {
     return { image: asset('/images/subvisual/subvisual_board.jpg'), eyebrow: 'NEWS & NOTICE' }
   }
   if (pathname === '/contact/faq') {
-    return { image: asset('/images/subvisual/subvisual_contact.jpg'), eyebrow: 'FREQUENTLY ASKED QUESTIONS' }
+    return { image: asset('/images/subvisual/subvisual_faq.jpg'), eyebrow: 'FREQUENTLY ASKED QUESTIONS' }
   }
   if (pathname === '/contact' || pathname.startsWith('/contact/')) {
     return { image: asset('/images/subvisual/subvisual_contact.jpg'), eyebrow: 'CONTACT & SUPPORT' }
   }
   if (pathname === '/terms') {
-    return { image: asset('/images/subvisual/subvisual_policy.jpg'), eyebrow: 'TERMS OF SERVICE' }
+    return { image: asset('/images/subvisual/subvisual_terms.jpg'), eyebrow: 'TERMS OF SERVICE' }
   }
   if (pathname === '/privacy') {
-    return { image: asset('/images/subvisual/subvisual_policy.jpg'), eyebrow: 'PRIVACY POLICY' }
+    return { image: asset('/images/subvisual/subvisual_privacy.jpg'), eyebrow: 'PRIVACY POLICY' }
   }
   if (pathname.startsWith('/page/')) {
     return { image: asset('/images/subvisual/subvisual_policy.jpg'), eyebrow: 'CUSTOMER SERVICE' }

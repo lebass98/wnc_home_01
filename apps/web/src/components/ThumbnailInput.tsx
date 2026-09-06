@@ -7,6 +7,7 @@ export default function ThumbnailInput({
   onChange,
   label = '썸네일 이미지',
   hint,
+  fallback = null,
 }: {
   value: string | null
   onChange: (url: string | null) => void
@@ -14,6 +15,11 @@ export default function ThumbnailInput({
   label?: string
   /** 이름 아래에 덧붙이는 한 줄 안내 */
   hint?: string
+  /**
+   * 비워 뒀을 때 홈페이지가 대신 쓰는 이미지.
+   * 미리보기에 이 그림을 보여 줘, 관리자에서도 실제 화면과 같은 그림을 보게 한다.
+   */
+  fallback?: string | null
 }) {
   const [mode, setMode] = useState<'upload' | 'url'>('upload')
   const [urlDraft, setUrlDraft] = useState('')
@@ -68,6 +74,14 @@ export default function ThumbnailInput({
         <div className="h-32 w-32 shrink-0 overflow-hidden rounded-lg border border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-900/50">
           {value ? (
             <img src={value} alt="썸네일 미리보기" className="h-full w-full object-cover" />
+          ) : fallback ? (
+            // 등록한 그림이 없을 때 홈페이지가 대신 거는 기본 이미지 — 무엇이 걸리는지 여기서 보여 준다.
+            <div className="relative h-full w-full">
+              <img src={fallback} alt="기본 이미지 미리보기" className="h-full w-full object-cover opacity-70" />
+              <span className="absolute inset-x-0 bottom-0 bg-slate-900/70 py-1 text-center text-[0.65rem] font-medium text-white">
+                기본 이미지
+              </span>
+            </div>
           ) : (
             <div className="grid h-full w-full place-items-center text-slate-300">
               <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">

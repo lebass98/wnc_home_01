@@ -5,6 +5,10 @@ import { api, qs } from '../../lib/api'
 import { formatDate } from '../../lib/format'
 import { flattenCategories, formatPrice } from '../../lib/category'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
+import { productImage } from '../../lib/productImages'
+
+/** 홈페이지가 거는 분류 기본 이미지 — 직접 올린 썸네일이 없을 때 목록에 대신 보여 준다. */
+const defaultImageOf = (p: ProductListItem) => productImage({ thumbnail: null, categoryName: p.categoryName })
 
 export default function ProductListPage() {
   const [page, setPage] = useState(1)
@@ -132,9 +136,23 @@ export default function ProductListPage() {
                 {data.items.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-2.5">
-                      <div className="h-12 w-12 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-700">
+                      {/* 홈페이지와 같은 그림을 보여 준다 — 직접 올린 썸네일이 없으면
+                          홈페이지가 거는 분류 기본 이미지를 흐리게 깔고 표시를 남긴다. */}
+                      <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-700">
                         {p.thumbnail ? (
                           <img src={p.thumbnail} alt="" className="h-full w-full object-cover" />
+                        ) : defaultImageOf(p) ? (
+                          <>
+                            <img
+                              src={defaultImageOf(p)}
+                              alt=""
+                              title="직접 올린 이미지가 없어 분류 기본 이미지가 걸립니다."
+                              className="h-full w-full object-cover opacity-60"
+                            />
+                            <span className="absolute inset-x-0 bottom-0 bg-slate-900/70 text-center text-[0.55rem] leading-[1.1rem] text-white">
+                              기본
+                            </span>
+                          </>
                         ) : (
                           <div className="grid h-full w-full place-items-center text-slate-300">
                             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">

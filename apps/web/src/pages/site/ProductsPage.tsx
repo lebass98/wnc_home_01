@@ -7,6 +7,7 @@ import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { EmptyState, ErrorMessage, Loading, Pagination } from '../../components/ui'
 import { usePageTitle } from '../../lib/seo'
+import { productBanners, productImage } from '../../lib/productImages'
 
 const PAGE_SIZE = 6
 
@@ -38,29 +39,6 @@ const DEFAULT_INTRO = {
   eyebrow: 'Wordncode Products',
   title: ['워드앤코드의', '제품'],
   desc: '현장에서 바로 쓸 수 있도록 다듬은 제품을 소개합니다.',
-}
-
-/** 탭마다 다른 대표 이미지 — 외부 이미지 없이 그라데이션으로 그린다. */
-const BANNER: Record<string, string> = {
-  전체: 'linear-gradient(135deg, #1f2d3a 0%, #2b4750 55%, #3d6e71 100%)',
-  소프트웨어: 'linear-gradient(135deg, #d3dcea 0%, #6f8bb4 100%)',
-  하드웨어: 'linear-gradient(135deg, #24333a 0%, #3b5a5e 55%, #7fa39f 100%)',
-  클라우드: 'linear-gradient(135deg, #cfe3e4 0%, #7dbbbd 100%)',
-}
-
-/** 썸네일이 없을 때 보여 줄 자리표시자 */
-function Placeholder({ tone }: { tone: string }) {
-  return (
-    <div className="grid h-full w-full place-items-center text-white/40" style={{ background: tone }}>
-      <svg className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-    </div>
-  )
 }
 
 /**
@@ -126,7 +104,7 @@ export default function ProductsPage() {
 
   const key = topLevel?.name ?? '전체'
   const intro = INTRO[key] ?? { ...DEFAULT_INTRO, title: [topLevel?.name ?? '워드앤코드의', '제품'] }
-  const banner = BANNER[key] ?? BANNER['전체']
+  const banner = productBanners[key] ?? productBanners['전체']
 
   // 탭 아래 소분류 — 대분류를 골랐을 때만 보인다.
   const subs = topLevel ? topLevel.children : []
@@ -159,7 +137,9 @@ export default function ProductsPage() {
 
         {/* 대표 이미지 — 가로로 넓게 */}
         <div className="container-wnc mt-12">
-          <Reveal key={`banner-${key}`} className="h-64 sm:h-96" style={{ background: banner }} />
+          <Reveal key={`banner-${key}`} className="h-64 overflow-hidden bg-slate-100 sm:h-96">
+            <img src={banner} alt={`${key} 제품 소개`} className="h-full w-full object-cover" />
+          </Reveal>
         </div>
       </section>
 
@@ -239,16 +219,12 @@ export default function ProductsPage() {
                     >
                       {/* 왼쪽 이미지 */}
                       <div className="aspect-[4/3] overflow-hidden">
-                        {p.thumbnail ? (
-                          <img
-                            src={p.thumbnail}
-                            alt={p.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <Placeholder tone={banner} />
-                        )}
+                        <img
+                          src={productImage(p)}
+                          alt={p.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
                       </div>
 
                       {/* 오른쪽 글 — 분류, 이름과 화살표, 요약, 가격 */}

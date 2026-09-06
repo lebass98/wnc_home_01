@@ -4,6 +4,7 @@ import { MAX_CATEGORY_DEPTH, CATEGORY_DEPTH_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { flattenCategories, totalProductCount } from '../../lib/category'
 import { Badge, ErrorMessage, Loading, PageHeader } from '../../components/ui'
+import { productBanners, productImage } from '../../lib/productImages'
 
 interface FormState {
   id: number | null
@@ -89,6 +90,14 @@ export default function CategoryPage() {
           }`}
           style={{ paddingLeft: `${(node.depth - 1) * 1.5 + 0.5}rem` }}
         >
+          {/* 홈페이지가 이 분류에 거는 그림 — 대분류는 상단 배너, 그 아래는 제품 목록 이미지다. */}
+          <img
+            src={productBanners[node.name] ?? productImage({ thumbnail: null, categoryName: node.name })}
+            alt=""
+            loading="lazy"
+            title="홈페이지 제품 화면에서 이 분류에 쓰이는 그림입니다."
+            className="h-9 w-14 shrink-0 rounded object-cover"
+          />
           <Badge tone={node.depth === 1 ? 'blue' : node.depth === 2 ? 'green' : 'slate'}>
             {CATEGORY_DEPTH_LABEL[node.depth]}
           </Badge>

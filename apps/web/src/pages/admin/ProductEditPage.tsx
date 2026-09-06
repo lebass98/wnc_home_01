@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import type { CategoryNode, Product, ProductInput, ProductSpec } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { flattenCategories } from '../../lib/category'
+import { productImage } from '../../lib/productImages'
 // 편집기(TipTap)는 용량이 커서 관리자가 이 화면에 들어올 때만 불러온다.
 const RichEditor = lazy(() => import('../../components/RichEditor'))
 import ThumbnailInput from '../../components/ThumbnailInput'
@@ -110,6 +111,9 @@ export default function ProductEditPage() {
   if (loading) return <Loading />
 
   const flat = flattenCategories(categories)
+  // 썸네일을 비워 두면 홈페이지는 분류에 맞는 기본 이미지를 건다 — 미리보기에 그 그림을 보여 준다.
+  const categoryName = flat.find((c) => c.id === form.categoryId)?.name ?? ''
+  const defaultImage = productImage({ thumbnail: null, categoryName })
 
   return (
     <>
@@ -217,7 +221,12 @@ export default function ProductEditPage() {
               />
             </div>
 
-            <ThumbnailInput value={form.thumbnail ?? null} onChange={(url) => set('thumbnail', url)} />
+            <ThumbnailInput
+              value={form.thumbnail ?? null}
+              onChange={(url) => set('thumbnail', url)}
+              hint="비워 두면 홈페이지가 분류에 맞는 기본 이미지를 대신 겁니다. 아래 미리보기가 그 그림입니다."
+              fallback={defaultImage}
+            />
 
             <div className="flex flex-wrap gap-6">
               <label className="flex cursor-pointer items-center gap-2.5">

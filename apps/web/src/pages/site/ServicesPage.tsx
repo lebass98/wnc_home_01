@@ -29,19 +29,19 @@ const INFRA = [
     no: '1',
     title: '사업영역',
     desc: '기업 홈페이지와 브랜드 사이트, 이커머스 플랫폼, 사내 업무 시스템까지 — 목적에 맞는 구조로 설계하고 개발합니다. 웹과 모바일을 가리지 않습니다.',
-    image: asset('/images/services/service_infra_01.jpg'),
+    image: asset('/images/services/business-scope-v2.jpg'),
   },
   {
     no: '2',
     title: '사업형태',
     desc: '기획부터 디자인·개발·운영까지 한 팀이 책임지는 턴키 방식과, 필요한 단계만 맡는 부분 참여 방식을 모두 제공합니다. 규모와 일정에 맞춰 고를 수 있습니다.',
-    image: asset('/images/services/service_infra_02.jpg'),
+    image: asset('/images/services/team-collaboration-v2.jpg'),
   },
   {
     no: '3',
     title: '서비스영역',
     desc: '오픈 이후에도 모니터링과 개선을 이어갑니다. 클라우드 전환, 데이터 분석과 AI 도입처럼 운영 중에 필요한 일도 함께 준비합니다.',
-    image: asset('/images/services/service_infra_03.jpg'),
+    image: asset('/images/services/cloud-operations-v2.jpg'),
   },
 ]
 

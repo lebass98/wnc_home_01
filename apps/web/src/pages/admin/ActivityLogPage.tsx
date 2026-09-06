@@ -3,6 +3,7 @@ import type { ActivityActor, ActivityLog, ActivityLogType, Paginated } from '@wn
 import { ACTIVITY_LOG_TYPE_LABEL } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { formatDateTime } from '../../lib/format'
+import { DateRangePicker } from '../../components/DatePicker'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
 
 /**
@@ -218,21 +219,16 @@ export default function ActivityLogPage() {
           </select>
 
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">기간</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="datetime-local"
-              value={draft.from}
-              onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))}
-              className="input w-auto"
-              aria-label="시작"
-            />
-            <span className="text-slate-400">~</span>
-            <input
-              type="datetime-local"
-              value={draft.to}
-              onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))}
-              className="input w-auto"
-              aria-label="끝"
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 팝업 관리의 게시기간과 같은 달력 — 시작·끝을 한 달력에서 고르고 [확인]으로 반영한다 */}
+            <DateRangePicker
+              start={draft.from}
+              end={draft.to}
+              onChange={(from, to) => setDraft((d) => ({ ...d, from, to }))}
+              withTime
+              startLabel="시작일시"
+              endLabel="종료일시"
+              className="w-full max-w-xl"
             />
             <div className="flex flex-wrap gap-1.5">
               {QUICK_RANGES.map((r) => (

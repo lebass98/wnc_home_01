@@ -4,6 +4,7 @@ import type { BoardCategory, Post, PostInput } from '@wnc/shared'
 import { useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import ThumbnailInput from '../../components/ThumbnailInput'
+import { boardUsesImage, postImage } from '../../lib/postImages'
 import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
 // 편집기는 무거우므로 필요할 때 내려받는다 (제품·페이지·팝업 편집과 같은 방식).
@@ -152,13 +153,17 @@ export default function PostEditPage() {
             </div>
           )}
 
-          {/* 대표 이미지 — 카드형·갤러리형 게시판 목록에 그림으로 걸린다. */}
-          <ThumbnailInput
-            value={form.thumbnail}
-            onChange={(url) => set('thumbnail', url)}
-            label="대표 이미지"
-            hint="뉴스·보도자료처럼 카드형·갤러리형 게시판의 목록에 걸리는 그림입니다. 비우면 기본 배경이 대신 쓰입니다."
-          />
+          {/* 대표 이미지 — 그림을 쓰는 게시판에서만 나온다.
+              공지사항처럼 제목만 훑어보는 게시판에는 칸 자체를 두지 않는다. */}
+          {boardUsesImage(form.category) && (
+            <ThumbnailInput
+              value={form.thumbnail}
+              onChange={(url) => set('thumbnail', url)}
+              label="대표 이미지"
+              hint="게시판 목록과 글 상단에 걸리는 그림입니다. 비워 두면 홈페이지가 글 주제에 맞는 기본 표지를 대신 겁니다."
+              fallback={postImage({ category: form.category, title: form.title, thumbnail: null })}
+            />
+          )}
 
           <div>
             <span className="label">

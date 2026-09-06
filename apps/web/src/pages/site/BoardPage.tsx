@@ -8,6 +8,7 @@ import SubPage from '../../components/SubPage'
 import Reveal from '../../components/Reveal'
 import { EmptyState, Loading, Pagination } from '../../components/ui'
 import { useBoardSeo, useBoardSetting } from '../../lib/seo'
+import { postImage } from '../../lib/postImages'
 
 const PAGE_SIZE = 10
 
@@ -30,13 +31,14 @@ const COVERS = [
 const coverOf = (id: number) => COVERS[id % COVERS.length]
 
 /**
- * 목록 그림 — 글에 등록한 대표 이미지를 쓰고, 없으면 글 번호로 고른 기본 배경을 깐다.
+ * 목록 그림 — 등록한 대표 이미지 또는 글 주제별 생성 표지를 쓰고, 없으면 기본 배경을 깐다.
  * 올리면 살짝 확대되는 움직임은 두 경우 모두 같다.
  */
 function Cover({ post, className }: { post: PostListItem; className?: string }) {
   const common = `h-full w-full transition duration-500 group-hover:scale-105 ${className ?? ''}`
-  if (post.thumbnail) {
-    return <img src={post.thumbnail} alt="" loading="lazy" className={`${common} object-cover`} />
+  const image = postImage(post)
+  if (image) {
+    return <img src={image} alt="" loading="lazy" className={`${common} object-cover`} />
   }
   return <div className={common} style={{ background: coverOf(post.id) }} />
 }
@@ -112,10 +114,17 @@ function BasicTable({
                 showSub && <td className="text-sm text-mint-600">{post.subCategory ?? '-'}</td>
               )}
               <td className="text-left">
-                <span className="line-clamp-1 font-normal text-slate-900 transition group-hover:text-mint-700">
-                  {post.title}
-                  {isNew(post.createdAt, newDays) && <NewBadge />}
-                </span>
+                <Link to={`/board/${post.id}`} className="flex items-center gap-4 py-3">
+                  {postImage(post) && (
+                    <span className="h-14 w-20 shrink-0 overflow-hidden rounded-sm bg-slate-100">
+                      <Cover post={post} />
+                    </span>
+                  )}
+                  <span className="line-clamp-1 font-normal text-slate-900 transition group-hover:text-mint-700">
+                    {post.title}
+                    {isNew(post.createdAt, newDays) && <NewBadge />}
+                  </span>
+                </Link>
               </td>
               {showAuthor && <td className="text-slate-600">{post.authorName}</td>}
               <td className="tabular-nums text-slate-500">{formatDate(post.createdAt)}</td>

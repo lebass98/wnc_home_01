@@ -6,6 +6,7 @@ import { api, qs } from '../../lib/api'
 import { boardName, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
+import { boardUsesImage, postImage } from '../../lib/postImages'
 
 export default function PostListPage() {
   const boards = useBoards(true)
@@ -112,6 +113,7 @@ export default function PostListPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400">
                   <th className="px-4 py-3">게시판</th>
+                  <th className="px-4 py-3">이미지</th>
                   <th className="px-4 py-3">제목</th>
                   <th className="px-4 py-3">작성자</th>
                   <th className="px-4 py-3">상태</th>
@@ -125,6 +127,38 @@ export default function PostListPage() {
                   <tr key={post.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-4 py-3">
                       <Badge tone="blue">{boardName(boards, post.category)}</Badge>
+                    </td>
+                    {/* 홈페이지와 같은 그림을 보여 준다 — 직접 올린 대표 이미지가 없으면
+                        홈페이지가 거는 주제별 표지를 흐리게 깔고 '기본' 표시를 남긴다.
+                        그림을 쓰지 않는 게시판(공지사항)은 '—' 로 둔다. */}
+                    <td className="px-4 py-3">
+                      {!boardUsesImage(post.category) ? (
+                        <span className="text-xs text-slate-400" title="이 게시판은 대표 이미지를 쓰지 않습니다.">
+                          —
+                        </span>
+                      ) : (
+                        <div className="relative h-10 w-16 overflow-hidden rounded bg-slate-100 dark:bg-slate-700">
+                          {post.thumbnail ? (
+                            <img src={post.thumbnail} alt="" className="h-full w-full object-cover" />
+                          ) : postImage(post) ? (
+                            <>
+                              <img
+                                src={postImage(post)!}
+                                alt=""
+                                title="직접 올린 이미지가 없어 주제별 기본 표지가 걸립니다."
+                                className="h-full w-full object-cover opacity-60"
+                              />
+                              <span className="absolute inset-x-0 bottom-0 bg-slate-900/70 text-center text-[0.55rem] leading-[0.9rem] text-white">
+                                기본
+                              </span>
+                            </>
+                          ) : (
+                            <span className="grid h-full w-full place-items-center text-[0.6rem] text-slate-400">
+                              없음
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="max-w-sm px-4 py-3">
                       <Link

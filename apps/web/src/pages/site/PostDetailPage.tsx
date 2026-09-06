@@ -8,6 +8,7 @@ import SubPage from '../../components/SubPage'
 import PostReportButton from '../../components/PostReportButton'
 import Reveal from '../../components/Reveal'
 import RichText from '../../components/RichText'
+import { postImage } from '../../lib/postImages'
 import { ErrorMessage, Loading } from '../../components/ui'
 import { useBoardSeo } from '../../lib/seo'
 
@@ -119,6 +120,17 @@ export default function PostDetailPage() {
                   isHtml(post.content) ? '' : 'whitespace-pre-wrap'
                 }`}
               >
+                {postImage(post) && (
+                  <figure className="mb-10 overflow-hidden rounded-sm bg-slate-50">
+                    <img
+                      src={postImage(post)!}
+                      alt={`${post.title} 관련 이미지`}
+                      width={1536}
+                      height={1024}
+                      className="mx-auto h-auto max-h-[640px] w-full object-contain"
+                    />
+                  </figure>
+                )}
                 {isHtml(post.content) ? <RichText html={post.content} /> : post.content}
               </Reveal>
 

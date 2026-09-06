@@ -186,6 +186,29 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  // 넓은 화면에서 왼쪽 메뉴를 접어 두는 상태 — 다음 방문에도 유지되도록 브라우저에 기억한다.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('wnc_admin_sidebar') === 'collapsed'
+    } catch {
+      return false
+    }
+  })
+  const toggleSidebar = () => {
+    // 넓은 화면(lg 이상)에서는 접고 펴기, 좁은 화면에서는 겹쳐 뜨는 메뉴를 연다.
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setCollapsed((v) => {
+        try {
+          localStorage.setItem('wnc_admin_sidebar', v ? 'open' : 'collapsed')
+        } catch {
+          // 저장소를 못 써도 이번 화면에서는 동작한다.
+        }
+        return !v
+      })
+    } else {
+      setSidebarOpen(true)
+    }
+  }
   // 지금 보고 있는 화면이 속한 그룹은 펼쳐 둔다.
   const [openGroup, setOpenGroup] = useState<string | null>(
     () => NAV.find((item) => isGroup(item) && pathname.startsWith(item.match))?.label ?? null,
@@ -319,10 +342,13 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* 데스크톱 고정 사이드바 */}
+      {/* 데스크톱 고정 사이드바 — 접으면 왼쪽으로 미끄러져 나가고 본문이 그 자리를 채운다 */}
       <aside
-        className="fixed bottom-0 left-0 hidden w-64 lg:block"
+        className={`fixed bottom-0 left-0 hidden w-64 transition-transform duration-300 ease-in-out lg:block ${
+          collapsed ? '-translate-x-full' : 'translate-x-0'
+        }`}
         style={{ top: 'var(--demo-banner-h)' }}
+        aria-hidden={collapsed}
       >{sidebar}</aside>
 
       {/* 모바일 오버레이 사이드바 */}
@@ -337,18 +363,21 @@ export default function AdminLayout() {
         </div>
       )}
 
-      <div className="lg:pl-64">
+      <div className={`transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-0' : 'lg:pl-64'}`}>
         <header
           style={{ top: 'var(--demo-banner-h)' }}
           className="sticky z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-700 dark:bg-slate-800 sm:px-6">
+          {/* 햄버거 — 넓은 화면에서는 왼쪽 메뉴 접고 펴기, 좁은 화면에서는 메뉴 열기 */}
           <button
             type="button"
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 lg:hidden"
-            aria-label="메뉴 열기"
+            onClick={toggleSidebar}
+            className="grid h-10 w-10 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+            aria-label={collapsed ? '왼쪽 메뉴 펴기' : '왼쪽 메뉴 접기'}
+            aria-expanded={!collapsed}
+            title={collapsed ? '메뉴 펴기' : '메뉴 접기'}
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            <svg className="h-[22px] w-[22px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" d="M5 7h14M5 12h14M5 17h14" />
             </svg>
           </button>
 

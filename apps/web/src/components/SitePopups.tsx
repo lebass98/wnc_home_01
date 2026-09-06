@@ -191,7 +191,7 @@ function PopupLayer({
  *
  * 화면을 덮는 대신 본문 위에 카드로 떠 있는 방식이다(아이파킹 참고).
  * 카드는 상단 가운데에 나란히 놓이고, 안 들어가면 다음 줄로 넘어간다.
- * 카드마다 '오늘 그만보기(표시기간 반영)'와 '창닫기'가 붙고, 묶음 오른쪽 위에 '전체 닫기'가 있다.
+ * 카드마다 '오늘 그만보기(표시기간 반영)'와 '창닫기'가 붙고, 묶음 아래(위치 점 밑) 가운데에 '전체 닫기'가 있다.
  */
 export default function SitePopups() {
   const { pathname } = useLocation()
@@ -424,22 +424,6 @@ export default function SitePopups() {
       />
       <div role="region" aria-label="팝업 안내" className="pointer-events-none fixed inset-x-0 top-24 z-[60] px-4">
       <div className={`mx-auto max-w-full ${mobileMulti ? 'w-full' : 'w-fit'}`}>
-        {/* 전체 닫기 — 묶음 오른쪽 위 */}
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={closeAll}
-            className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-white py-1.5 pl-5 pr-1.5 text-sm font-bold text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition hover:bg-slate-100"
-          >
-            전체 닫기
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-white">
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </span>
-          </button>
-        </div>
-
         {sliding ? (
           // 한 화면에 담을 수 있는 장수보다 많다 — 옆으로 밀어 넘겨 본다.
           // 손으로 쓸어 넘길 수도 있고(스크롤 스냅), 좌우 화살표로도 넘어간다.
@@ -510,6 +494,22 @@ export default function SitePopups() {
             {isMobile && <ArrowButton direction="next" onClick={() => go(1)} />}
           </div>
         )}
+
+        {/* 전체 닫기 — 카드(와 위치 점) 아래 가로 가운데 */}
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={closeAll}
+            className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-white py-1.5 pl-5 pr-1.5 text-sm font-bold text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition hover:bg-slate-100"
+          >
+            전체 닫기
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-900 text-white">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
     </>

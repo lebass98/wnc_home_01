@@ -64,7 +64,7 @@ export default function DashboardPage() {
   // 최근 활동 로그 — 최고관리자만 볼 수 있는 자료라, 못 받으면(403) 카드를 그리지 않는다.
   const [logs, setLogs] = useState<ActivityLog[] | null>(null)
   useEffect(() => {
-    api<Paginated<ActivityLog>>('/activity-logs?pageSize=8', { auth: true })
+    api<Paginated<ActivityLog>>('/activity-logs?pageSize=5', { auth: true })
       .then((res) => setLogs(res.items))
       .catch(() => setLogs(null))
   }, [])

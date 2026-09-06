@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import type { PageHeroTab } from '../../components/PageHero'
 import { useTranslation } from 'react-i18next'
 import type { Page } from '@wnc/shared'
+import { PAGE_ROUTE_OVERRIDES } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { pickLocalized } from '../../lib/i18n'
 import SubPage from '../../components/SubPage'
@@ -37,6 +38,10 @@ export default function CustomPage({
 }) {
   const { slug: slugParam } = useParams<{ slug: string }>()
   const slug = slugProp ?? slugParam
+  const { pathname } = useLocation()
+  // 이용약관처럼 코드 라우트가 따로 있는 페이지를 /page/{slug} 로 열면 진짜 주소로 옮긴다.
+  const canonical = slug ? PAGE_ROUTE_OVERRIDES[slug] : undefined
+  if (canonical && pathname !== canonical) return <Navigate to={canonical} replace />
   const [params] = useSearchParams()
   const preview = params.get('preview') === '1'
   const [page, setPage] = useState<Page | null>(null)

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { BoardLocale, Page, PageAttachment, PageInput, PageVersionDetail, PageVersionItem } from '@wnc/shared'
-import { BOARD_LOCALES, BOARD_LOCALE_LABEL } from '@wnc/shared'
+import { BOARD_LOCALES, BOARD_LOCALE_LABEL, pagePathOf } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import RichEditor from '../../components/RichEditor'
@@ -399,7 +399,7 @@ export default function PageEditPage() {
                   중복 확인
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">URL: /page/{form.slug?.trim() || '슬러그'}</p>
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">URL: {pagePathOf(form.slug?.trim() || '슬러그')}</p>
               <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">영문 소문자, 숫자, 하이픈(-)만 사용 가능</p>
               {slugCheck && (
                 <p className={`mt-0.5 text-xs font-medium ${slugCheck.ok ? 'text-green-600' : 'text-red-600'}`}>{slugCheck.message}</p>

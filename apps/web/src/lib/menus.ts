@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CategoryNode, MenuItem, PageListItem } from '@wnc/shared'
+import { pagePathOf } from '@wnc/shared'
 import { api, retryLater } from './api'
 import { useBoards } from './boards'
 
@@ -182,7 +183,7 @@ export function useSiteMenu(): SiteMenuLink[] {
 
   const known = new Set(menu.flatMap((m) => [m.url, ...m.children.map((c) => c.url)]))
   for (const p of data.navPages) {
-    const url = `/page/${p.slug}`
+    const url = pagePathOf(p.slug)
     if (known.has(url)) continue
     menu.push({
       id: `page-${p.id}`,

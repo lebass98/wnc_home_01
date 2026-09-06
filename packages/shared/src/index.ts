@@ -838,6 +838,16 @@ export interface PrivacyRevisionInput {
 
 /* --------------------------- 사이트 페이지(실제 화면) --------------------------- */
 
+/**
+ * 에디터 페이지(페이지 관리)의 실제 홈페이지 주소.
+ * 보통은 /page/{slug} 인데, 이용약관·개인정보처리방침은 코드 라우트(/terms·/privacy)가 따로 있어
+ * 그 주소가 진짜다. 관리자 목록·미리보기·메뉴 후보·GNB 노출 판정이 모두 이 함수를 써야 한 주소로 맞는다.
+ */
+export const PAGE_ROUTE_OVERRIDES: Record<string, string> = { terms: '/terms', privacy: '/privacy' }
+export function pagePathOf(slug: string): string {
+  return PAGE_ROUTE_OVERRIDES[slug] ?? `/page/${slug}`
+}
+
 /** 코드로 만들어진 실제 화면 — 관리자 페이지 관리에서 코드를 보고 고칠 수 있다. */
 export interface SitePageDef {
   /** 파일·API 에서 쓰는 식별자 */

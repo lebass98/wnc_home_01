@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { CategoryNode, MenuAutoChildren, MenuItem, MenuItemInput, PageListItem, Paginated } from '@wnc/shared'
-import { MENU_AUTO_CHILDREN, MENU_AUTO_CHILDREN_LABEL, SITE_PAGES } from '@wnc/shared'
+import { MENU_AUTO_CHILDREN, MENU_AUTO_CHILDREN_LABEL, SITE_PAGES, pagePathOf } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { useBoards } from '../../lib/boards'
 import { invalidateSiteMenu } from '../../lib/menus'
@@ -383,7 +383,7 @@ function MenuEditModal({
       ...SITE_PAGES.filter((p) => !p.path.includes(':')).map((p) => ({ group: '사이트 화면', label: p.label, url: p.path })),
       ...boards.map((b) => ({ group: '게시판', label: b.name, url: `/board?category=${b.slug}` })),
       ...categories.map((c) => ({ group: '제품 대분류', label: c.name, url: `/products?category=${c.id}` })),
-      ...pages.map((p) => ({ group: '관리자 페이지', label: `${p.title}${p.published ? '' : ' (미발행)'}`, url: `/page/${p.slug}` })),
+      ...pages.map((p) => ({ group: '관리자 페이지', label: `${p.title}${p.published ? '' : ' (미발행)'}`, url: pagePathOf(p.slug) })),
     ],
     [boards, categories, pages],
   )

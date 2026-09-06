@@ -7,7 +7,6 @@ import { usePageTitle } from '../../lib/seo'
 /** 회사소개 묶음 안에서 오갈 수 있는 페이지 — 사업분야·찾아오시는 길에서도 같은 탭을 쓴다. */
 export const ABOUT_TABS = [
   { to: '/about', label: '회사 소개' },
-  { to: '/services', label: '사업분야' },
   { to: '/about/directions', label: '찾아오시는 길' },
 ]
 

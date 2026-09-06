@@ -4,6 +4,7 @@ import SubPage from '../../components/SubPage'
 import SectionHeading from '../../components/SectionHeading'
 import Reveal from '../../components/Reveal'
 import { usePageTitle, useSiteSetting } from '../../lib/seo'
+import { BUSINESS_TABS } from './ServicesPage'
 
 /**
  * 서비스 — 상담부터 오픈 이후까지, 워드앤코드 서비스를 어떻게 이용하는지 안내하는 화면.
@@ -114,6 +115,7 @@ export default function ServiceGuidePage() {
   return (
     <SubPage
       title="서비스"
+      tabs={BUSINESS_TABS}
       description="어떻게 시작하고, 무엇이 포함되며, 오픈 뒤에는 어떻게 이어지는지 — 워드앤코드 서비스의 이용 안내입니다."
     >
       {/* 소개 — 왼쪽 정렬 두 줄 제목, 그 아래 가로로 꽉 찬 사진 */}

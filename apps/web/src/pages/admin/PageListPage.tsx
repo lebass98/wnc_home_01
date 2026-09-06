@@ -1,3 +1,4 @@
+import { pagePathOf } from '@wnc/shared'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { PageLayoutType, PageListItem, Paginated, SitePageInfo, SitePageLayoutMap } from '@wnc/shared'
@@ -138,12 +139,12 @@ export default function PageListPage() {
       kind: 'editor',
       title: p.title,
       description: p.description ?? '',
-      path: `/page/${p.slug}`,
+      path: pagePathOf(p.slug),
       previewable: p.published,
       published: p.published,
-      inGnb: gnbUrls.has(`/page/${p.slug}`),
+      inGnb: gnbUrls.has(pagePathOf(p.slug)),
       updatedAt: p.updatedAt,
-      haystack: `${p.title} ${p.description ?? ''} /page/${p.slug} ${p.slug}`.toLowerCase(),
+      haystack: `${p.title} ${p.description ?? ''} ${pagePathOf(p.slug)} ${p.slug}`.toLowerCase(),
       page: p,
     }))
     return [...code, ...editor]

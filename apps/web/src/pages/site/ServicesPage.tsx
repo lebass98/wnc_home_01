@@ -4,7 +4,6 @@ import SectionHeading from '../../components/SectionHeading'
 import Reveal from '../../components/Reveal'
 import { usePageTitle } from '../../lib/seo'
 
-import { ABOUT_TABS } from './AboutPage'
 
 /** 위쪽 소개 — 작은 제목과 본문 두 묶음 */
 const INTRO = [
@@ -16,6 +15,12 @@ const INTRO = [
     title: '워드앤코드 디자인 모티브',
     body: '화면은 보기 좋은 것보다 쓰기 쉬운 것이 먼저라고 생각합니다. 처음 보는 사람도 헤매지 않도록 흐름을 단순하게 정리하고, 자주 쓰는 기능일수록 손이 덜 가게 배치합니다. 홈페이지 기능 외에 일정 관리와 구성원 소개 같은 부가 기능을 더해, 사용자끼리 정보를 나누기 좋도록 구성했습니다.',
   },
+]
+
+/** 사업분야 묶음의 탭 — 메뉴 구조(사업분야 › 사업분야·서비스)와 같게 둔다. */
+export const BUSINESS_TABS = [
+  { to: '/services', label: '사업분야' },
+  { to: '/service', label: '서비스' },
 ]
 
 const asset = (path: string) => {
@@ -50,7 +55,7 @@ export default function ServicesPage() {
 
   return (
     <>
-      <SubPage title="사업분야" tabs={ABOUT_TABS}>
+      <SubPage title="사업분야" tabs={BUSINESS_TABS}>
 
       {/* 소개 — 왼쪽 제목, 오른쪽에 작은 제목을 단 본문 두 묶음 */}
       <section className="py-24 sm:py-28">

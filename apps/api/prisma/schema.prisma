@@ -507,3 +507,28 @@ model SiteTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+/// 관리자 활동 로그 — 관리자가 API 로 한 변경(등록·수정·삭제·설정·로그인)과 보안 이벤트를 자동으로 남긴다.
+model ActivityLog {
+  id Int @id @default(autoincrement())
+  /// ADMIN(관리자가 한 행위) | SYSTEM(로그인 실패·잠금·권한 없는 요청·방문자 문의 접수 같은 자동 이벤트)
+  type String
+  /// 로그인 · 등록 · 수정 · 삭제 · 순서 변경 · 적용 · 업로드 …
+  action String
+  /// 사람이 읽는 한 줄 설명 (예: '제품 수정 (ID: 12) — 그룹웨어 Pro')
+  description String
+  /// 대상 종류 (제품·게시글·메뉴 …). 없으면 null
+  target   String?
+  targetId String?
+  actorId    Int?
+  actorName  String?
+  actorEmail String?
+  ip String?
+  /// 요청 요약 JSON — method · path · status · 본문 일부 (비밀번호 등은 뺀다)
+  detail String?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+}

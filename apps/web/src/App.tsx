@@ -46,6 +46,7 @@ import FaqEditPage from './pages/admin/FaqEditPage'
 import PrivacyRevisionListPage from './pages/admin/PrivacyRevisionListPage'
 import PrivacyRevisionEditPage from './pages/admin/PrivacyRevisionEditPage'
 import MenuListPage from './pages/admin/MenuListPage'
+import ActivityLogPage from './pages/admin/ActivityLogPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -144,6 +145,7 @@ export default function App() {
             <Route path="privacy-revisions/:id" element={<PrivacyRevisionEditPage />} />
             <Route path="contacts" element={<ContactListPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="activity-logs" element={<ActivityLogPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,3 +1,4 @@
+import { describeActivity, summarizeActivityBody, type ActivityLog } from '@wnc/shared'
 import type {
   Contact,
   ContactStatus,
@@ -98,6 +99,9 @@ interface DemoDb {
   faqs: DemoFaq[]
   faqCategories: DemoFaqCategory[]
   privacyRevisions: DemoPrivacyRevision[]
+  /** 관리자 활동 로그 — 데모에서는 변경 요청을 이 저장소에 남긴다 */
+  activityLogs: ActivityLog[]
+  nextActivityLogId: number
   menus: DemoMenuItem[]
   nextMenuId: number
   nextBoardId: number
@@ -153,6 +157,8 @@ function seed(): DemoDb {
     nextProductId: products.length + 1,
     nextPageId: pages.length + 1,
     nextPageVersionId: versions.length + 1,
+    activityLogs: [],
+    nextActivityLogId: 1,
   }
 }
 
@@ -211,6 +217,9 @@ function load(): DemoDb {
           pg.attachments ??= []
           pg.metaKeywords ??= null
         }
+        // 이전 저장본에 활동 로그가 없으면 빈 목록으로 시작한다.
+        parsed.activityLogs ??= []
+        parsed.nextActivityLogId ??= Math.max(0, ...parsed.activityLogs.map((l) => l.id)) + 1
         return parsed
       }
     }
@@ -336,12 +345,53 @@ class DemoError extends Error {
   }
 }
 
-/** 실제 API 와 동일한 경로/메서드를 받아 동일한 형태의 응답을 돌려준다. */
-export function handleDemoRequest(
-  path: string,
-  method: string,
-  body: any,
-): unknown {
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+/** 데모 로그 한 줄 — 서버 미들웨어(activityLog.ts)와 같은 규칙으로 남긴다. */
+function recordDemoActivity(input: Omit<ActivityLog, 'id' | 'createdAt' | 'ip'>) {
+  const db = load()
+  db.activityLogs.push({ ...input, id: db.nextActivityLogId++, ip: '127.0.0.1', createdAt: new Date().toISOString() })
+  // 끝없이 쌓이지 않게 최근 2,000건만 둔다 (브라우저 저장소 용량).
+  if (db.activityLogs.length > 2000) db.activityLogs.splice(0, db.activityLogs.length - 2000)
+  save(db)
+}
+
+/** 실제 API 와 동일한 경로/메서드를 받아 동일한 형태의 응답을 돌려준다. 변경 요청은 활동 로그에 남긴다. */
+export function handleDemoRequest(path: string, method: string, body: any): unknown {
+  const result = handleDemoRequestInner(path, method, body)
+  const rawPath = path.split('?')[0]
+  if (MUTATING.has(method) && !rawPath.startsWith('/auth/')) {
+    const described = describeActivity(method, rawPath, body)
+    if (described) {
+      const detail = { method, path, status: 200, body: summarizeActivityBody(body) }
+      if (rawPath === '/contacts' && method === 'POST') {
+        recordDemoActivity({
+          type: 'SYSTEM',
+          action: '문의 접수',
+          description: `방문자 문의 접수 — ${String(body?.name ?? '').slice(0, 30)}`,
+          target: '문의',
+          targetId: null,
+          actorId: null,
+          actorName: null,
+          actorEmail: null,
+          detail,
+        })
+      } else {
+        recordDemoActivity({
+          type: 'ADMIN',
+          ...described,
+          actorId: DEMO_USER.id,
+          actorName: DEMO_USER.name,
+          actorEmail: DEMO_USER.email,
+          detail,
+        })
+      }
+    }
+  }
+  return result
+}
+
+function handleDemoRequestInner(path: string, method: string, body: any): unknown {
   const [rawPath, search = ''] = path.split('?')
   const params = new URLSearchParams(search)
   const db = load()
@@ -352,8 +402,60 @@ export function handleDemoRequest(
   }
 
   // --- 인증 ---
+  // --- 활동 로그 ---
+  if (rawPath === '/activity-logs' && method === 'GET') {
+    const type = params.get('type')
+    const q = params.get('q')?.toLowerCase()
+    const actorId = Number(params.get('actorId')) || null
+    const from = params.get('from') ? new Date(params.get('from') as string).getTime() : null
+    const to = params.get('to') ? new Date(params.get('to') as string).getTime() : null
+    const asc = params.get('sort') === 'asc'
+    let items = db.activityLogs.filter((l) => {
+      if (type && l.type !== type) return false
+      if (actorId && l.actorId !== actorId) return false
+      const t = new Date(l.createdAt).getTime()
+      if (from && t < from) return false
+      if (to && t > to) return false
+      if (q) {
+        const hay = [l.description, l.action, l.target, l.actorName, l.actorEmail, l.ip].join(' ').toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+    items = items.slice().sort((a, b) => (asc ? a.id - b.id : b.id - a.id))
+    return paginate(items, num('page', 1), num('pageSize', 10))
+  }
+  if (rawPath === '/activity-logs/actors' && method === 'GET') {
+    const byId = new Map<number, { actorId: number; actorName: string; actorEmail: string; count: number }>()
+    for (const l of db.activityLogs) {
+      if (l.actorId === null) continue
+      const cur = byId.get(l.actorId)
+      if (cur) cur.count += 1
+      else byId.set(l.actorId, { actorId: l.actorId, actorName: l.actorName ?? '', actorEmail: l.actorEmail ?? '', count: 1 })
+    }
+    return [...byId.values()]
+  }
+  if (rawPath === '/activity-logs' && method === 'DELETE') {
+    const ids = new Set<number>(body?.ids ?? [])
+    const before = db.activityLogs.length
+    db.activityLogs = db.activityLogs.filter((l) => !ids.has(l.id))
+    save(db)
+    return { deleted: before - db.activityLogs.length }
+  }
+
   if (rawPath === '/auth/login' && method === 'POST') {
     if (body?.email === DEMO_CREDENTIALS.email && body?.password === DEMO_CREDENTIALS.password) {
+      recordDemoActivity({
+        type: 'ADMIN',
+        action: '로그인',
+        description: '관리자 로그인',
+        target: '계정',
+        targetId: null,
+        actorId: DEMO_USER.id,
+        actorName: DEMO_USER.name,
+        actorEmail: DEMO_USER.email,
+        detail: null,
+      })
       return { token: 'demo-token', user: DEMO_USER }
     }
     throw new DemoError('이메일 또는 비밀번호가 올바르지 않습니다.', 401)

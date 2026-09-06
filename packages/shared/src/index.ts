@@ -1061,3 +1061,134 @@ export interface SiteTemplateFile {
 }
 
 export * from './policyContent'
+
+/* --------------------------- 관리자 활동 로그 --------------------------- */
+
+export type ActivityLogType = 'ADMIN' | 'SYSTEM'
+
+export const ACTIVITY_LOG_TYPE_LABEL: Record<ActivityLogType, string> = {
+  ADMIN: '관리자',
+  SYSTEM: '시스템',
+}
+
+export interface ActivityLog {
+  id: number
+  type: ActivityLogType
+  action: string
+  description: string
+  target: string | null
+  targetId: string | null
+  actorId: number | null
+  actorName: string | null
+  actorEmail: string | null
+  ip: string | null
+  /** 요청 요약 — { method, path, status, body } */
+  detail: Record<string, unknown> | null
+  createdAt: string
+}
+
+/** 행위자 선택 목록용 */
+export interface ActivityActor {
+  actorId: number
+  actorName: string
+  actorEmail: string
+  count: number
+}
+
+/** API 경로 첫 조각 → 대상 이름. 로그 설명에 쓴다. */
+const ACTIVITY_TARGETS: Record<string, string> = {
+  posts: '게시글',
+  boards: '게시판',
+  'board-settings': '게시판 환경설정',
+  products: '제품',
+  categories: '제품 카테고리',
+  pages: '페이지',
+  settings: '환경설정',
+  popups: '팝업',
+  faqs: '자주 묻는 질문',
+  'privacy-revisions': '개인정보 이력',
+  'site-pages': '사이트 페이지',
+  menus: '메뉴',
+  design: '디자인 설정',
+  templates: '템플릿',
+  uploads: '파일',
+  contacts: '문의',
+  reports: '신고',
+  'activity-logs': '활동 로그',
+}
+
+/** 경로 끝 조각(동작 이름) → 우리말 */
+const ACTIVITY_VERBS: Record<string, string> = {
+  reorder: '순서 변경',
+  activate: '적용',
+  snapshot: '현재 사이트 담기',
+  duplicate: '복제',
+  restore: '되돌리기',
+  import: '가져오기',
+  'import-zip': '가져오기(zip)',
+  'cache-reset': '캐시 비우기',
+  flags: '노출 설정 변경',
+  source: '코드 저장',
+  check: '코드 검사',
+  layouts: '레이아웃 변경',
+  file: '첨부 업로드',
+  status: '상태 변경',
+  memo: '메모',
+  seo: 'SEO 저장',
+  company: '회사 정보 저장',
+}
+
+const METHOD_VERB: Record<string, string> = { POST: '등록', PUT: '수정', PATCH: '수정', DELETE: '삭제' }
+
+/**
+ * 변경 요청(method + /api 이후 경로 + 본문)을 사람이 읽는 로그 한 줄로 바꾼다.
+ * 서버 미들웨어와 데모 모드가 같은 함수를 써 설명이 같다.
+ * 예) PUT /products/12 {name:'그룹웨어 Pro'} → { action:'수정', target:'제품', targetId:'12', description:'제품 수정 (ID: 12) — 그룹웨어 Pro' }
+ */
+export function describeActivity(
+  method: string,
+  path: string,
+  body?: unknown,
+): { action: string; target: string | null; targetId: string | null; description: string } | null {
+  const segs = path.replace(/^\/api/, '').split('?')[0].split('/').filter(Boolean)
+  if (segs.length === 0) return null
+  const [root, ...rest] = segs
+  const target = ACTIVITY_TARGETS[root] ?? root
+  const ids = rest.filter((s) => /^\d+$/.test(s))
+  const words = rest.filter((s) => !/^\d+$/.test(s))
+  const last = words[words.length - 1]
+
+  let action: string
+  if (root === 'uploads') action = last === 'file' ? '첨부 업로드' : '이미지 업로드'
+  else if (last && ACTIVITY_VERBS[last]) action = ACTIVITY_VERBS[last]
+  else if (root === 'settings' || root === 'design' || root === 'board-settings') action = '저장'
+  else action = METHOD_VERB[method.toUpperCase()] ?? method
+
+  // 본문에서 이름이 될 만한 값을 하나 골라 붙인다
+  const b = (body ?? {}) as Record<string, unknown>
+  const name = ['title', 'name', 'label', 'question', 'slug'].map((k) => b[k]).find((v) => typeof v === 'string' && v.trim())
+  const targetId = ids[0] ?? null
+  const desc = `${target} ${action}` + (targetId ? ` (ID: ${targetId})` : '') + (name ? ` — ${String(name).trim().slice(0, 60)}` : '')
+  return { action, target, targetId, description: desc }
+}
+
+/** 로그 상세에 남길 본문 요약 — 비밀번호 같은 값은 빼고, 긴 글은 자른다. */
+export function summarizeActivityBody(body: unknown): unknown {
+  if (!body || typeof body !== 'object') return body ?? null
+  const SECRET = new Set(['password', 'token', 'secret'])
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+    if (SECRET.has(k)) {
+      out[k] = '***'
+    } else if (typeof v === 'string') {
+      out[k] = v.length > 300 ? `${v.slice(0, 300)}… (${v.length}자)` : v
+    } else if (Array.isArray(v)) {
+      out[k] = `[배열 ${v.length}개]`
+    } else if (v && typeof v === 'object') {
+      out[k] = '{…}'
+    } else {
+      out[k] = v
+    }
+  }
+  return out
+}

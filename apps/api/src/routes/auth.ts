@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { requireAuth, signToken } from '../lib/auth.js'
 import { clearLoginFailures, loginLockedMinutes, noteLoginFailure } from '../lib/loginGuard.js'
+import { clientIp, recordActivity } from '../lib/activityLog.js'
 
 export const authRouter = Router()
 
@@ -22,6 +23,7 @@ authRouter.post(
     // 짧은 시간에 여러 번 틀리면 잠시 막는다 — 비밀번호를 찔러 보는 것을 막기 위해서다.
     const locked = loginLockedMinutes(ip, email)
     if (locked !== null) {
+      recordActivity({ type: 'SYSTEM', action: '로그인 잠금', description: `로그인 잠금 상태에서 시도 — ${email}`, ip: clientIp(req) })
       return res
         .status(429)
         .json({ message: `로그인 시도가 많아 잠시 막았습니다. ${locked}분 뒤에 다시 시도해 주세요.` })
@@ -32,11 +34,20 @@ authRouter.post(
     // 계정 존재 여부를 노출하지 않도록 동일한 메시지를 사용한다.
     if (!user || !(await bcrypt.compare(password, user.password))) {
       noteLoginFailure(ip, email)
+      recordActivity({ type: 'SYSTEM', action: '로그인 실패', description: `로그인 실패 — ${email}`, ip: clientIp(req) })
       return res.status(401).json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' })
     }
 
     clearLoginFailures(ip, email)
     const role = user.role as 'ADMIN' | 'EDITOR'
+    recordActivity({
+      type: 'ADMIN',
+      action: '로그인',
+      description: '관리자 로그인',
+      target: '계정',
+      actor: { id: user.id, name: user.name, email: user.email },
+      ip: clientIp(req),
+    })
     res.json({
       token: signToken({ sub: user.id, email: user.email, role }),
       user: {

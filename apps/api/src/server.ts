@@ -21,8 +21,12 @@ import { menusRouter } from './routes/menus.js'
 import { designRouter } from './routes/design.js'
 import { templatesRouter } from './routes/templates.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
+import { activityLogsRouter } from './routes/activityLogs.js'
+import { activityLogger } from './lib/activityLog.js'
 
 const app = express()
+// 프록시(Vite·nginx) 뒤에 있으므로 X-Forwarded-For 로 실제 접속 주소를 읽는다.
+app.set('trust proxy', true)
 
 app.use(cors({ origin: env.corsOrigin }))
 // 상세 본문에 이미지가 들어갈 수 있어 한도를 넉넉히 잡는다.
@@ -44,6 +48,8 @@ app.use(
 )
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
+// 관리자 활동 로그 — /api 아래의 모든 변경 요청을 응답이 끝난 뒤 한 곳에서 남긴다.
+app.use('/api', activityLogger)
 app.use('/api/auth', authRouter)
 app.use('/api/boards', boardsRouter)
 app.use('/api/posts', postsRouter)
@@ -63,6 +69,7 @@ app.use('/api/menus', menusRouter)
 app.use('/api/design', designRouter)
 app.use('/api/templates', templatesRouter)
 app.use('/api/uploads', uploadsRouter)
+app.use('/api/activity-logs', activityLogsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))
 app.use(errorHandler)

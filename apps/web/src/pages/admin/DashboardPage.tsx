@@ -13,15 +13,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { DashboardStats } from '@wnc/shared'
-import { CONTACT_STATUS_LABEL } from '@wnc/shared'
+import type { ActivityLog, DashboardStats, Paginated } from '@wnc/shared'
+import { ACTIVITY_LOG_TYPE_LABEL, CONTACT_STATUS_LABEL } from '@wnc/shared'
 import { boardName, useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import { useTheme } from '../../lib/theme'
-import { formatDate, formatNumber } from '../../lib/format'
+import { formatDate, formatDateTime, formatNumber } from '../../lib/format'
 import { Badge, ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
 const STATUS_TONE = { NEW: 'red', IN_PROGRESS: 'amber', DONE: 'green' } as const
+const LOG_TONE = { ADMIN: 'blue', SYSTEM: 'amber' } as const
 
 function StatCard({
   label,
@@ -59,6 +60,13 @@ export default function DashboardPage() {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  // 최근 활동 로그 — 최고관리자만 볼 수 있는 자료라, 못 받으면(403) 카드를 그리지 않는다.
+  const [logs, setLogs] = useState<ActivityLog[] | null>(null)
+  useEffect(() => {
+    api<Paginated<ActivityLog>>('/activity-logs?pageSize=8', { auth: true })
+      .then((res) => setLogs(res.items))
+      .catch(() => setLogs(null))
+  }, [])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -254,6 +262,35 @@ export default function DashboardPage() {
             </ul>
           )}
         </div>
+
+        {/* 최근 활동 로그 — 누가 무엇을 했는지 한눈에. 최고관리자에게만 보인다. */}
+        {logs && (
+          <div className="card lg:col-span-2">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">최근 활동 로그</h2>
+              <Link to="/admin/activity-logs" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+                전체 보기
+              </Link>
+            </div>
+            {logs.length === 0 ? (
+              <p className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">아직 기록된 활동이 없습니다.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+                {logs.map((l) => (
+                  <li key={l.id} className="flex items-center gap-3 px-6 py-3">
+                    <Badge tone={LOG_TONE[l.type]}>{ACTIVITY_LOG_TYPE_LABEL[l.type]}</Badge>
+                    <span className="w-20 shrink-0 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{l.action}</span>
+                    <p className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">{l.description}</p>
+                    <span className="hidden shrink-0 text-xs text-slate-500 dark:text-slate-400 sm:block">
+                      {l.actorName ?? l.actorEmail ?? '-'}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">{formatDateTime(l.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </>
   )

@@ -13,13 +13,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { ActivityLog, DashboardStats, Paginated } from '@wnc/shared'
+import type { ActivityLog, DashboardStats, Paginated, SiteTemplateInfo } from '@wnc/shared'
 import { ACTIVITY_LOG_TYPE_LABEL, CONTACT_STATUS_LABEL } from '@wnc/shared'
 import { boardName, useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import { useTheme } from '../../lib/theme'
 import { formatDate, formatDateTime, formatNumber } from '../../lib/format'
 import { Badge, ErrorMessage, Loading, PageHeader } from '../../components/ui'
+import { FOOTERS, HEADERS, LAYOUTS } from '../../layouts'
 
 const STATUS_TONE = { NEW: 'red', IN_PROGRESS: 'amber', DONE: 'green' } as const
 const LOG_TONE = { ADMIN: 'blue', SYSTEM: 'amber' } as const
@@ -66,6 +67,13 @@ export default function DashboardPage() {
     api<Paginated<ActivityLog>>('/activity-logs?pageSize=8', { auth: true })
       .then((res) => setLogs(res.items))
       .catch(() => setLogs(null))
+  }, [])
+  // 템플릿 상태 — 어떤 템플릿이 적용 중이고 헤더·푸터·화면별 레이아웃이 무엇인지. 역시 최고관리자 전용.
+  const [templates, setTemplates] = useState<SiteTemplateInfo[] | null>(null)
+  useEffect(() => {
+    api<SiteTemplateInfo[]>('/templates', { auth: true })
+      .then(setTemplates)
+      .catch(() => setTemplates(null))
   }, [])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -263,6 +271,9 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* 템플릿 상태 — 지금 사이트에 적용된 템플릿과 그 구성. 최고관리자에게만 보인다. */}
+        {templates && <TemplateStatus templates={templates} />}
+
         {/* 최근 활동 로그 — 누가 무엇을 했는지 한눈에. 최고관리자에게만 보인다. */}
         {logs && (
           <div className="card lg:col-span-2">
@@ -293,5 +304,93 @@ export default function DashboardPage() {
         )}
       </div>
     </>
+  )
+}
+
+/** 레이아웃 등록부에서 이름을 찾는다 — 모르는 키면 키를 그대로 보여 준다. */
+const labelOf = (list: { key: string; label: string }[], key: string) => list.find((l) => l.key === key)?.label ?? key
+
+/** 템플릿 상태 카드 — 적용 중인 템플릿 한 벌의 구성과, 대기 중인 다른 템플릿들 */
+function TemplateStatus({ templates }: { templates: SiteTemplateInfo[] }) {
+  const active = templates.find((t) => t.active)
+  const others = templates.filter((t) => !t.active)
+  const layoutKeys = active ? Object.keys(active.pageLayouts) : []
+
+  return (
+    <div className="card lg:col-span-2">
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
+        <h2 className="font-semibold text-slate-900 dark:text-slate-100">템플릿 상태</h2>
+        <Link to="/admin/templates" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          템플릿 관리
+        </Link>
+      </div>
+
+      {!active ? (
+        <p className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          적용 중인 템플릿이 없습니다. 기본 구성으로 그려지고 있습니다.
+        </p>
+      ) : (
+        <div className="grid gap-6 px-6 py-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
+          {/* 적용 중 */}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="green">적용 중</Badge>
+              <span className="text-lg font-bold text-slate-900 dark:text-slate-100">{active.name}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                v{active.version} · {active.author}
+                {active.builtin && ' · 기본 제공'}
+              </span>
+            </div>
+            {active.description && (
+              <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{active.description}</p>
+            )}
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">마지막 변경 {formatDateTime(active.updatedAt)}</p>
+          </div>
+
+          {/* 구성 */}
+          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs text-slate-500 dark:text-slate-400">헤더</dt>
+              <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{labelOf(HEADERS, active.header)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500 dark:text-slate-400">푸터</dt>
+              <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{labelOf(FOOTERS, active.footer)}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs text-slate-500 dark:text-slate-400">화면별 서브 레이아웃</dt>
+              <dd className="mt-1 flex flex-wrap gap-1.5">
+                {layoutKeys.length === 0 ? (
+                  <span className="text-slate-600 dark:text-slate-400">모두 기본 서브</span>
+                ) : (
+                  layoutKeys.map((path) => (
+                    <span
+                      key={path}
+                      className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                    >
+                      <code className="font-mono">{path}</code>
+                      <span className="text-slate-400">·</span>
+                      {labelOf(LAYOUTS, active.pageLayouts[path])}
+                    </span>
+                  ))
+                )}
+              </dd>
+            </div>
+            {typeof active.files === 'number' && (
+              <div>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">담긴 파일</dt>
+                <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{active.files}개</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-xs text-slate-500 dark:text-slate-400">대기 중인 템플릿</dt>
+              <dd className="mt-0.5 font-medium text-slate-900 dark:text-slate-100">
+                {others.length === 0 ? '없음' : others.map((t) => `${t.name} v${t.version}`).join(', ')}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      )}
+    </div>
   )
 }

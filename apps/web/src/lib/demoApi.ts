@@ -1145,12 +1145,31 @@ export function handleDemoRequest(
       name: body.name,
       slug: `${body.name}`.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-') || `cat-${Date.now()}`,
       depth: parent ? parent.depth + 1 : 1,
-      sortOrder: body.sortOrder ?? 0,
+      // 순서를 따로 주지 않으면 같은 부모의 맨 뒤에 붙인다
+      sortOrder:
+        body.sortOrder ??
+        Math.max(-1, ...db.categories.filter((c) => c.parentId === parentId).map((c) => c.sortOrder)) + 1,
       parentId,
     }
     db.categories.push(cat)
     save(db)
     return { ...cat, productCount: 0 }
+  }
+
+  // 같은 부모 아래 형제 순서를 통째로 다시 매긴다 — 목록의 ▲▼
+  if (rawPath === '/categories/reorder' && method === 'PUT') {
+    const { parentId, ids } = body as { parentId: number | null; ids: number[] }
+    const siblings = db.categories.filter((c) => c.parentId === (parentId ?? null))
+    const known = new Set(siblings.map((c) => c.id))
+    if (ids.length !== known.size || ids.some((id) => !known.has(id))) {
+      throw new DemoError('순서 목록이 현재 카테고리와 맞지 않습니다. 화면을 새로고침한 뒤 다시 시도하세요.', 400)
+    }
+    ids.forEach((id, i) => {
+      const c = db.categories.find((x) => x.id === id)
+      if (c) c.sortOrder = i
+    })
+    save(db)
+    return null
   }
 
   const catMatch = rawPath.match(/^\/categories\/(\d+)$/)

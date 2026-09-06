@@ -9,10 +9,9 @@ interface FormState {
   id: number | null
   name: string
   parentId: number | null
-  sortOrder: number
 }
 
-const EMPTY: FormState = { id: null, name: '', parentId: null, sortOrder: 0 }
+const EMPTY: FormState = { id: null, name: '', parentId: null }
 
 export default function CategoryPage() {
   const [nodes, setNodes] = useState<CategoryNode[]>([])
@@ -29,6 +28,8 @@ export default function CategoryPage() {
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
+  /** 순서를 옮긴 뒤에는 목록을 깜빡이지 않고 조용히 다시 받는다. */
+  const refresh = () => api<CategoryNode[]>('/categories').then(setNodes)
 
   useEffect(load, [load])
 
@@ -54,7 +55,8 @@ export default function CategoryPage() {
     setSaving(true)
     setFormError('')
     try {
-      const body = { name: form.name, parentId: form.parentId, sortOrder: form.sortOrder }
+      // 순서는 목록의 ▲▼ 로 다루므로 여기서는 보내지 않는다 (새 항목은 맨 뒤에 붙는다).
+      const body = { name: form.name, parentId: form.parentId }
       if (form.id === null) {
         await api('/categories', { method: 'POST', body, auth: true })
       } else {
@@ -66,6 +68,24 @@ export default function CategoryPage() {
       setFormError((err as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** 같은 부모 안에서 한 칸 위/아래로 — 형제 순서를 통째로 보내 서버가 다시 매긴다. */
+  const [movingId, setMovingId] = useState<number | null>(null)
+  async function handleMove(siblings: CategoryNode[], index: number, dir: -1 | 1) {
+    const target = index + dir
+    if (target < 0 || target >= siblings.length) return
+    const ids = siblings.map((c) => c.id)
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    setMovingId(siblings[index].id)
+    try {
+      await api('/categories/reorder', { method: 'PUT', body: { parentId: siblings[index].parentId, ids }, auth: true })
+      await refresh()
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setMovingId(null)
     }
   }
 
@@ -81,7 +101,7 @@ export default function CategoryPage() {
   }
 
   const renderRows = (list: CategoryNode[]) =>
-    list.map((node) => (
+    list.map((node, index) => (
       <div key={node.id}>
         <div
           className={`flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 py-2.5 pr-2 ${
@@ -97,10 +117,40 @@ export default function CategoryPage() {
             제품 {node.productCount}
             {node.children.length > 0 && ` (하위 포함 ${totalProductCount(node)})`}
           </span>
+          {/* 순서 — 같은 부모 안에서만 한 칸씩 옮긴다. 다른 부모로 보내는 건 [수정]의 상위 카테고리로. */}
+          <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-slate-100 p-0.5 dark:bg-slate-700/60">
+            <span className="w-6 text-center text-[11px] font-semibold tabular-nums text-slate-400 dark:text-slate-500">
+              {index + 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleMove(list, index, -1)}
+              disabled={index === 0 || movingId !== null}
+              aria-label={`${node.name} 위로`}
+              title="위로"
+              className="grid h-7 w-7 place-items-center rounded-full text-slate-500 transition hover:bg-white hover:text-brand-600 hover:shadow-sm disabled:cursor-default disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:shadow-none dark:text-slate-300 dark:hover:bg-slate-600"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 14.5l6-6 6 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMove(list, index, 1)}
+              disabled={index === list.length - 1 || movingId !== null}
+              aria-label={`${node.name} 아래로`}
+              title="아래로"
+              className="grid h-7 w-7 place-items-center rounded-full text-slate-500 transition hover:bg-white hover:text-brand-600 hover:shadow-sm disabled:cursor-default disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:shadow-none dark:text-slate-300 dark:hover:bg-slate-600"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 9.5l6 6 6-6" />
+              </svg>
+            </button>
+          </div>
           <button
             type="button"
             onClick={() =>
-              setForm({ id: node.id, name: node.name, parentId: node.parentId, sortOrder: node.sortOrder })
+              setForm({ id: node.id, name: node.name, parentId: node.parentId })
             }
             className="shrink-0 text-sm font-medium text-brand-600 hover:text-brand-700"
           >
@@ -191,19 +241,6 @@ export default function CategoryPage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="cat-order" className="label">
-                정렬 순서
-              </label>
-              <input
-                id="cat-order"
-                type="number"
-                value={form.sortOrder}
-                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-                className="input"
-              />
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">숫자가 작을수록 먼저 표시됩니다.</p>
-            </div>
           </div>
 
           <div className="mt-6 flex gap-2">

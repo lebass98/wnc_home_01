@@ -8,6 +8,11 @@ export const categoriesRouter = Router()
 
 const MAX_DEPTH = 3
 
+const reorderSchema = z.object({
+  parentId: z.number().int().positive().nullable(),
+  ids: z.array(z.number().int().positive()).min(1),
+})
+
 const categoryInputSchema = z.object({
   name: z.string().min(1, '카테고리명을 입력하세요.').max(60),
   slug: z.string().max(80).optional(),
@@ -92,13 +97,36 @@ categoriesRouter.post(
         slug,
         depth,
         parentId: data.parentId ?? null,
-        sortOrder: data.sortOrder ?? 0,
+        // 순서를 따로 주지 않으면 같은 부모의 맨 뒤에 붙인다 — 목록의 ▲▼ 로 옮긴다.
+        sortOrder:
+          data.sortOrder ??
+          ((await prisma.category.findFirst({ where: { parentId: data.parentId ?? null }, orderBy: { sortOrder: 'desc' } }))
+            ?.sortOrder ?? -1) + 1,
       },
     })
     res.status(201).json({ ...category, productCount: 0 })
   }),
 )
 
+/** 같은 부모 아래 형제들의 순서를 통째로 다시 매긴다 — 목록의 ▲▼ 가 쓴다. */
+categoriesRouter.put(
+  '/reorder',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { parentId, ids } = reorderSchema.parse(req.body)
+    const siblings = await prisma.category.findMany({ where: { parentId } })
+    const known = new Set(siblings.map((c) => c.id))
+    if (ids.length !== known.size || ids.some((id) => !known.has(id))) {
+      return res
+        .status(400)
+        .json({ message: '순서 목록이 현재 카테고리와 맞지 않습니다. 화면을 새로고침한 뒤 다시 시도하세요.' })
+    }
+    await prisma.$transaction(ids.map((id, i) => prisma.category.update({ where: { id }, data: { sortOrder: i } })))
+    res.status(204).end()
+  }),
+)
+
+// ':id' 보다 위에 두어야 '/reorder' 가 id 로 잡히지 않는다.
 categoriesRouter.put(
   '/:id',
   requireAuth,

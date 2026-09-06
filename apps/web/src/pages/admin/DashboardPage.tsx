@@ -276,7 +276,7 @@ export default function DashboardPage() {
 
         {/* 최근 활동 로그 — 누가 무엇을 했는지 한눈에. 최고관리자에게만 보인다. */}
         {logs && (
-          <div className="card lg:col-span-2">
+          <div className="card">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
               <h2 className="font-semibold text-slate-900 dark:text-slate-100">최근 활동 로그</h2>
               <Link to="/admin/activity-logs" className="text-sm font-medium text-brand-600 hover:text-brand-700">
@@ -290,11 +290,13 @@ export default function DashboardPage() {
                 {logs.map((l) => (
                   <li key={l.id} className="flex items-center gap-3 px-6 py-3">
                     <Badge tone={LOG_TONE[l.type]}>{ACTIVITY_LOG_TYPE_LABEL[l.type]}</Badge>
-                    <span className="w-20 shrink-0 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{l.action}</span>
-                    <p className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">{l.description}</p>
-                    <span className="hidden shrink-0 text-xs text-slate-500 dark:text-slate-400 sm:block">
-                      {l.actorName ?? l.actorEmail ?? '-'}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-slate-900 dark:text-slate-100">
+                        <span className="font-semibold">{l.action}</span>
+                        <span className="ml-1.5 text-slate-700 dark:text-slate-300">{l.description}</span>
+                      </p>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{l.actorName ?? l.actorEmail ?? '-'}</p>
+                    </div>
                     <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">{formatDateTime(l.createdAt)}</span>
                   </li>
                 ))}
@@ -317,7 +319,7 @@ function TemplateStatus({ templates }: { templates: SiteTemplateInfo[] }) {
   const layoutKeys = active ? Object.keys(active.pageLayouts) : []
 
   return (
-    <div className="card lg:col-span-2">
+    <div className="card">
       <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-700">
         <h2 className="font-semibold text-slate-900 dark:text-slate-100">템플릿 상태</h2>
         <Link to="/admin/templates" className="text-sm font-medium text-brand-600 hover:text-brand-700">
@@ -330,7 +332,7 @@ function TemplateStatus({ templates }: { templates: SiteTemplateInfo[] }) {
           적용 중인 템플릿이 없습니다. 기본 구성으로 그려지고 있습니다.
         </p>
       ) : (
-        <div className="grid gap-6 px-6 py-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
+        <div className="space-y-5 px-6 py-5">
           {/* 적용 중 */}
           <div>
             <div className="flex flex-wrap items-center gap-2">

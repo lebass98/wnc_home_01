@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import MenuLink from '../components/MenuLink'
+import { findGroup } from '../lib/menus'
 import SiteUtilMenu from '../components/SiteUtilMenu'
 import type { SiteHeaderProps } from './index'
 
@@ -14,6 +15,9 @@ function Logo({ logo, logoImage, className }: { logo: string; logoImage?: string
 }
 
 export default function CenterHeader({ menu, logo, logoImage, overlay, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
+  const { pathname } = useLocation()
+  // 1차 메뉴는 지금 화면이 속한 묶음을 켠다 — 주소 접두어가 아니라 메뉴 구조로 판단한다 (/service → 사업분야).
+  const activeGroupId = findGroup(menu, pathname)?.id
   return (
     <header
       style={{ top: 'var(--demo-banner-h)' }}
@@ -62,6 +66,7 @@ export default function CenterHeader({ menu, logo, logoImage, overlay, transpare
             <div key={item.id} className="group relative">
               <MenuLink
                 item={item}
+                active={item.id === activeGroupId}
                 className={({ isActive }) =>
                   `relative flex h-14 items-center whitespace-nowrap px-8 text-[1.02rem] font-semibold tracking-tight transition ${
                     transparent

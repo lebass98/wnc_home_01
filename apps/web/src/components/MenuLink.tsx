@@ -10,14 +10,20 @@ export default function MenuLink({
   item,
   className,
   tabIndex,
+  active,
   children,
 }: {
   item: SiteMenuLink
   className: string | ((state: { isActive: boolean }) => string)
   tabIndex?: number
+  /**
+   * 활성 여부를 직접 정한다. 1차 메뉴는 '지금 화면이 속한 묶음' 단위로 켜야 하는데
+   * (예: /service 는 사업분야 묶음), NavLink 는 주소 접두어로만 판단하므로 헤더가 계산해 넘긴다.
+   */
+  active?: boolean
   children: ReactNode
 }) {
-  const cls = typeof className === 'function' ? className({ isActive: false }) : className
+  const cls = typeof className === 'function' ? className({ isActive: active ?? false }) : className
   if (!item.url) return <span className={cls}>{children}</span>
   if (isExternalUrl(item.url)) {
     return (
@@ -30,6 +36,19 @@ export default function MenuLink({
       >
         {children}
       </a>
+    )
+  }
+  if (active !== undefined) {
+    return (
+      <NavLink
+        to={item.url}
+        target={item.newTab ? '_blank' : undefined}
+        className={cls}
+        tabIndex={tabIndex}
+        aria-current={active ? 'page' : undefined}
+      >
+        {children}
+      </NavLink>
     )
   }
   return (

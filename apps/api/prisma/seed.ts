@@ -322,7 +322,6 @@ async function main() {
         url: '/about',
         children: [
           { label: '회사 소개', url: '/about' },
-          { label: '사업분야', url: '/services' },
           { label: '찾아오시는 길', url: '/about/directions' },
         ],
       },

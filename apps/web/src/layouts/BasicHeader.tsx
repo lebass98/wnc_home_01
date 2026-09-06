@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import MenuLink from '../components/MenuLink'
+import { findGroup } from '../lib/menus'
 import SiteUtilMenu from '../components/SiteUtilMenu'
 import type { SiteHeaderProps } from './index'
 
@@ -12,6 +13,8 @@ export default function BasicHeader({ menu, logo, logoImage, overlay, transparen
   // 상단 메뉴에 올리면 2차 메뉴 판이 펼쳐진다.
   const [megaOpen, setMegaOpen] = useState(false)
   const { pathname } = useLocation()
+  // 1차 메뉴는 지금 화면이 속한 묶음을 켠다 — 주소 접두어가 아니라 메뉴 구조로 판단한다 (/service → 사업분야).
+  const activeGroupId = findGroup(menu, pathname)?.id
 
   // 페이지를 이동하면 펼쳐 둔 판을 닫는다.
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function BasicHeader({ menu, logo, logoImage, overlay, transparen
             >
               <MenuLink
                 item={item}
+                active={item.id === activeGroupId}
                 className={({ isActive }) =>
                   `relative flex h-[4.5rem] items-center whitespace-nowrap px-[31px] text-[1.05rem] font-semibold tracking-tight transition ${
                     transparent

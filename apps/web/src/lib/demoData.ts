@@ -687,8 +687,7 @@ export function createDemoMenus(): DemoMenuItem[] {
   }
   const about = add(null, 0, '회사소개', '/about')
   add(about, 0, '회사 소개', '/about')
-  add(about, 1, '사업분야', '/services')
-  add(about, 2, '찾아오시는 길', '/about/directions')
+  add(about, 1, '찾아오시는 길', '/about/directions')
   const business = add(null, 1, '사업분야', '/services')
   add(business, 0, '사업분야', '/services')
   add(business, 1, '서비스', '/service')

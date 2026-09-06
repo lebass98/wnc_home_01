@@ -52,14 +52,18 @@ export const pathOf = (url: string) => url.split(/[?#]/)[0]
 export function findGroup(menu: SiteMenuLink[], pathname: string): SiteMenuLink | null {
   let best: SiteMenuLink | null = null
   let bestLen = 0
+  let bestOwn = false
   for (const group of menu) {
-    for (const url of [group.url, ...group.children.map((c) => c.url)]) {
+    for (const [i, url] of [group.url, ...group.children.map((c) => c.url)].entries()) {
       const p = pathOf(url)
       if (!p || isExternalUrl(url)) continue
       if (pathname === p || pathname.startsWith(`${p}/`)) {
-        if (p.length > bestLen) {
+        // 같은 주소가 두 묶음에 다 있으면(예: 시드에 남은 중복) 묶음 자신의 주소가 맞는 쪽을 고른다.
+        const own = i === 0
+        if (p.length > bestLen || (p.length === bestLen && own && !bestOwn)) {
           best = group
           bestLen = p.length
+          bestOwn = own
         }
       }
     }

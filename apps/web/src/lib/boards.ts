@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Board } from '@wnc/shared'
 import { BOARD_CATEGORY_LABEL } from '@wnc/shared'
-import { api, qs } from './api'
+import { api, qs, retryLater } from './api'
 import { pickLocalized } from './i18n'
 
 /** 게시판 목록은 화면마다 다시 받지 않도록 한 번만 불러 온다. */
@@ -9,7 +9,11 @@ let publicPromise: Promise<Board[]> | null = null
 
 function loadBoards(includeHidden: boolean): Promise<Board[]> {
   if (includeHidden) return api<Board[]>(`/boards${qs({ includeHidden: 1 })}`, { auth: true })
-  publicPromise ??= api<Board[]>('/boards')
+  // 실패한 결과는 캐시에 남기지 않는다 — 다음 요청에서 다시 시도한다.
+  publicPromise ??= api<Board[]>('/boards').catch((e) => {
+    publicPromise = null
+    throw e
+  })
   return publicPromise
 }
 
@@ -34,10 +38,21 @@ export function useBoards(includeHidden = false) {
 
   useEffect(() => {
     let alive = true
+    let attempt = 0
+    let timer: number | null = null
     const fetchBoards = () => {
       loadBoards(includeHidden)
-        .then((list) => alive && setBoards(list))
-        .catch(() => alive && setBoards([]))
+        .then((list) => {
+          if (!alive) return
+          attempt = 0
+          setBoards(list)
+        })
+        .catch(() => {
+          if (!alive) return
+          // 못 받았으면 빈 목록으로 두되, 잠시 뒤 다시 받아 본다.
+          setBoards([])
+          timer = retryLater(fetchBoards, attempt++)
+        })
     }
     fetchBoards()
 
@@ -45,6 +60,7 @@ export function useBoards(includeHidden = false) {
     listeners.add(fetchBoards)
     return () => {
       alive = false
+      if (timer) window.clearTimeout(timer)
       listeners.delete(fetchBoards)
     }
   }, [includeHidden])

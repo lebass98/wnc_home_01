@@ -46,6 +46,10 @@ export function resolveSubVisual(pathname: string): SubVisualMeta {
   if (pathname === '/services' || pathname.startsWith('/services/')) {
     return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: 'SERVICES & SOLUTIONS' }
   }
+  // 서비스 안내(/service) — 사업분야(/services)와 다른 화면이지만 같은 비주얼을 쓴다.
+  if (pathname === '/service' || pathname.startsWith('/service/')) {
+    return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: 'SERVICE GUIDE' }
+  }
   if (pathname === '/products' || pathname.startsWith('/products/')) {
     return { image: asset('/images/subvisual/subvisual_products.jpg'), eyebrow: 'PRODUCTS & LINEUP' }
   }

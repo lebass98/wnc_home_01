@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CategoryNode, MenuItem, PageListItem } from '@wnc/shared'
-import { api } from './api'
+import { api, retryLater } from './api'
 import { useBoards } from './boards'
 
 /**
@@ -77,10 +77,24 @@ export function invalidateSiteMenu() {
   for (const notify of listeners) notify()
 }
 
+/**
+ * 세 자료를 한 번만 받아 두고 나눠 쓴다.
+ * 실패한 결과는 캐시에 남기지 않는다 — 서버가 잠깐 재시작하는 사이에 받았더라도
+ * 다음 요청에서 다시 시도해야지, 새로고침 전까지 메뉴가 빈 채로 굳으면 안 된다.
+ */
 function loadAll() {
-  menuPromise ??= api<MenuItem[]>('/menus')
-  categoryPromise ??= api<CategoryNode[]>('/categories').catch(() => [] as CategoryNode[])
-  navPagePromise ??= api<PageListItem[]>('/pages/nav').catch(() => [] as PageListItem[])
+  menuPromise ??= api<MenuItem[]>('/menus').catch((e) => {
+    menuPromise = null
+    throw e
+  })
+  categoryPromise ??= api<CategoryNode[]>('/categories').catch(() => {
+    categoryPromise = null
+    return [] as CategoryNode[]
+  })
+  navPagePromise ??= api<PageListItem[]>('/pages/nav').catch(() => {
+    navPagePromise = null
+    return [] as PageListItem[]
+  })
   return Promise.all([menuPromise, categoryPromise, navPagePromise])
 }
 
@@ -123,15 +137,27 @@ export function useSiteMenu(): SiteMenuLink[] {
 
   useEffect(() => {
     let alive = true
+    let attempt = 0
+    let timer: number | null = null
     const fetchAll = () => {
       loadAll()
-        .then(([items, categories, navPages]) => alive && setData({ items, categories, navPages }))
-        .catch(() => alive && setData({ items: [], categories: [], navPages: [] }))
+        .then(([items, categories, navPages]) => {
+          if (!alive) return
+          attempt = 0
+          setData({ items, categories, navPages })
+        })
+        .catch(() => {
+          if (!alive) return
+          // 못 받았으면 빈 메뉴로 그리되, 잠시 뒤 다시 받아 본다 (서버 재시작 직후 대비).
+          setData({ items: [], categories: [], navPages: [] })
+          timer = retryLater(fetchAll, attempt++)
+        })
     }
     fetchAll()
     listeners.add(fetchAll)
     return () => {
       alive = false
+      if (timer) window.clearTimeout(timer)
       listeners.delete(fetchAll)
     }
   }, [])

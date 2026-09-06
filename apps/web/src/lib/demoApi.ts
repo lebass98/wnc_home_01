@@ -186,6 +186,24 @@ function load(): DemoDb {
           parsed.nextTemplateId = 2
         }
         parsed.nextTemplateId ??= Math.max(...parsed.templates.map((t) => t.id)) + 1
+        // 이전 저장본의 메뉴에 '서비스'(/service) 가 없으면 사업분야 아래에 채워 넣는다.
+        // 저장본은 시드를 다시 부르지 않으므로, 시드에 새로 넣은 메뉴는 여기서 따라 넣어야 예전 방문자도 본다.
+        if (!parsed.menus.some((m) => m.url === '/service')) {
+          const business = parsed.menus.find((m) => m.parentId === null && m.url === '/services')
+          if (business) {
+            parsed.nextMenuId ??= Math.max(0, ...parsed.menus.map((m) => m.id)) + 1
+            const siblings = parsed.menus.filter((m) => m.parentId === business.id)
+            const at = new Date().toISOString()
+            const base = { newTab: false, autoChildren: 'none' as const, published: true, showInGnb: true, showInFooter: true, showInSitemap: true, createdAt: at, updatedAt: at }
+            // 회사소개 묶음처럼 자기 화면을 첫 항목으로 두고, 그 다음에 서비스를 붙인다.
+            if (!siblings.some((m) => m.url === '/services')) {
+              for (const m of siblings) m.sortOrder += 1
+              parsed.menus.push({ ...base, id: parsed.nextMenuId++, parentId: business.id, label: '사업분야', url: '/services', sortOrder: 0 })
+            }
+            const last = Math.max(-1, ...parsed.menus.filter((m) => m.parentId === business.id).map((m) => m.sortOrder))
+            parsed.menus.push({ ...base, id: parsed.nextMenuId++, parentId: business.id, label: '서비스', url: '/service', sortOrder: last + 1 })
+          }
+        }
         // 이전 저장본의 페이지에 다국어·첨부 항목이 없으면 기본값을 채운다.
         for (const pg of parsed.pages) {
           pg.titleI18n ??= {}

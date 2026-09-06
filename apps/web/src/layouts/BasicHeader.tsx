@@ -8,7 +8,7 @@ import type { SiteHeaderProps } from './index'
  * 기본 헤더 — 로고 왼쪽, 1차 메뉴 오른쪽 한 줄.
  * 메뉴에 올리면 각 열이 아래로 늘어나며 2차 메뉴 판이 펼쳐진다. (참고 템플릿의 hover dim)
  */
-export default function BasicHeader({ menu, logo, logoImage, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
+export default function BasicHeader({ menu, logo, logoImage, overlay, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   // 상단 메뉴에 올리면 2차 메뉴 판이 펼쳐진다.
   const [megaOpen, setMegaOpen] = useState(false)
   const { pathname } = useLocation()
@@ -28,11 +28,14 @@ export default function BasicHeader({ menu, logo, logoImage, transparent, onOpen
     <header
       style={{ top: 'var(--demo-banner-h)' }}
       onMouseLeave={() => setMegaOpen(false)}
-      className={`z-40 transition-colors duration-300 ${
+      className={`z-40 border-b transition-[background-color,border-color,box-shadow] duration-300 ${
+        // 위치 방식은 화면 종류로 고정한다 — 히어로 위에 얹는 화면은 늘 fixed, 아니면 늘 sticky.
+        // 스크롤 중에 둘을 오가면 본문이 헤더 높이만큼 내려앉아 튄다.
+        overlay ? 'fixed inset-x-0' : 'sticky'
+      } ${
         transparent
-          ? // 히어로 위에 겹쳐 얹는다 — 자리를 차지하지 않도록 fixed 로 띄운다.
-            `fixed inset-x-0 border-b border-transparent ${megaOpen ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent'}`
-          : 'sticky border-b border-slate-200 bg-white/90 backdrop-blur'
+          ? `border-transparent ${megaOpen ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent'}`
+          : 'border-slate-200 bg-white/90 backdrop-blur'
       }`}
     >
       {/* 2차 메뉴 배경 판 — 상단 메뉴에 올리면 0.2초 동안 아래로 늘어난다. */}

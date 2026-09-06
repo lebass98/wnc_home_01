@@ -13,15 +13,14 @@ function Logo({ logo, logoImage, className }: { logo: string; logoImage?: string
   return <span className={className}>{logo}</span>
 }
 
-export default function CenterHeader({ menu, logo, logoImage, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
+export default function CenterHeader({ menu, logo, logoImage, overlay, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   return (
     <header
       style={{ top: 'var(--demo-banner-h)' }}
-      className={`z-40 transition-colors duration-300 ${
-        transparent
-          ? 'fixed inset-x-0 bg-transparent'
-          : 'sticky border-b border-slate-200 bg-white/90 backdrop-blur'
-      }`}
+      className={`z-40 border-b transition-[background-color,border-color] duration-300 ${
+        // 위치 방식은 화면 종류로 고정 — 스크롤 중에 fixed↔sticky 를 오가면 본문이 튄다.
+        overlay ? 'fixed inset-x-0' : 'sticky'
+      } ${transparent ? 'border-transparent bg-transparent' : 'border-slate-200 bg-white/90 backdrop-blur'}`}
     >
       {/* 넓은 화면 — 로고 줄 */}
       <div className="hidden gnb:block">

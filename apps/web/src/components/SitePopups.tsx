@@ -236,8 +236,10 @@ export default function SitePopups() {
   const matchesPath = useCallback(
     (popup: Popup) => {
       if (popup.placement === 'main') return pathname === '/'
-      const target = popup.placementPath?.trim()
-      return Boolean(target) && pathname.startsWith(target as string)
+      const target = popup.placementPath?.trim().replace(/\/+$/, '')
+      if (!target) return false
+      // 경로 단위로 견준다 — '/service' 를 고른 팝업이 '/services' 에서도 뜨면 안 된다.
+      return pathname === target || pathname.startsWith(`${target}/`)
     },
     [pathname],
   )

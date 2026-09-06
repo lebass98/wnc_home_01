@@ -17,7 +17,11 @@ export function invalidatePageLayouts() {
 }
 
 function load(): Promise<SitePageLayoutMap> {
-  layoutPromise ??= api<SitePageLayoutMap>('/site-pages/layouts').catch(() => ({}) as SitePageLayoutMap)
+  // 못 받으면 기본 레이아웃으로 그리되, 실패를 캐시에 남기지 않아 다음 화면에서 다시 받는다.
+  layoutPromise ??= api<SitePageLayoutMap>('/site-pages/layouts').catch(() => {
+    layoutPromise = null
+    return {} as SitePageLayoutMap
+  })
   return layoutPromise
 }
 

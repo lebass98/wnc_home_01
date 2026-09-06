@@ -91,3 +91,13 @@ export function qs(params: Record<string, string | number | boolean | undefined>
   const s = sp.toString()
   return s ? `?${s}` : ''
 }
+
+/**
+ * 서버가 잠깐 재시작하는 사이(코드 저장 직후 등) 실패한 요청을 조금 뒤에 다시 시도한다.
+ * 간격을 1.5초부터 두 배씩 늘려 최대 횟수까지 시도하고, 다 쓰면 null 을 돌려준다.
+ * 메뉴·설정처럼 화면 전체가 기대는 자료는 한 번 실패했다고 빈 채로 두면 안 되므로 여기에 기댄다.
+ */
+export function retryLater(fn: () => void, attempt: number, max = 5): number | null {
+  if (attempt >= max) return null
+  return window.setTimeout(fn, 1500 * 2 ** attempt)
+}

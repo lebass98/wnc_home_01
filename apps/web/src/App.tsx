@@ -8,6 +8,7 @@ import HomePage from './pages/site/HomePage'
 import AboutPage from './pages/site/AboutPage'
 import DirectionsPage from './pages/site/DirectionsPage'
 import ServicesPage from './pages/site/ServicesPage'
+import ServiceGuidePage from './pages/site/ServiceGuidePage'
 import BoardPage from './pages/site/BoardPage'
 import ProductsPage from './pages/site/ProductsPage'
 import ProductDetailPage from './pages/site/ProductDetailPage'
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/about/directions" element={<DirectionsPage />} />
             <Route path="/services" element={<ServicesPage />} />
+            <Route path="/service" element={<ServiceGuidePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/board" element={<BoardPage />} />

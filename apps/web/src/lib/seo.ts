@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { BoardSetting, SiteSetting } from '@wnc/shared'
 import { DEFAULT_GENERATOR, fillTemplate } from '@wnc/shared'
-import { api } from './api'
+import { api, retryLater } from './api'
 
 /**
  * 문서 제목은 두 곳에서 정해진다.
@@ -34,7 +34,11 @@ export function usePageTitle(title: string | null | undefined) {
 let sitePromise: Promise<SiteSetting> | null = null
 
 function loadSiteSetting(): Promise<SiteSetting> {
-  sitePromise ??= api<SiteSetting>('/settings')
+  // 실패한 결과는 캐시에 남기지 않는다 — 다음 요청에서 다시 시도한다.
+  sitePromise ??= api<SiteSetting>('/settings').catch((e) => {
+    sitePromise = null
+    throw e
+  })
   return sitePromise
 }
 
@@ -51,13 +55,20 @@ export function useSiteSetting(): SiteSetting | null {
   const [setting, setSetting] = useState<SiteSetting | null>(null)
   useEffect(() => {
     let alive = true
-    loadSiteSetting()
-      .then((s) => alive && setSetting(s))
-      .catch(() => {
-        // 설정을 못 읽어도 화면은 기본값으로 그려진다.
-      })
+    let attempt = 0
+    let timer: number | null = null
+    const fetch = () => {
+      loadSiteSetting()
+        .then((s) => alive && setSetting(s))
+        .catch(() => {
+          // 설정을 못 읽어도 화면은 기본값으로 그려진다. 잠시 뒤 다시 받아 본다.
+          if (alive) timer = retryLater(fetch, attempt++)
+        })
+    }
+    fetch()
     return () => {
       alive = false
+      if (timer) window.clearTimeout(timer)
     }
   }, [])
   return setting

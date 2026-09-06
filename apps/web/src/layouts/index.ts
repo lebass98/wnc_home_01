@@ -69,7 +69,13 @@ export interface SiteHeaderProps {
   logo: string
   /** [환경설정]에서 올린 사이트 타이틀 이미지. 있으면 글자 대신 이 그림을 건다. */
   logoImage?: string | null
-  /** 어두운 히어로 위에 투명하게 얹힌 상태 — 스크롤을 내리면 꺼진다. */
+  /**
+   * 어두운 히어로가 있는 화면 — 헤더가 자리를 차지하지 않고 그 위에 떠 있어야 한다(fixed).
+   * 스크롤과 무관하게 화면 종류로 정해진다. 스크롤 중에 fixed↔sticky 를 오가면 본문이 헤더 높이만큼 튀므로,
+   * 위치 방식은 이 값으로 고정하고 색만 transparent 로 바꾼다.
+   */
+  overlay: boolean
+  /** 어두운 히어로 위에 투명하게 얹힌 상태 — 스크롤을 내리면 꺼진다. 색만 바뀐다. */
   transparent: boolean
   /** 햄버거를 눌렀을 때 — 모바일 메뉴 판을 연다. */
   onOpenMobile: () => void

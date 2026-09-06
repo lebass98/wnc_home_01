@@ -857,6 +857,7 @@ export const SITE_PAGES: SitePageDef[] = [
   { key: 'home', label: '메인', path: '/', file: 'HomePage.tsx', description: '메인 비주얼과 소개 구역' },
   { key: 'about', label: '회사소개', path: '/about', file: 'AboutPage.tsx', description: '회사 소개 · 개발 철학' },
   { key: 'services', label: '사업분야', path: '/services', file: 'ServicesPage.tsx', description: '사업 인프라 카드' },
+  { key: 'serviceGuide', label: '서비스', path: '/service', file: 'ServiceGuidePage.tsx', description: '서비스 안내 · 구성 표 · 이용 방법' },
   { key: 'directions', label: '찾아오시는 길', path: '/about/directions', file: 'DirectionsPage.tsx', description: '지도 · 본사 · 지점' },
   { key: 'products', label: '제품소개', path: '/products', file: 'ProductsPage.tsx', description: '대분류 탭과 제품 목록' },
   { key: 'productDetail', label: '제품 상세', path: '/products/:id', file: 'ProductDetailPage.tsx', description: '제품 한 건의 상세' },

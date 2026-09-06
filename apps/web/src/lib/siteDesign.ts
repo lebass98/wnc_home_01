@@ -17,7 +17,11 @@ export function invalidateSiteDesign() {
 }
 
 function load(): Promise<SiteDesign> {
-  designPromise ??= api<SiteDesign>('/design').catch(() => DEFAULT_SITE_DESIGN)
+  // 못 받으면 기본 디자인으로 그리되, 실패를 캐시에 남기지 않아 다음 화면에서 다시 받는다.
+  designPromise ??= api<SiteDesign>('/design').catch(() => {
+    designPromise = null
+    return DEFAULT_SITE_DESIGN
+  })
   return designPromise
 }
 

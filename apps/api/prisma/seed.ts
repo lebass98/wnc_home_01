@@ -326,7 +326,14 @@ async function main() {
           { label: '찾아오시는 길', url: '/about/directions' },
         ],
       },
-      { label: '사업분야', url: '/services', children: [] },
+      {
+        label: '사업분야',
+        url: '/services',
+        children: [
+          { label: '사업분야', url: '/services' },
+          { label: '서비스', url: '/service' },
+        ],
+      },
       { label: '제품소개', url: '/products', autoChildren: 'categories', children: [{ label: '전체 제품', url: '/products' }] },
       { label: '소식', url: '/board', autoChildren: 'boards', children: [{ label: '전체 소식', url: '/board' }] },
       {

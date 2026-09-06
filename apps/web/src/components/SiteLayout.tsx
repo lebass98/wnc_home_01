@@ -41,7 +41,7 @@ export default function SiteLayout() {
   // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는
   // 헤더를 그 위에 투명하게 얹고, 내리면 흰 배경으로 바꾼다.
   // 아래 목록에 없는 화면은 처음부터 흰 헤더를 쓴다.
-  const DARK_TOP = ['/', '/about', '/services', '/products', '/board', '/contact', '/terms', '/privacy']
+  const DARK_TOP = ['/', '/about', '/services', '/service', '/products', '/board', '/contact', '/terms', '/privacy']
   const overHero =
     DARK_TOP.includes(pathname) ||
     pathname.startsWith('/page/') ||
@@ -80,6 +80,7 @@ export default function SiteLayout() {
         menu={menu}
         logo={logo}
         logoImage={logoImage}
+        overlay={overHero}
         transparent={transparent}
         onOpenMobile={() => setOpen(true)}
         onOpenSitemap={() => setSitemapOpen(true)}

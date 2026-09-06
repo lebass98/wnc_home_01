@@ -329,6 +329,7 @@ function DateField({
   onType,
   showIcon = true,
   className = '',
+  syncKey,
 }: {
   display: string
   placeholder: string
@@ -341,19 +342,50 @@ function DateField({
   onType: (raw: string) => void
   showIcon?: boolean
   className?: string
+  /** 달력에서 값을 확정할 때마다 올라간다 — 치던 글자를 버리고 확정 값을 보여 주라는 신호 */
+  syncKey?: number
 }) {
+  // 치는 동안에는 친 글자를 그대로 둔다 — 완성된 날짜가 아니라고 매 글자마다 되돌리면 타이핑이 안 된다.
+  // 포커스가 나가면 확정된 표시(display)로 돌아간다.
+  const [text, setText] = useState(display)
+  const [editing, setEditing] = useState(false)
+  // 직접 치는 중인지 — 이때는 바깥 값이 바뀌어도 친 글자를 지키고, 달력에서 고른 값은 곧바로 보여 준다.
+  const typing = useRef(false)
+  useEffect(() => {
+    if (!editing || !typing.current) setText(display)
+  }, [display, editing])
+  useEffect(() => {
+    // 달력에서 확정했을 때만 — display 자체는 위 효과가 따로 본다
+    typing.current = false
+    setText(display)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncKey])
+
   return (
     <div className={`relative ${className}`}>
       <input
         type="text"
-        value={display}
+        value={editing ? text : display}
         disabled={disabled}
         aria-label={ariaLabel}
         aria-expanded={expanded}
         aria-controls={controls}
         placeholder={placeholder}
-        onChange={(e) => onType(e.target.value)}
-        onFocus={onFocus}
+        onChange={(e) => {
+          typing.current = true
+          setText(e.target.value)
+          onType(e.target.value)
+        }}
+        onFocus={() => {
+          typing.current = false
+          setText(display)
+          setEditing(true)
+          onFocus()
+        }}
+        onBlur={() => {
+          typing.current = false
+          setEditing(false)
+        }}
         className={`input ${showIcon ? 'pr-10' : ''}`}
       />
       {showIcon && (
@@ -477,6 +509,8 @@ export default function DatePicker({
   }, [value])
 
   const wrapRef = useDismiss(open, () => setOpen(false))
+  // 달력에서 확정한 횟수 — 입력칸이 치던 글자 대신 확정 값을 보여 주도록 알린다
+  const [pickSeq, setPickSeq] = useState(0)
 
   function outOfRange(d: Date): boolean {
     const t = dayOnly(d)
@@ -505,6 +539,7 @@ export default function DatePicker({
   /** [확인] — 고른 값을 실제로 넘긴다. */
   function confirm() {
     if (draft) onChange(draft)
+    setPickSeq((n) => n + 1)
     setOpen(false)
   }
 
@@ -517,6 +552,7 @@ export default function DatePicker({
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
       <DateField
+        syncKey={pickSeq}
         display={display}
         placeholder={placeholder ?? (withTime ? 'YYYY.MM.DD HH:MM' : 'YYYY.MM.DD')}
         ariaLabel={ariaLabel}
@@ -674,26 +710,37 @@ export function DateRangePicker({
     if (draftEnd) setDraft((prev) => ({ ...prev, end: compose(draftEnd, { h, m }) }))
   }
 
+  // 달력에서 확정한 횟수 — 입력칸이 치던 글자 대신 확정 값을 보여 주도록 알린다
+  const [pickSeq, setPickSeq] = useState(0)
+
   /** [확인] — 고른 기간을 실제로 넘긴다. 종료를 아직 안 골랐으면 시작일과 같은 날로 둔다. */
   function confirm() {
     if (draft.start) onChange(draft.start, draft.end || compose(draftStart as Date, endTime))
+    setPickSeq((n) => n + 1)
     setOpen(false)
   }
 
-  /** 입력 칸에 직접 친 날짜는 곧바로 반영한다. */
+  /** 입력 칸에 직접 친 날짜(와 시각)는 곧바로 반영한다. '2026.09.07 14:30' 처럼 시각을 붙이면 그 시각으로. */
   function typed(which: 'start' | 'end', raw: string) {
     if (raw.trim() === '') {
       return which === 'start' ? onChange('', end) : onChange(start, '')
     }
-    const next = parseTyped(raw.trim().split(/\s+/)[0])
+    const [datePart, timePart] = raw.trim().split(/\s+/)
+    const next = parseTyped(datePart)
     if (!next) return
     const parsed = parseValue(next)
     if (!parsed) return
+    const tm = withTime ? timePart?.match(/^(\d{1,2}):?(\d{2})$/) : null
+    const typedTime = tm ? { h: Math.min(23, Number(tm[1])), m: Math.min(59, Number(tm[2])) } : null
     if (which === 'start') {
-      onChange(compose(parsed, startTime), end)
+      const t = typedTime ?? startTime
+      if (typedTime) setStartTime(typedTime)
+      onChange(compose(parsed, t), end)
       setView(startOfMonth(parsed))
     } else {
-      onChange(start, compose(parsed, endTime))
+      const t = typedTime ?? endTime
+      if (typedTime) setEndTime(typedTime)
+      onChange(start, compose(parsed, t))
     }
   }
 
@@ -718,6 +765,7 @@ export function DateRangePicker({
           controls={open ? dialogId : undefined}
           showIcon={false}
           className="flex-1"
+          syncKey={pickSeq}
           onFocus={() => openPanel('start')}
           onToggle={() => (open ? setOpen(false) : openPanel('start'))}
           onType={(raw) => typed('start', raw)}
@@ -731,6 +779,7 @@ export function DateRangePicker({
           expanded={open}
           controls={open ? dialogId : undefined}
           className="flex-1"
+          syncKey={pickSeq}
           onFocus={() => openPanel('end')}
           onToggle={() => (open ? setOpen(false) : openPanel('end'))}
           onType={(raw) => typed('end', raw)}

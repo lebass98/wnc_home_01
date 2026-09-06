@@ -843,7 +843,12 @@ export interface PrivacyRevisionInput {
  * 보통은 /page/{slug} 인데, 이용약관·개인정보처리방침은 코드 라우트(/terms·/privacy)가 따로 있어
  * 그 주소가 진짜다. 관리자 목록·미리보기·메뉴 후보·GNB 노출 판정이 모두 이 함수를 써야 한 주소로 맞는다.
  */
-export const PAGE_ROUTE_OVERRIDES: Record<string, string> = { terms: '/terms', privacy: '/privacy' }
+export const PAGE_ROUTE_OVERRIDES: Record<string, string> = {
+  terms: '/terms',
+  privacy: '/privacy',
+  // 자주 묻는 질문은 [자주 묻는 질문] 기능(/contact/faq)이 유일한 출처다 — 옛 링크가 남아 있어도 그리로 보낸다.
+  faq: '/contact/faq',
+}
 export function pagePathOf(slug: string): string {
   return PAGE_ROUTE_OVERRIDES[slug] ?? `/page/${slug}`
 }

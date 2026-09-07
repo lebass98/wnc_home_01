@@ -177,16 +177,18 @@ export default function StatsPage() {
             ))}
           </div>
 
+          {/* 카드는 모두 좌우 두 칸에 맞춰 놓는다 — 화면이 좁아지면 한 줄로 쌓인다. */}
+          <div className="grid gap-4 xl:grid-cols-2">
           {/* 1. 일별 트렌드 */}
           <Card title="일별 트렌드" hint="날짜마다 조회수와 방문자 수입니다.">
             {data.daily.length === 0 ? (
               <NoData />
             ) : (
-              <div className="h-72">
+              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={data.daily} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} fontSize={12} stroke="#94a3b8" />
+                    <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} fontSize={12} stroke="#94a3b8" minTickGap={24} />
                     <YAxis allowDecimals={false} fontSize={12} stroke="#94a3b8" />
                     <Tooltip formatter={(v: number, name) => [`${v}${name === '방문자' ? '명' : '회'}`, name]} />
                     <Legend />
@@ -218,20 +220,18 @@ export default function StatsPage() {
           </Card>
 
           {/* 3~6. 나눠 보기 */}
-          <div className="grid gap-4 xl:grid-cols-2">
-            <Card title="디바이스별 접속통계" hint="PC·모바일·태블릿 비율입니다.">
-              <Breakdown items={data.devices} />
-            </Card>
-            <Card title="브라우저별 접속통계" hint="크롬·사파리 등 어떤 브라우저로 들어오는지입니다.">
-              <Breakdown items={data.browsers} />
-            </Card>
-            <Card title="운영체제별 접속통계" hint="윈도우·맥·안드로이드·iOS 비율입니다.">
-              <Breakdown items={data.os} />
-            </Card>
-            <Card title="유입경로별 접속통계" hint="직접 들어왔는지, 검색·SNS·외부 링크를 거쳤는지입니다.">
-              <Breakdown items={data.sources} />
-            </Card>
-          </div>
+          <Card title="디바이스별 접속통계" hint="PC·모바일·태블릿 비율입니다.">
+            <Breakdown items={data.devices} />
+          </Card>
+          <Card title="브라우저별 접속통계" hint="크롬·사파리 등 어떤 브라우저로 들어오는지입니다.">
+            <Breakdown items={data.browsers} />
+          </Card>
+          <Card title="운영체제별 접속통계" hint="윈도우·맥·안드로이드·iOS 비율입니다.">
+            <Breakdown items={data.os} />
+          </Card>
+          <Card title="유입경로별 접속통계" hint="직접 들어왔는지, 검색·SNS·외부 링크를 거쳤는지입니다.">
+            <Breakdown items={data.sources} />
+          </Card>
 
           {/* 많이 본 화면 */}
           <Card title="많이 본 화면" hint="기간 안에서 조회수가 높은 순서입니다.">
@@ -249,6 +249,7 @@ export default function StatsPage() {
               </ul>
             )}
           </Card>
+          </div>
         </div>
       )}
     </>

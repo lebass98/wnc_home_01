@@ -13,6 +13,7 @@ import { pagesRouter } from './routes/pages.js'
 import { settingsRouter } from './routes/settings.js'
 import { boardSettingsRouter } from './routes/boardSettings.js'
 import { reportsRouter } from './routes/reports.js'
+import { statsRouter } from './routes/stats.js'
 import { popupsRouter } from './routes/popups.js'
 import { faqsRouter } from './routes/faqs.js'
 import { privacyRevisionsRouter } from './routes/privacyRevisions.js'
@@ -61,6 +62,7 @@ app.use('/api/pages', pagesRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/board-settings', boardSettingsRouter)
 app.use('/api/reports', reportsRouter)
+app.use('/api/stats', statsRouter)
 app.use('/api/popups', popupsRouter)
 app.use('/api/faqs', faqsRouter)
 app.use('/api/privacy-revisions', privacyRevisionsRouter)

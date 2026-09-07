@@ -381,6 +381,84 @@ async function main() {
     }
   }
 
+  // 방문 통계 표본 — 관리자 [통계] 화면이 비어 보이지 않도록 최근 60일치를 지어 넣는다.
+  if ((await prisma.visit.count()) === 0) {
+    /** 같은 씨앗이면 늘 같은 수를 내놓는 난수 — 다시 시드해도 그래프 모양이 같다. */
+    const seededRandom = (seed: number) => {
+      let t = seed >>> 0
+      return () => {
+        t = (t + 0x6d2b79f5) >>> 0
+        let x = Math.imul(t ^ (t >>> 15), 1 | t)
+        x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296
+      }
+    }
+    /** 가중치가 붙은 후보 중 하나를 고른다. */
+    const pick = (rand: () => number, table: [string, number][]) => {
+      let r = rand() * table.reduce((sum, [, w]) => sum + w, 0)
+      for (const [name, w] of table) {
+        r -= w
+        if (r <= 0) return name
+      }
+      return table[table.length - 1][0]
+    }
+
+    const DEVICES: [string, number][] = [['desktop', 52], ['mobile', 40], ['tablet', 8]]
+    const BROWSERS: [string, number][] = [
+      ['Chrome', 55], ['Safari', 20], ['Edge', 11], ['Samsung Internet', 6],
+      ['Whale', 4], ['Firefox', 3], ['기타', 1],
+    ]
+    const OSES: [string, number][] = [
+      ['Windows', 41], ['Android', 22], ['iOS', 18], ['macOS', 13], ['iPadOS', 4], ['Linux', 2],
+    ]
+    const SOURCES: [string, number][] = [['direct', 42], ['search', 34], ['sns', 14], ['referral', 10]]
+    const PATHS: [string, number][] = [
+      ['/', 30], ['/about', 12], ['/products', 11], ['/services', 10], ['/board', 9],
+      ['/service', 8], ['/contact', 8], ['/contact/faq', 5], ['/about/directions', 4],
+      ['/terms', 2], ['/privacy', 1],
+    ]
+    // 0~23시 방문이 몰리는 정도 — 새벽은 뜸하고 낮·저녁에 몰린다.
+    const HOURS = [1, 1, 1, 1, 1, 2, 4, 8, 14, 20, 24, 22, 18, 24, 26, 25, 22, 18, 14, 12, 10, 8, 5, 3]
+    const HOUR_TOTAL = HOURS.reduce((sum, w) => sum + w, 0)
+
+    const rows: { path: string; visitorId: string; device: string; browser: string; os: string; source: string; referrer: string; createdAt: Date }[] = []
+    for (let back = 59; back >= 0; back--) {
+      const day = new Date()
+      day.setDate(day.getDate() - back)
+      day.setHours(0, 0, 0, 0)
+      const rand = seededRandom(Number(`${day.getFullYear()}${String(day.getMonth() + 1).padStart(2, '0')}${String(day.getDate()).padStart(2, '0')}`))
+      const weekday = day.getDay()
+      const busy = weekday === 0 ? 0.55 : weekday === 6 ? 0.62 : 1
+      const count = Math.round(90 * busy * (0.75 + rand() * 0.5))
+      // 한 사람이 여러 화면을 보므로 방문자 수는 조회수보다 적다.
+      const visitors = Math.max(1, Math.round(count * 0.62))
+
+      for (let i = 0; i < count; i++) {
+        let r = rand() * HOUR_TOTAL
+        let hour = 23
+        for (let h = 0; h < 24; h++) {
+          r -= HOURS[h]
+          if (r <= 0) { hour = h; break }
+        }
+        const at = new Date(day)
+        at.setHours(hour, Math.floor(rand() * 60), Math.floor(rand() * 60), 0)
+        const source = pick(rand, SOURCES)
+        rows.push({
+          path: pick(rand, PATHS),
+          visitorId: `seed-${back}-${Math.floor(rand() * visitors)}`,
+          device: pick(rand, DEVICES),
+          browser: pick(rand, BROWSERS),
+          os: pick(rand, OSES),
+          source,
+          referrer: source === 'search' ? 'google.com' : source === 'sns' ? 'instagram.com' : '',
+          createdAt: at,
+        })
+      }
+    }
+    await prisma.visit.createMany({ data: rows })
+    console.log(`  방문 통계 표본 ${rows.length}건`)
+  }
+
   console.log('시드 데이터 생성 완료')
   console.log('  관리자: admin@wnc.co.kr / admin1234')
   console.log('  편집자: editor@wnc.co.kr / admin1234')

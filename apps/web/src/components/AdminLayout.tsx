@@ -42,6 +42,12 @@ const NAV: NavItem[] = [
     icon: 'M3 12l9-9 9 9M5 10v10h14V10',
   },
   {
+    to: '/admin/stats',
+    label: '통계',
+    end: false,
+    icon: 'M3 3v18h18M7 15l3-4 3 3 5-7',
+  },
+  {
     to: '/admin/settings',
     label: '환경설정',
     end: false,
@@ -157,6 +163,7 @@ export default function AdminLayout() {
   const navLabel = (label: string) => {
     const keys: Record<string, string> = {
       '대시보드': 'nav.dashboard',
+      '통계': 'nav.stats',
       '환경설정': 'nav.settings',
       '게시판 관리': 'nav.boardManage',
       '게시판 목록': 'nav.boardList',

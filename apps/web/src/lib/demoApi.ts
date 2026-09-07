@@ -8,6 +8,10 @@ import type {
   Post,
   PostInput,
   PostListItem,
+  SiteStats,
+  StatCount,
+  StatDaily,
+  StatHourly,
 } from '@wnc/shared'
 import { SITE_PAGES } from '@wnc/shared'
 import {
@@ -269,6 +273,173 @@ function dateKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+/* ------------------------------------------------------------------ *
+ *  통계 — 데모에는 서버가 없어 방문 기록이 쌓이지 않는다.
+ *  날짜를 씨앗 삼아 늘 같은 값을 만들어 내고, 이 창에서 실제로 돌아다닌
+ *  방문을 그 위에 얹는다. (지어 낸 값이라 실제 접속 수가 아니다)
+ * ------------------------------------------------------------------ */
+
+/** 이 창에서 실제로 열어 본 화면 — 새로고침하면 사라진다. */
+const demoVisits: { path: string; at: number }[] = []
+
+/** 같은 씨앗이면 늘 같은 수를 내놓는 난수 — 새로고침해도 그래프가 흔들리지 않게 한다. */
+function seededRandom(seed: number): () => number {
+  let t = seed >>> 0
+  return () => {
+    t = (t + 0x6d2b79f5) >>> 0
+    let x = Math.imul(t ^ (t >>> 15), 1 | t)
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** 가중치가 붙은 후보 중 하나를 고른다. */
+function pickWeighted(rand: () => number, table: readonly (readonly [string, number])[]): string {
+  const total = table.reduce((sum, [, w]) => sum + w, 0)
+  let r = rand() * total
+  for (const [name, w] of table) {
+    r -= w
+    if (r <= 0) return name
+  }
+  return table[table.length - 1][0]
+}
+
+const VISIT_DEVICE_MIX = [['PC', 52], ['모바일', 40], ['태블릿', 8]] as const
+const VISIT_BROWSER_MIX = [
+  ['Chrome', 55], ['Safari', 20], ['Edge', 11], ['Samsung Internet', 6],
+  ['Whale', 4], ['Firefox', 3], ['기타', 1],
+] as const
+const VISIT_OS_MIX = [
+  ['Windows', 41], ['Android', 22], ['iOS', 18], ['macOS', 13], ['iPadOS', 4], ['Linux', 2],
+] as const
+const VISIT_SOURCE_MIX = [['직접 유입', 42], ['검색', 34], ['SNS', 14], ['외부 링크', 10]] as const
+const VISIT_PATH_MIX = [
+  ['/', 30], ['/about', 12], ['/products', 11], ['/services', 10], ['/board', 9],
+  ['/service', 8], ['/contact', 8], ['/contact/faq', 5], ['/about/directions', 4],
+  ['/terms', 2], ['/privacy', 1],
+] as const
+/** 0~23시 방문이 몰리는 정도 — 새벽은 뜸하고 낮과 저녁에 몰린다. */
+const VISIT_HOUR_MIX = [1, 1, 1, 1, 1, 2, 4, 8, 14, 20, 24, 22, 18, 24, 26, 25, 22, 18, 14, 12, 10, 8, 5, 3]
+
+/** 지금 브라우저가 무엇인지 — 서버의 판정 규칙과 같게 본다. */
+function readDemoAgent(): { device: string; browser: string; os: string } {
+  const ua = navigator.userAgent
+  const device = /iPad|Tablet|PlayBook|Silk|(Android(?!.*Mobile))/i.test(ua)
+    ? '태블릿'
+    : /Mobi|iPhone|iPod|Android|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+      ? '모바일'
+      : 'PC'
+  const browser = /SamsungBrowser/i.test(ua)
+    ? 'Samsung Internet'
+    : /Edg\//i.test(ua) ? 'Edge'
+      : /OPR\/|Opera/i.test(ua) ? 'Opera'
+        : /Whale/i.test(ua) ? 'Whale'
+          : /Firefox\//i.test(ua) ? 'Firefox'
+            : /Chrome\//i.test(ua) ? 'Chrome'
+              : /Safari\//i.test(ua) ? 'Safari' : '기타'
+  const os = /Windows NT/i.test(ua)
+    ? 'Windows'
+    : /Android/i.test(ua) ? 'Android'
+      : /iPhone|iPod/i.test(ua) ? 'iOS'
+        : /iPad/i.test(ua) ? 'iPadOS'
+          : /Mac OS X/i.test(ua) ? (device === '태블릿' ? 'iPadOS' : 'macOS')
+            : /CrOS/i.test(ua) ? 'ChromeOS'
+              : /Linux/i.test(ua) ? 'Linux' : '기타'
+  return { device, browser, os }
+}
+
+/** 많은 순으로 정렬한 이름·건수 목록 */
+function toStatCounts(map: Map<string, number>): StatCount[] {
+  return [...map.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+}
+
+/** 기간 안의 방문을 여섯 갈래로 나눠 준다 — 실제 API `GET /stats` 와 같은 형태다. */
+function demoStats(from: string | null, to: string | null): SiteStats {
+  const end = to ? new Date(`${to}T23:59:59.999`) : new Date()
+  const start = from ? new Date(`${from}T00:00:00.000`) : new Date(end.getTime() - 29 * 24 * 60 * 60 * 1000)
+  start.setHours(0, 0, 0, 0)
+
+  const daily: StatDaily[] = []
+  const hourly: StatHourly[] = Array.from({ length: 24 }, (_, hour) => ({ hour, views: 0 }))
+  const devices = new Map<string, number>()
+  const browsers = new Map<string, number>()
+  const os = new Map<string, number>()
+  const sources = new Map<string, number>()
+  const pages = new Map<string, number>()
+  const bump = (map: Map<string, number>, name: string) => map.set(name, (map.get(name) ?? 0) + 1)
+
+  let views = 0
+  let visitorSum = 0
+
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const key = dateKey(d)
+    // 날짜 자체를 씨앗으로 삼아 같은 날은 늘 같은 값이 나오게 한다.
+    const rand = seededRandom(Number(key.replace(/-/g, '')))
+    const weekday = d.getDay()
+    const busy = weekday === 0 ? 0.55 : weekday === 6 ? 0.62 : 1
+    const count = Math.round(90 * busy * (0.75 + rand() * 0.5))
+
+    for (let i = 0; i < count; i++) {
+      let r = rand() * VISIT_HOUR_MIX.reduce((s, w) => s + w, 0)
+      let hour = 23
+      for (let h = 0; h < 24; h++) {
+        r -= VISIT_HOUR_MIX[h]
+        if (r <= 0) { hour = h; break }
+      }
+      hourly[hour].views += 1
+      bump(devices, pickWeighted(rand, VISIT_DEVICE_MIX))
+      bump(browsers, pickWeighted(rand, VISIT_BROWSER_MIX))
+      bump(os, pickWeighted(rand, VISIT_OS_MIX))
+      bump(sources, pickWeighted(rand, VISIT_SOURCE_MIX))
+      bump(pages, pickWeighted(rand, VISIT_PATH_MIX))
+    }
+
+    // 한 사람이 여러 화면을 보므로 방문자는 조회수보다 적다.
+    const dayVisitors = Math.round(count * 0.62)
+    daily.push({ date: key, views: count, visitors: dayVisitors })
+    views += count
+    visitorSum += dayVisitors
+  }
+
+  // 이 창에서 실제로 열어 본 화면을 지어 낸 값 위에 얹는다.
+  const agent = readDemoAgent()
+  for (const v of demoVisits) {
+    const at = new Date(v.at)
+    if (at < start || at > end) continue
+    const row = daily.find((x) => x.date === dateKey(at))
+    if (!row) continue
+    row.views += 1
+    hourly[at.getHours()].views += 1
+    views += 1
+    bump(devices, agent.device)
+    bump(browsers, agent.browser)
+    bump(os, agent.os)
+    bump(sources, '직접 유입')
+    bump(pages, v.path)
+  }
+
+  const busiest = hourly.reduce((best, h) => (h.views > best.views ? h : best), { hour: -1, views: 0 })
+
+  return {
+    from: dateKey(start),
+    to: dateKey(end),
+    summary: {
+      views,
+      // 다시 찾아오는 사람이 있어 날짜별 방문자를 그대로 더한 값보다 적다.
+      visitors: Math.round(visitorSum * 0.72),
+      dailyAverage: daily.length > 0 ? Math.round(views / daily.length) : 0,
+      busiestHour: busiest.views > 0 ? busiest.hour : null,
+    },
+    daily,
+    hourly,
+    devices: toStatCounts(devices),
+    browsers: toStatCounts(browsers),
+    os: toStatCounts(os),
+    sources: toStatCounts(sources),
+    pages: toStatCounts(pages).slice(0, 10),
+  }
+}
+
 /** 게시판 slug — 페이지와 같은 규칙으로 만들고 중복을 피한다. */
 function demoBoardSlug(db: DemoDb, source: string, excludeId?: number): string {
   const base =
@@ -360,7 +531,8 @@ function recordDemoActivity(input: Omit<ActivityLog, 'id' | 'createdAt' | 'ip'>)
 export function handleDemoRequest(path: string, method: string, body: any): unknown {
   const result = handleDemoRequestInner(path, method, body)
   const rawPath = path.split('?')[0]
-  if (MUTATING.has(method) && !rawPath.startsWith('/auth/')) {
+  // 방문 기록은 화면을 열 때마다 들어와 로그를 뒤덮는다 — 통계에만 쌓는다.
+  if (MUTATING.has(method) && !rawPath.startsWith('/auth/') && rawPath !== '/stats/visits') {
     const described = describeActivity(method, rawPath, body)
     if (described) {
       const detail = { method, path, status: 200, body: summarizeActivityBody(body) }
@@ -1913,6 +2085,20 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
         .slice(0, 5),
     }
     return stats
+  }
+
+  // --- 통계 ---
+  if (rawPath === '/stats/visits' && method === 'POST') {
+    const visitPath = String(body?.path ?? '')
+    if (visitPath && !visitPath.startsWith('/admin')) {
+      demoVisits.push({ path: visitPath, at: Date.now() })
+      if (demoVisits.length > 500) demoVisits.shift()
+    }
+    return null
+  }
+
+  if (rawPath === '/stats' && method === 'GET') {
+    return demoStats(params.get('from'), params.get('to'))
   }
 
   throw new DemoError('요청한 경로를 찾을 수 없습니다.', 404)

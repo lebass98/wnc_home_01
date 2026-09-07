@@ -25,6 +25,7 @@
   },
   "nav": {
     "dashboard": "仪表板",
+    "stats": "统计",
     "settings": "环境设置",
     "boardManage": "版块管理",
     "boardList": "版块列表",

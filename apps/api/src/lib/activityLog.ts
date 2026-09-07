@@ -58,6 +58,8 @@ export function activityLogger(req: Request, res: Response, next: NextFunction) 
   if (!MUTATING.has(req.method)) return next()
   // 로그인은 auth 라우트가 성공·실패를 구분해 직접 남긴다.
   if (req.path.startsWith('/auth/')) return next()
+  // 방문 기록은 화면을 열 때마다 들어와 로그를 뒤덮는다 — 통계에만 쌓는다.
+  if (req.path === '/stats/visits') return next()
 
   const ip = clientIp(req)
   res.on('finish', () => {

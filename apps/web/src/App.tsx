@@ -22,6 +22,7 @@ import PrivacyLabels from './components/PrivacyLabels'
 import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/admin/LoginPage'
 import DashboardPage from './pages/admin/DashboardPage'
+import StatsPage from './pages/admin/StatsPage'
 import PostListPage from './pages/admin/PostListPage'
 import PostEditPage from './pages/admin/PostEditPage'
 import ContactListPage from './pages/admin/ContactListPage'
@@ -114,6 +115,7 @@ export default function App() {
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route path="stats" element={<StatsPage />} />
             <Route path="posts" element={<BoardListPage />} />
             <Route path="boards/new" element={<BoardEditPage />} />
             <Route path="boards/:id" element={<BoardEditPage />} />

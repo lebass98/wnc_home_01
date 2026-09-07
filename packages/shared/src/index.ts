@@ -1255,3 +1255,77 @@ export function summarizeActivityBody(body: unknown): unknown {
   }
   return out
 }
+
+/* ------------------------------------------------------------------
+ * 방문 통계 — 관리자 [통계]
+ * ------------------------------------------------------------------ */
+
+/** 셋으로 나눈 기기 종류 */
+export const VISIT_DEVICES = ['desktop', 'mobile', 'tablet'] as const
+export type VisitDevice = (typeof VISIT_DEVICES)[number]
+export const VISIT_DEVICE_LABEL: Record<VisitDevice, string> = {
+  desktop: 'PC',
+  mobile: '모바일',
+  tablet: '태블릿',
+}
+
+/** 어디를 거쳐 들어왔는지 */
+export const VISIT_SOURCES = ['direct', 'search', 'sns', 'referral'] as const
+export type VisitSource = (typeof VISIT_SOURCES)[number]
+export const VISIT_SOURCE_LABEL: Record<VisitSource, string> = {
+  direct: '직접 유입',
+  search: '검색',
+  sns: 'SNS',
+  referral: '외부 링크',
+}
+
+/** 홈페이지가 보내는 방문 한 건 */
+export interface VisitInput {
+  path: string
+  visitorId: string
+  /** document.referrer 그대로 — 서버가 도메인만 남긴다. */
+  referrer?: string
+}
+
+/** 이름과 건수 한 쌍 (기기·브라우저·운영체제·유입경로에 함께 쓴다) */
+export interface StatCount {
+  name: string
+  count: number
+}
+
+/** 날짜별 한 줄 */
+export interface StatDaily {
+  /** YYYY-MM-DD */
+  date: string
+  views: number
+  visitors: number
+}
+
+/** 시간대별 한 줄 (0~23시) */
+export interface StatHourly {
+  hour: number
+  views: number
+}
+
+/** 통계 화면이 한 번에 받아 가는 값 */
+export interface SiteStats {
+  /** 집계 기간 */
+  from: string
+  to: string
+  summary: {
+    views: number
+    visitors: number
+    /** 하루 평균 조회수 */
+    dailyAverage: number
+    /** 가장 많이 본 시간대 (없으면 null) */
+    busiestHour: number | null
+  }
+  daily: StatDaily[]
+  hourly: StatHourly[]
+  devices: StatCount[]
+  browsers: StatCount[]
+  os: StatCount[]
+  sources: StatCount[]
+  /** 많이 본 화면 상위 */
+  pages: StatCount[]
+}

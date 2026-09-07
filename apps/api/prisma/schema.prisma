@@ -518,6 +518,31 @@ model SiteTemplate {
   updatedAt DateTime @updatedAt
 }
 
+/// 홈페이지 방문 기록 — 통계 화면이 이 표를 모아 보여 준다.
+/// 개인을 알아볼 수 있는 값(IP·이름)은 담지 않고, 브라우저가 지어 낸 방문자 표시만 쓴다.
+model Visit {
+  id   Int    @id @default(autoincrement())
+  /// 본 화면 주소 (/board, /products/3 …)
+  path String
+  /// 브라우저에 저장해 둔 임의의 방문자 표시 — 같은 사람인지만 구분한다.
+  visitorId String @default("")
+  /// desktop | mobile | tablet
+  device  String @default("desktop")
+  /// Chrome | Safari | Edge | Firefox | Samsung Internet | 기타
+  browser String @default("기타")
+  /// Windows | macOS | iOS | Android | Linux | 기타
+  os      String @default("기타")
+  /// direct | search | sns | referral — 어디를 거쳐 들어왔는지
+  source  String @default("direct")
+  /// 실제 유입 주소의 도메인 (google.com 등). 직접 들어왔으면 빈 값.
+  referrer String @default("")
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([device, createdAt])
+}
+
 /// 관리자 활동 로그 — 관리자가 API 로 한 변경(등록·수정·삭제·설정·로그인)과 보안 이벤트를 자동으로 남긴다.
 model ActivityLog {
   id Int @id @default(autoincrement())

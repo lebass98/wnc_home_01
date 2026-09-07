@@ -25,6 +25,7 @@
   },
   "nav": {
     "dashboard": "대시보드",
+    "stats": "통계",
     "settings": "환경설정",
     "boardManage": "게시판 관리",
     "boardList": "게시판 목록",

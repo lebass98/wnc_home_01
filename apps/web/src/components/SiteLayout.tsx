@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { pickMenu, useSiteMenu } from '../lib/menus'
 import { useSiteSeo, useSiteSetting } from '../lib/seo'
+import { useVisitLog } from '../lib/visit'
 import { useSiteDesign } from '../lib/siteDesign'
 import { footerComponent, headerComponent } from '../layouts'
 import SitePopups from './SitePopups'
@@ -15,6 +16,8 @@ import MobileNavDrawer from './MobileNavDrawer'
  */
 export default function SiteLayout() {
   useSiteSeo()
+  // 화면을 열 때마다 방문을 한 건 남긴다 — 관리자 [통계]가 이 값을 모아 본다.
+  useVisitLog()
   // 푸터 회사 정보 — 설정을 받기 전에는 기본값으로 그린다.
   const setting = useSiteSetting()
   const company = setting ?? DEFAULT_COMPANY

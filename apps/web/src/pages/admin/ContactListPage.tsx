@@ -167,8 +167,10 @@ export default function ContactListPage() {
           </div>
         )}
 
-        {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} total={data.total} pageSize={data.pageSize} />}
       </div>
+
+      {/* 쪽 이동은 카드 밖에 둔다 — 다른 관리 목록과 같은 자리다. */}
+      {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} total={data.total} pageSize={data.pageSize} />}
 
       {/* 상세 드로어 */}
       {selected && (

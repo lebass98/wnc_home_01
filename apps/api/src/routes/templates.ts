@@ -7,7 +7,10 @@ import multer from 'multer'
 import { ensureBuiltin, loadActiveTemplate, parseLayouts, toTemplateResponse } from '../lib/templates.js'
 import {
   applyToLive,
+  collectAssets,
   countFiles,
+  describeFiles,
+  listLanguages,
   listApplyBackupFiles,
   listApplyBackups,
   restoreApplyBackup,
@@ -61,7 +64,19 @@ async function listAll() {
 }
 
 /** 이 템플릿의 매니페스트 — 파일 묶음에 함께 담긴다. */
-function manifestOf(row: { name: string; description: string; version: string; author: string; header: string; footer: string; pageLayouts: string }): TemplateManifest {
+function manifestOf(row: {
+  name: string
+  description: string
+  version: string
+  author: string
+  header: string
+  footer: string
+  pageLayouts: string
+  license?: string
+  coreVersion?: string
+  requires?: string
+  changelog?: string
+}): TemplateManifest {
   return {
     type: 'wnc-template',
     name: row.name,
@@ -71,6 +86,11 @@ function manifestOf(row: { name: string; description: string; version: string; a
     header: row.header,
     footer: row.footer,
     pageLayouts: parseLayouts(row.pageLayouts),
+    // 사람이 적어 두는 값 — 비어 있으면 담지 않는다.
+    ...(row.license ? { license: row.license } : {}),
+    ...(row.coreVersion ? { coreVersion: row.coreVersion } : {}),
+    ...(row.requires && row.requires !== '[]' ? { requires: JSON.parse(row.requires) } : {}),
+    ...(row.changelog && row.changelog !== '[]' ? { changelog: JSON.parse(row.changelog) } : {}),
   }
 }
 
@@ -179,6 +199,10 @@ templatesRouter.post('/import-zip', requireAuth,
             header: manifest.header ?? 'basic',
             footer: manifest.footer ?? 'basic',
             pageLayouts: JSON.stringify(manifest.pageLayouts ?? {}),
+            license: manifest.license ?? '',
+            coreVersion: manifest.coreVersion ?? '',
+            requires: JSON.stringify(manifest.requires ?? []),
+            changelog: JSON.stringify(manifest.changelog ?? []),
           },
         })
         return res.status(201).json({ ...toTemplateResponse(updated), files })
@@ -247,6 +271,27 @@ templatesRouter.get(
   }),
 )
 
+/**
+ * 템플릿 정보 — 저장해 둔 값과 파일에서 읽어 낸 값을 함께 준다.
+ * 화면·레이아웃·부품 설명, 바깥 자원, 쓸 수 있는 언어는 파일을 훑어 그때그때 만든다.
+ */
+templatesRouter.get(
+  '/:id/info',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const row = await findTemplate(req.params.id)
+    if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
+
+    const [files, assets, languages] = await Promise.all([describeFiles(row.id), collectAssets(row.id), listLanguages()])
+    res.json({
+      template: { ...toTemplateResponse(row), files: await countFiles(row.id) },
+      ...files,
+      assets,
+      languages,
+    })
+  }),
+)
+
 /** 지금 사이트 모습을 이 템플릿에 담는다 — 고친 내용을 템플릿으로 갈무리할 때. */
 templatesRouter.post(
   '/:id/snapshot',
@@ -277,6 +322,20 @@ templatesRouter.put(
         header: layoutKey.optional(),
         footer: layoutKey.optional(),
         pageLayouts: pageLayoutsSchema.optional(),
+        // 템플릿 정보 — 비워 둘 수 있다.
+        license: z.string().trim().max(60).optional(),
+        coreVersion: z.string().trim().max(40).optional(),
+        requires: z.array(z.enum(['board', 'product', 'popup', 'faq', 'contact', 'page', 'menu'])).optional(),
+        changelog: z
+          .array(
+            z.object({
+              version: z.string().trim().max(30),
+              date: z.string().trim().max(20),
+              notes: z.string().max(2000),
+            }),
+          )
+          .max(50)
+          .optional(),
       })
       .parse(req.body)
 
@@ -285,6 +344,8 @@ templatesRouter.put(
       data: {
         ...data,
         pageLayouts: data.pageLayouts === undefined ? undefined : JSON.stringify(data.pageLayouts),
+        requires: data.requires === undefined ? undefined : JSON.stringify(data.requires),
+        changelog: data.changelog === undefined ? undefined : JSON.stringify(data.changelog),
       },
     })
     // 보관된 묶음의 매니페스트도 같은 값으로 맞춘다.

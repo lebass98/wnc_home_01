@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { unzipSync } from 'fflate'
 import { Link } from 'react-router-dom'
-import type { SiteTemplateFile, SiteTemplateInfo } from '@wnc/shared'
+import type { SiteTemplateDetail, SiteTemplateFile, SiteTemplateInfo, TemplateChange, TemplateFeature } from '@wnc/shared'
+import { TEMPLATE_FEATURES, TEMPLATE_FEATURE_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { invalidateSiteDesign } from '../../lib/siteDesign'
@@ -54,6 +55,7 @@ export default function TemplatesPage() {
 
   // 열려 있는 대화상자
   const [metaTarget, setMetaTarget] = useState<SiteTemplateInfo | null>(null)
+  const [infoTarget, setInfoTarget] = useState<SiteTemplateInfo | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -305,6 +307,11 @@ export default function TemplatesPage() {
                     <RowMenu
                       items={[
                         {
+                          label: '정보 보기',
+                          icon: 'M12 9h.01M11 12h1v4h1m8-4a9 9 0 11-18 0 9 9 0 0118 0z',
+                          onClick: () => setInfoTarget(row),
+                        },
+                        {
                           label: '정보 수정',
                           icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z',
                           onClick: () => setMetaTarget(row),
@@ -364,6 +371,16 @@ export default function TemplatesPage() {
         </div>
       </div>
 
+      {infoTarget && (
+        <InfoModal
+          id={infoTarget.id}
+          onClose={() => setInfoTarget(null)}
+          onEdit={() => {
+            setMetaTarget(infoTarget)
+            setInfoTarget(null)
+          }}
+        />
+      )}
       {metaTarget && (
         <MetaEditModal
           template={metaTarget}
@@ -520,7 +537,241 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-/** 정보 수정 — 이름·설명·버전 */
+/** 정보 창의 구역 제목 */
+function InfoSection({ icon, title, hint, children }: { icon: string; title: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="border-t border-slate-200 pt-5 first:border-0 first:pt-0 dark:border-slate-700">
+      <h3 className="flex items-center gap-2 text-[15px] font-bold text-slate-900 dark:text-slate-100">
+        <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+        </svg>
+        {title}
+      </h3>
+      {hint && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p>}
+      <div className="mt-3">{children}</div>
+    </section>
+  )
+}
+
+/** 값이 없을 때의 자리 표시 — 적어 두지 않았음을 분명히 밝힌다. */
+function NotSet({ label = '적지 않음' }: { label?: string }) {
+  return <span className="text-sm text-slate-400 dark:text-slate-500">{label}</span>
+}
+
+/** 파일 묶음 하나 — 이름과 설명을 표로 늘어놓는다. */
+function FileList({ items }: { items: { name: string; file: string; description: string }[] }) {
+  if (items.length === 0) return <NotSet label="담긴 파일이 없습니다." />
+  return (
+    <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+      {items.map((f) => (
+        <li key={f.file} className="flex flex-col gap-0.5 px-3.5 py-2.5 sm:flex-row sm:items-baseline sm:gap-4">
+          <span className="w-48 shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100">{f.name}</span>
+          <span className="min-w-0 flex-1 text-sm text-slate-600 dark:text-slate-400">
+            {f.description || <NotSet label="설명 없음" />}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * 템플릿 정보 — 저장해 둔 값과 파일에서 읽어 낸 값을 함께 보여 준다.
+ * 화면·레이아웃·부품 설명, 바깥 자원, 쓸 수 있는 언어는 파일을 훑어 그때그때 만든 것이고,
+ * 라이선스·요구 버전·요구 기능·변경 내역은 [정보 수정]에서 적어 둔 값이다.
+ */
+function InfoModal({ id, onClose, onEdit }: { id: number; onClose: () => void; onEdit: () => void }) {
+  const [data, setData] = useState<SiteTemplateDetail | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    api<SiteTemplateDetail>(`/templates/${id}/info`, { auth: true })
+      .then(setData)
+      .catch((e: Error) => setError(e.message))
+  }, [id])
+
+  return (
+    <Modal
+      title="템플릿 정보"
+      onClose={onClose}
+      wide
+      footer={
+        <>
+          <button type="button" onClick={onEdit} className="btn-secondary">
+            정보 수정
+          </button>
+          <button type="button" onClick={onClose} className="btn-primary">
+            닫기
+          </button>
+        </>
+      }
+    >
+      {error ? (
+        <ErrorMessage message={error} />
+      ) : !data ? (
+        <Loading />
+      ) : (
+        <div className="space-y-6">
+          <InfoSection icon="M10.3 4.3a2 2 0 013.4 0l.6 1a2 2 0 002 1l1.1-.1a2 2 0 011.7 3l-.6 1a2 2 0 000 2.2l.6 1a2 2 0 01-1.7 3l-1.1-.1a2 2 0 00-2 1l-.6 1a2 2 0 01-3.4 0l-.6-1a2 2 0 00-2-1l-1.1.1a2 2 0 01-1.7-3l.6-1a2 2 0 000-2.2l-.6-1a2 2 0 011.7-3l1.1.1a2 2 0 002-1z M15 12a3 3 0 11-6 0 3 3 0 016 0z" title="기본 정보">
+            <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+              {[
+                ['이름', data.template.name],
+                ['버전', `v${data.template.version}`],
+                ['개발자', data.template.author || null],
+                ['상태', null],
+                ['라이선스', data.template.license || null],
+                ['요구 버전', data.template.coreVersion || null],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
+                  <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-100">
+                    {label === '상태' ? (
+                      data.template.active ? (
+                        <Badge tone="green">현재 활성</Badge>
+                      ) : (
+                        <Badge>비활성</Badge>
+                      )
+                    ) : (
+                      value ?? <NotSet />
+                    )}
+                  </dd>
+                </div>
+              ))}
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-slate-500 dark:text-slate-400">설명</dt>
+                <dd className="mt-0.5 text-sm text-slate-900 dark:text-slate-100">
+                  {data.template.description || <NotSet />}
+                </dd>
+              </div>
+            </dl>
+          </InfoSection>
+
+          <InfoSection
+            icon="M4 6h16M4 12h16M4 18h10"
+            title={`화면 (${data.pages.length})`}
+            hint="이 템플릿이 담고 있는 홈페이지 화면입니다."
+          >
+            <FileList items={data.pages} />
+          </InfoSection>
+
+          <InfoSection
+            icon="M4 5a1 1 0 011-1h14a1 1 0 011 1v3H4V5zm0 5h16v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9z"
+            title={`레이아웃 (${data.layouts.length})`}
+            hint="헤더·푸터와 서브 화면 틀입니다."
+          >
+            <FileList items={data.layouts} />
+          </InfoSection>
+
+          <InfoSection
+            icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            title={`부품 (${data.components.length})`}
+            hint="화면과 레이아웃이 가져다 쓰는 조각입니다."
+          >
+            <FileList items={data.components} />
+          </InfoSection>
+
+          <InfoSection
+            icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            title="요구 기능"
+            hint="이 템플릿을 쓰려면 함께 있어야 하는 기능입니다."
+          >
+            {data.template.requires.length === 0 ? (
+              <NotSet />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {data.template.requires.map((f) => (
+                  <span
+                    key={f}
+                    className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                  >
+                    {TEMPLATE_FEATURE_LABEL[f]}
+                  </span>
+                ))}
+              </div>
+            )}
+          </InfoSection>
+
+          <InfoSection
+            icon="M3 5h12M9 3v2m1.5 13L6 9l-3 9m10-4h8m-4-2v10"
+            title={`지원 언어 (${data.languages.length})`}
+            hint="관리자와 홈페이지가 함께 쓰는 언어팩입니다."
+          >
+            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+              {data.languages.map((l) => (
+                <li key={l.code} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {l.label} <span className="text-slate-400">({l.code})</span>
+                  </span>
+                  <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">번역문 {l.keys}개</span>
+                </li>
+              ))}
+            </ul>
+          </InfoSection>
+
+          <InfoSection
+            icon="M13.8 10.2a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l.7-.7m-1.3-4.4a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-.7.7"
+            title="외부 리소스"
+            hint="이 템플릿이 쓰는 바깥 스타일·웹폰트·스크립트입니다."
+          >
+            {data.assets.length === 0 ? (
+              <NotSet label="가져다 쓰는 바깥 자원이 없습니다." />
+            ) : (
+              <ul className="space-y-2">
+                {data.assets.map((a) => (
+                  <li key={a.path} className="rounded-lg border border-slate-200 px-3.5 py-2.5 dark:border-slate-700">
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {a.name}
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                        {a.type}
+                      </span>
+                      <span className="text-xs font-normal text-slate-400">{a.from}</span>
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-slate-500 dark:text-slate-400">{a.path}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </InfoSection>
+
+          <InfoSection icon="M3 3v6h6M3.5 13a9 9 0 105-8.5L3 9" title="변경 내역">
+            {data.template.changelog.length === 0 ? (
+              <NotSet label="적어 둔 변경 내역이 없습니다. [정보 수정]에서 남길 수 있습니다." />
+            ) : (
+              <ul className="space-y-3">
+                {data.template.changelog.map((c, i) => (
+                  <li key={`${c.version}-${i}`} className="rounded-lg border border-slate-200 p-3.5 dark:border-slate-700">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      {c.version}
+                      {c.date && <span className="ml-2 font-normal text-slate-500 dark:text-slate-400">({c.date})</span>}
+                    </p>
+                    {c.notes && (
+                      <ul className="mt-2 space-y-1">
+                        {c.notes
+                          .split('\n')
+                          .map((line) => line.trim())
+                          .filter(Boolean)
+                          .map((line) => (
+                            <li key={line} className="text-sm text-slate-600 dark:text-slate-400">
+                              · {line}
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </InfoSection>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+/**
+ * 정보 수정 — 이름·설명·버전과 사람이 적어 두는 값(라이선스·요구 버전·요구 기능·변경 내역).
+ * 비워 두면 [템플릿 정보] 창에서 '적지 않음' 으로 보인다.
+ */
 function MetaEditModal({
   template,
   onClose,
@@ -533,7 +784,17 @@ function MetaEditModal({
   const [name, setName] = useState(template.name)
   const [description, setDescription] = useState(template.description)
   const [version, setVersion] = useState(template.version)
+  const [license, setLicense] = useState(template.license ?? '')
+  const [coreVersion, setCoreVersion] = useState(template.coreVersion ?? '')
+  const [requires, setRequires] = useState<TemplateFeature[]>(template.requires ?? [])
+  const [changelog, setChangelog] = useState<TemplateChange[]>(template.changelog ?? [])
   const [saving, setSaving] = useState(false)
+
+  const toggleFeature = (f: TemplateFeature) =>
+    setRequires((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]))
+
+  const setChange = (i: number, patch: Partial<TemplateChange>) =>
+    setChangelog((prev) => prev.map((c, k) => (k === i ? { ...c, ...patch } : c)))
 
   async function save() {
     if (!name.trim()) {
@@ -545,7 +806,16 @@ function MetaEditModal({
       onSaved(
         await api<SiteTemplateInfo>(`/templates/${template.id}`, {
           method: 'PUT',
-          body: { name: name.trim(), description: description.trim(), version: version.trim() || '1.0.0' },
+          body: {
+            name: name.trim(),
+            description: description.trim(),
+            version: version.trim() || '1.0.0',
+            license: license.trim(),
+            coreVersion: coreVersion.trim(),
+            requires,
+            // 버전을 적지 않은 줄은 버린다.
+            changelog: changelog.filter((c) => c.version.trim()),
+          },
           auth: true,
         }),
       )
@@ -559,6 +829,7 @@ function MetaEditModal({
     <Modal
       title="템플릿 정보 수정"
       onClose={onClose}
+      wide
       footer={
         <>
           <button type="button" onClick={onClose} className="btn-secondary">
@@ -570,24 +841,138 @@ function MetaEditModal({
         </>
       }
     >
-      <div className="space-y-4">
-        <div>
-          <label className="label" htmlFor="tpl-name">
-            이름
-          </label>
-          <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} className="input" />
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="tpl-name">
+              이름
+            </label>
+            <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} className="input" />
+          </div>
+          <div>
+            <label className="label" htmlFor="tpl-ver">
+              버전
+            </label>
+            <input id="tpl-ver" value={version} onChange={(e) => setVersion(e.target.value)} className="input" placeholder="1.0.0" />
+          </div>
         </div>
+
         <div>
           <label className="label" htmlFor="tpl-desc">
             설명
           </label>
           <input id="tpl-desc" value={description} onChange={(e) => setDescription(e.target.value)} className="input" />
         </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="tpl-license">
+              라이선스
+            </label>
+            <input
+              id="tpl-license"
+              value={license}
+              onChange={(e) => setLicense(e.target.value)}
+              className="input"
+              placeholder="예: MIT (비워 두어도 됩니다)"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="tpl-core">
+              요구 버전
+            </label>
+            <input
+              id="tpl-core"
+              value={coreVersion}
+              onChange={(e) => setCoreVersion(e.target.value)}
+              className="input"
+              placeholder="예: >=1.0.0 (비워 두어도 됩니다)"
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="label" htmlFor="tpl-ver">
-            버전
-          </label>
-          <input id="tpl-ver" value={version} onChange={(e) => setVersion(e.target.value)} className="input" placeholder="1.0.0" />
+          <span className="label">요구 기능</span>
+          <p className="-mt-1 mb-2 text-xs text-slate-500 dark:text-slate-400">
+            이 템플릿이 쓰는 기능을 고릅니다. 다른 곳에 설치할 때 무엇이 필요한지 알려 줍니다.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATE_FEATURES.map((f) => {
+              const on = requires.includes(f)
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => toggleFeature(f)}
+                  aria-pressed={on}
+                  className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
+                    on
+                      ? 'border-brand-600 bg-brand-600 font-medium text-white'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {TEMPLATE_FEATURE_LABEL[f]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="label mb-0">변경 내역</span>
+            <button
+              type="button"
+              onClick={() => setChangelog((prev) => [{ version: '', date: '', notes: '' }, ...prev])}
+              className="btn-secondary px-2.5 py-1 text-xs"
+            >
+              줄 추가
+            </button>
+          </div>
+
+          {changelog.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
+              적어 둔 변경 내역이 없습니다. [줄 추가]로 버전별 기록을 남길 수 있습니다.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {changelog.map((c, i) => (
+                <li key={i} className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      value={c.version}
+                      onChange={(e) => setChange(i, { version: e.target.value })}
+                      className="input w-32"
+                      placeholder="v1.1.0"
+                      aria-label="버전"
+                    />
+                    <input
+                      type="date"
+                      value={c.date}
+                      onChange={(e) => setChange(i, { date: e.target.value })}
+                      className="input w-44"
+                      aria-label="날짜"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setChangelog((prev) => prev.filter((_, k) => k !== i))}
+                      className="btn-secondary ml-auto px-2.5 py-1 text-xs"
+                    >
+                      줄 삭제
+                    </button>
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={c.notes}
+                    onChange={(e) => setChange(i, { notes: e.target.value })}
+                    className="input mt-2 resize-y"
+                    placeholder="바뀐 내용을 한 줄에 하나씩 적습니다."
+                    aria-label="변경 내용"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </Modal>

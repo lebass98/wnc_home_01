@@ -504,6 +504,16 @@ model SiteTemplate {
   /// 경로별 서브 레이아웃 { "/terms": "left" } — SQLite 라 JSON 문자열로 담는다.
   pageLayouts String  @default("{}")
 
+  // --- 템플릿 정보 — 사람이 적어 두는 값 (빈 채로 두어도 된다) ---
+  /// 라이선스 (예: MIT)
+  license     String  @default("")
+  /// 이 템플릿이 요구하는 워드앤코드 버전 (예: >=1.0.0)
+  coreVersion String  @default("")
+  /// 요구 기능 ["board","product"] — 관리자에서 고른다.
+  requires    String  @default("[]")
+  /// 변경 내역 [{ version, date, notes }]
+  changelog   String  @default("[]")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

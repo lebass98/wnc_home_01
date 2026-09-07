@@ -18,8 +18,22 @@ type TemplateRow = {
   header: string
   footer: string
   pageLayouts: string
+  license?: string
+  coreVersion?: string
+  requires?: string
+  changelog?: string
   createdAt: Date
   updatedAt: Date
+}
+
+/** JSON 배열 문자열을 배열로 — 깨져 있으면 빈 배열로 본다. */
+function parseJsonArray<T>(raw: string | undefined): T[] {
+  try {
+    const v = JSON.parse(raw ?? '[]')
+    return Array.isArray(v) ? (v as T[]) : []
+  } catch {
+    return []
+  }
 }
 
 export function parseLayouts(raw: string): Record<string, string> {
@@ -43,6 +57,10 @@ export function toTemplateResponse(row: TemplateRow) {
     header: row.header,
     footer: row.footer,
     pageLayouts: parseLayouts(row.pageLayouts),
+    license: row.license ?? '',
+    coreVersion: row.coreVersion ?? '',
+    requires: parseJsonArray(row.requires),
+    changelog: parseJsonArray(row.changelog),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }

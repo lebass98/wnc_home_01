@@ -41,6 +41,11 @@ export interface TemplateManifest {
   header?: string
   footer?: string
   pageLayouts?: Record<string, string>
+  /** 아래는 사람이 적어 두는 값 — 비어 있으면 매니페스트에 담지 않는다. */
+  license?: string
+  coreVersion?: string
+  requires?: string[]
+  changelog?: { version: string; date: string; notes: string }[]
 }
 
 export function templateDir(id: number): string {
@@ -304,4 +309,148 @@ export async function restoreApplyBackup(stamp: string): Promise<{ restored: num
     }
   }
   return { restored, backup: newStamp }
+}
+
+/* ------------------------------------------------------------------
+ * 템플릿 정보 — 보관된 파일을 읽어 스스로 알아낼 수 있는 것들
+ * ------------------------------------------------------------------ */
+
+/** 이름과 설명 한 줄 */
+export interface FileInfo {
+  name: string
+  file: string
+  description: string
+}
+
+/**
+ * 파일 맨 위 주석에서 설명 한 줄을 뽑는다.
+ * 우리 소스는 파일마다 `/** … *\/` 로 무엇을 하는 파일인지 적어 두므로 그 첫 문장을 쓴다.
+ */
+function describe(text: string): string {
+  // 파일 안에는 도우미 함수 주석도 있으므로, 기본 내보내기 바로 앞의 주석을 쓴다.
+  // (그 앞에 없으면 파일 맨 위 주석으로 물러선다)
+  const head = text.split(/export default/)[0]
+  const blocks = [...head.matchAll(/\/\*\*([\s\S]*?)\*\//g)]
+  const block = blocks[blocks.length - 1] ?? text.match(/\/\*\*([\s\S]*?)\*\//)
+  if (!block) return ''
+  const line = block[1]
+    .split('\n')
+    .map((l) => l.replace(/^\s*\*ㅤ?/, '').trim())
+    .filter(Boolean)[0]
+  if (!line) return ''
+  // 첫 문장까지만 — 마침표가 없으면 통째로 쓴다.
+  const stop = line.search(/[.。]\s|[.。]$/)
+  return (stop > 0 ? line.slice(0, stop + 1) : line).trim()
+}
+
+/** 폴더 하나의 파일들을 이름·설명과 함께 돌려준다. */
+async function describeFolder(id: number, folder: Folder): Promise<FileInfo[]> {
+  const dir = path.join(templateDir(id), folder)
+  const names = await listSources(dir)
+  return Promise.all(
+    names.map(async (name) => ({
+      name: name.replace(/\.(tsx|ts|css)$/, ''),
+      file: `${folder}/${name}`,
+      description: describe(await readFile(path.join(dir, name), 'utf8')),
+    })),
+  )
+}
+
+export async function describeFiles(id: number): Promise<{ pages: FileInfo[]; layouts: FileInfo[]; components: FileInfo[] }> {
+  const [pages, layouts, components] = await Promise.all([
+    describeFolder(id, 'pages'),
+    describeFolder(id, 'layouts'),
+    describeFolder(id, 'components'),
+  ])
+  return { pages, layouts, components }
+}
+
+export interface AssetInfo {
+  name: string
+  type: string
+  path: string
+  from: string
+}
+
+/**
+ * 바깥에서 가져다 쓰는 자원(글꼴·스타일·스크립트)을 모은다.
+ * 템플릿이 담은 파일과, 모든 템플릿이 함께 쓰는 시작 파일(main.tsx·index.css)을 훑는다.
+ */
+export async function collectAssets(id: number): Promise<AssetInfo[]> {
+  const found: AssetInfo[] = []
+  const seen = new Set<string>()
+
+  const add = (name: string, type: string, url: string, from: string) => {
+    if (seen.has(url)) return
+    seen.add(url)
+    found.push({ name, type, path: url, from })
+  }
+
+  const scan = (text: string, from: string) => {
+    // 패키지·파일에서 불러오는 스타일 (예: pretendard-gov/…/pretendardvariable-gov-dynamic-subset.css)
+    for (const m of text.matchAll(/import\s+'([^']+\.css)'/g)) {
+      const url = m[1]
+      // 패키지에서 오면 패키지 이름, 우리 파일이면 파일 이름을 쓴다.
+      const name = url.startsWith('.') ? (url.split('/').pop() ?? url) : url.split('/')[0]
+      add(name, /pretendard|font/i.test(url) ? 'webfont' : 'style', url, from)
+    }
+    // 바깥 주소로 불러오는 것
+    for (const m of text.matchAll(/https?:\/\/[^'"`\s)]+\.(css|js)/g)) {
+      const url = m[0]
+      const name = url.includes('pretendard') ? 'pretendard-gov' : new URL(url).hostname
+      add(name, url.endsWith('.css') ? (/pretendard|font/i.test(url) ? 'webfont' : 'style') : 'script', url, from)
+    }
+  }
+
+  for (const folder of FOLDERS) {
+    const dir = path.join(templateDir(id), folder)
+    for (const name of await listSources(dir)) {
+      scan(await readFile(path.join(dir, name), 'utf8'), `${folder}/${name}`)
+    }
+  }
+  // 시작 파일 — 템플릿 밖이지만 화면이 함께 얹혀 도는 자리다.
+  for (const entry of ['main.tsx', 'index.css']) {
+    const file = path.join(WEB_SRC, entry)
+    if (existsSync(file)) scan(await readFile(file, 'utf8'), `src/${entry}`)
+  }
+  return found
+}
+
+export interface LanguageInfo {
+  code: string
+  label: string
+  keys: number
+}
+
+const LANGUAGE_LABEL: Record<string, string> = {
+  ko: '한국어',
+  en: 'English',
+  ja: '日本語',
+  zh: '中文',
+}
+
+/** 쓸 수 있는 언어 — 언어팩 파일에서 읽는다. */
+export async function listLanguages(): Promise<LanguageInfo[]> {
+  const dir = path.join(WEB_SRC, 'locales')
+  if (!existsSync(dir)) return []
+  const names = (await readdir(dir)).filter((n) => n.endsWith('.json')).sort()
+
+  /** 중첩된 번역문까지 센다. */
+  const count = (obj: unknown): number => {
+    if (typeof obj !== 'object' || obj === null) return 1
+    return Object.values(obj as Record<string, unknown>).reduce<number>((sum, v) => sum + count(v), 0)
+  }
+
+  return Promise.all(
+    names.map(async (name) => {
+      const code = name.replace(/\.json$/, '')
+      let keys = 0
+      try {
+        keys = count(JSON.parse(await readFile(path.join(dir, name), 'utf8')))
+      } catch {
+        keys = 0
+      }
+      return { code, label: LANGUAGE_LABEL[code] ?? code, keys }
+    }),
+  )
 }

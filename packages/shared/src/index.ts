@@ -1031,6 +1031,63 @@ export const DEFAULT_SITE_DESIGN: SiteDesign = { header: 'basic', footer: 'basic
  * 디자인 템플릿 — 헤더·푸터·화면별 서브 레이아웃 선택을 한 벌로 묶은 것.
  * 활성(active) 템플릿 한 벌이 사이트에 적용된다.
  */
+/** 템플릿이 요구하는 기능 — 관리자에서 골라 담는다. */
+export const TEMPLATE_FEATURES = ['board', 'product', 'popup', 'faq', 'contact', 'page', 'menu'] as const
+export type TemplateFeature = (typeof TEMPLATE_FEATURES)[number]
+export const TEMPLATE_FEATURE_LABEL: Record<TemplateFeature, string> = {
+  board: '게시판',
+  product: '제품',
+  popup: '팝업',
+  faq: '자주 묻는 질문',
+  contact: '문의',
+  page: '페이지',
+  menu: '메뉴',
+}
+
+/** 변경 내역 한 줄 */
+export interface TemplateChange {
+  version: string
+  /** YYYY-MM-DD */
+  date: string
+  /** 줄바꿈으로 구분한 변경 내용 */
+  notes: string
+}
+
+/** 템플릿이 담고 있는 파일 하나 — 이름과 파일 맨 위 주석에서 뽑은 설명 */
+export interface TemplateFileInfo {
+  name: string
+  file: string
+  description: string
+}
+
+/** 템플릿이 쓰는 바깥 자원 (글꼴·스타일·스크립트) */
+export interface TemplateAsset {
+  name: string
+  /** webfont | style | script */
+  type: string
+  path: string
+  /** 어느 파일에서 불러오는지 */
+  from: string
+}
+
+/** 템플릿이 쓸 수 있는 언어 */
+export interface TemplateLanguage {
+  code: string
+  label: string
+  /** 번역문 개수 */
+  keys: number
+}
+
+/** [템플릿 정보] 창이 받는 값 — 저장된 값과 파일에서 읽어 낸 값을 함께 담는다. */
+export interface SiteTemplateDetail {
+  template: SiteTemplateInfo
+  pages: TemplateFileInfo[]
+  layouts: TemplateFileInfo[]
+  components: TemplateFileInfo[]
+  assets: TemplateAsset[]
+  languages: TemplateLanguage[]
+}
+
 export interface SiteTemplateInfo {
   id: number
   name: string
@@ -1045,6 +1102,12 @@ export interface SiteTemplateInfo {
   pageLayouts: SitePageLayoutMap
   /** 이 템플릿이 보관한 파일 수 (화면·레이아웃·부품) */
   files?: number
+  /** 라이선스 — 비워 둘 수 있다 */
+  license: string
+  /** 요구하는 워드앤코드 버전 */
+  coreVersion: string
+  requires: TemplateFeature[]
+  changelog: TemplateChange[]
   createdAt: string
   updatedAt: string
 }

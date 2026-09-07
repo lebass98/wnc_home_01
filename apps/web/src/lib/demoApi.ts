@@ -601,7 +601,15 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     }
     return active
   }
-  const templateItem = ({ ...t }: DemoTemplate) => ({ ...t, pageLayouts: { ...t.pageLayouts } })
+  const templateItem = ({ ...t }: DemoTemplate) => ({
+    ...t,
+    pageLayouts: { ...t.pageLayouts },
+    // 데모에는 템플릿 정보를 적어 두지 않는다.
+    license: '',
+    coreVersion: '',
+    requires: [],
+    changelog: [],
+  })
   const templatesSorted = () =>
     [...db.templates].sort((a, b) => Number(b.active) - Number(a.active) || b.updatedAt.localeCompare(a.updatedAt))
 
@@ -627,6 +635,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   if (rawPath === '/templates/apply-backups' && method === 'GET') return []
   if (rawPath.startsWith('/templates/apply-backups/')) {
     throw new DemoError('GitHub Pages 데모에서는 사이트 파일을 되돌릴 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  }
+  if (/^\/templates\/\d+\/info$/.test(rawPath) && method === 'GET') {
+    throw new DemoError('GitHub Pages 데모에서는 템플릿 파일을 읽을 수 없어 정보를 보여줄 수 없습니다.', 400)
   }
   if (rawPath === '/templates/import-zip' && method === 'POST') {
     throw new DemoError('GitHub Pages 데모에서는 템플릿 파일(zip)을 설치할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)

@@ -73,6 +73,7 @@ function BasicTable({
   onOpen,
   showAuthor,
   newDays,
+  showCover,
 }: Omit<ListProps, 'items'> & {
   data: Paginated<PostListItem>
   onOpen: (id: number) => void
@@ -80,6 +81,8 @@ function BasicTable({
   showAuthor: boolean
   /** 'NEW' 를 붙일 기간(일) */
   newDays: number
+  /** 제목 앞 썸네일을 보일지 — 전체 탭에서는 감춘다 */
+  showCover: boolean
 }) {
   // 조회수를 보여 주는 게시판이 하나도 없으면 '조회' 열 자체를 없앤다.
   // (전체 탭처럼 여러 게시판이 섞이면 열은 두고, 끈 게시판의 칸만 비운다.)
@@ -115,7 +118,7 @@ function BasicTable({
               )}
               <td className="text-left">
                 <Link to={`/board/${post.id}`} className="flex items-center gap-4 py-3">
-                  {postImage(post) && (
+                  {showCover && postImage(post) && (
                     <span className="h-14 w-20 shrink-0 overflow-hidden rounded-sm bg-slate-100">
                       <Cover post={post} />
                     </span>
@@ -400,6 +403,8 @@ export default function BoardPage() {
                 showBoard={!current}
                 showAuthor={showAuthor}
                 newDays={newDays}
+                // 전체 탭은 여러 게시판이 섞여 있어 썸네일 없이 제목만 나란히 보여 준다.
+                showCover={!!current}
                 onOpen={(id) => navigate(`/board/${id}`)}
               />
             )}

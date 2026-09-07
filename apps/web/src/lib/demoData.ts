@@ -701,6 +701,5 @@ export function createDemoMenus(): DemoMenuItem[] {
   const guide = add(null, 5, '이용안내', '/terms', { showInGnb: false, showInFooter: false })
   add(guide, 0, '이용약관', '/terms', { showInGnb: false, showInFooter: false })
   add(guide, 1, '개인정보처리방침', '/privacy', { showInGnb: false, showInFooter: false })
-  add(guide, 2, '취소·환불 정책', '/page/refund', { showInGnb: false, showInFooter: false })
   return items
 }

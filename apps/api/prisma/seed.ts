@@ -352,7 +352,6 @@ async function main() {
         children: [
           { label: '이용약관', url: '/terms' },
           { label: '개인정보처리방침', url: '/privacy' },
-          { label: '취소·환불 정책', url: '/page/refund' },
         ],
       },
     ]

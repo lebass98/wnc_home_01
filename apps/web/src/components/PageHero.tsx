@@ -21,7 +21,7 @@ export interface PageHeroProps {
   breadcrumb?: PageHeroCrumb[]
   /** 직접 지정하는 서브 비주얼 배경 이미지 (미지정 시 경로별 자동 선택) */
   bgImage?: string
-  /** 영문 소제목 (미지정 시 경로별 자동 선택) */
+  /** 소제목 (미지정 시 경로별 자동 선택) */
   eyebrow?: string
 }
 
@@ -34,44 +34,44 @@ const baseUrl = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')
 const asset = (path: string) => `${baseUrl}${path}`
 
 /**
- * 경로에 따라 어울리는 서브 비주얼 이미지와 영문 소제목을 매핑한다.
+ * 경로에 따라 어울리는 서브 비주얼 이미지와 소제목을 매핑한다.
  */
 export function resolveSubVisual(pathname: string): SubVisualMeta {
   if (pathname === '/about/directions') {
-    return { image: asset('/images/subvisual/subvisual_directions.jpg'), eyebrow: 'LOCATION & DIRECTIONS' }
+    return { image: asset('/images/subvisual/subvisual_directions.jpg'), eyebrow: '오시는 길' }
   }
   if (pathname === '/about' || pathname.startsWith('/about/')) {
-    return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: 'ABOUT US' }
+    return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: '회사소개' }
   }
   if (pathname === '/services' || pathname.startsWith('/services/')) {
-    return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: 'SERVICES & SOLUTIONS' }
+    return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: '사업분야' }
   }
   // 서비스 안내(/service) — 사업분야(/services)와 다른 화면이지만 같은 비주얼을 쓴다.
   if (pathname === '/service' || pathname.startsWith('/service/')) {
-    return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: 'SERVICE GUIDE' }
+    return { image: asset('/images/subvisual/subvisual_services.jpg'), eyebrow: '서비스 안내' }
   }
   if (pathname === '/products' || pathname.startsWith('/products/')) {
-    return { image: asset('/images/subvisual/subvisual_products.jpg'), eyebrow: 'PRODUCTS & LINEUP' }
+    return { image: asset('/images/subvisual/subvisual_products.jpg'), eyebrow: '제품소개' }
   }
   if (pathname === '/board' || pathname.startsWith('/board/')) {
-    return { image: asset('/images/subvisual/subvisual_board.jpg'), eyebrow: 'NEWS & NOTICE' }
+    return { image: asset('/images/subvisual/subvisual_board.jpg'), eyebrow: '공지 및 소식' }
   }
   if (pathname === '/contact/faq') {
-    return { image: asset('/images/subvisual/subvisual_faq.jpg'), eyebrow: 'FREQUENTLY ASKED QUESTIONS' }
+    return { image: asset('/images/subvisual/subvisual_faq.jpg'), eyebrow: '자주 묻는 질문' }
   }
   if (pathname === '/contact' || pathname.startsWith('/contact/')) {
-    return { image: asset('/images/subvisual/subvisual_contact.jpg'), eyebrow: 'CONTACT & SUPPORT' }
+    return { image: asset('/images/subvisual/subvisual_contact.jpg'), eyebrow: '고객문의' }
   }
   if (pathname === '/terms') {
-    return { image: asset('/images/subvisual/subvisual_terms.jpg'), eyebrow: 'TERMS OF SERVICE' }
+    return { image: asset('/images/subvisual/subvisual_terms.jpg'), eyebrow: '이용약관' }
   }
   if (pathname === '/privacy') {
-    return { image: asset('/images/subvisual/subvisual_privacy.jpg'), eyebrow: 'PRIVACY POLICY' }
+    return { image: asset('/images/subvisual/subvisual_privacy.jpg'), eyebrow: '개인정보처리방침' }
   }
   if (pathname.startsWith('/page/')) {
-    return { image: asset('/images/subvisual/subvisual_policy.jpg'), eyebrow: 'CUSTOMER SERVICE' }
+    return { image: asset('/images/subvisual/subvisual_policy.jpg'), eyebrow: '고객서비스' }
   }
-  return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: 'WORD & CODE' }
+  return { image: asset('/images/subvisual/subvisual_about.jpg'), eyebrow: '워드앤코드' }
 }
 
 /**
@@ -109,7 +109,7 @@ export default function PageHero({
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(10, 16, 26, 0.76) 0%, rgba(15, 23, 42, 0.62) 40%, rgba(10, 16, 26, 0.84) 100%)',
+              'linear-gradient(180deg, rgba(10, 16, 26, 0.26) 0%, rgba(15, 23, 42, 0.12) 40%, rgba(10, 16, 26, 0.44) 100%)',
           }}
           aria-hidden
         />
@@ -125,7 +125,7 @@ export default function PageHero({
       >
         {currentEyebrow && (
           <Reveal>
-            <p className="mb-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-mint-400 drop-shadow-sm sm:text-[0.8rem]">
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-white drop-shadow-sm sm:text-[0.8rem]">
               {currentEyebrow}
             </p>
           </Reveal>

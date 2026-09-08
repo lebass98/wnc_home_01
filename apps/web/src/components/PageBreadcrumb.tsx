@@ -115,7 +115,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
         그 안에 든 펼친 판이 흐릴 바탕을 잃어(부모가 배경 기준점을 가로챈다)
         판만 투명해지고 뿌옇게 되지 않는다.
       */}
-      <div className="border-gradient relative w-full max-w-full rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.25)] sm:w-auto">
+      <div className="border-gradient relative w-full max-w-full rounded-md shadow-[0_10px_10px_rgba(0,0,0,0.05)] sm:w-auto">
         <div className="absolute inset-0 -z-10 rounded-md bg-white/10 backdrop-blur-sm" aria-hidden />
         <div className="flex h-12">
           {crumbs.map((crumb, i) => {

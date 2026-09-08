@@ -282,14 +282,21 @@ templatesRouter.post(
   requireAdmin,
   asyncHandler(async (req, res) => {
     try {
+      // 백업의 데이터 규격을 파일 복원 전에 확인한다 — 파일만 되돌아간 사실이 숨겨지지 않게.
+      const backupRaw = await readBackupData(req.params.stamp)
+      let backupData: ReturnType<typeof templateDataSchema.parse> | null = null
+      let dataError = ''
+      if (backupRaw !== null) {
+        const parsed = templateDataSchema.safeParse(backupRaw)
+        if (parsed.success) backupData = parsed.data
+        else dataError = '백업의 메뉴·페이지 데이터가 규격에 맞지 않아 파일만 되돌렸습니다.'
+      }
       // 되돌리기 직전의 메뉴·페이지를 먼저 담아 둔다 — 파일 백업과 같은 폴더에 남는다.
       const currentData = await dumpSiteData()
       const result = await restoreApplyBackup(req.params.stamp)
       await writeBackupData(result.backup, currentData)
-      // 그 백업에 메뉴·페이지가 담겨 있으면 함께 되돌린다.
-      const backupData = await readBackupData(req.params.stamp)
       const dataRestored = backupData ? await applySiteData(backupData) : null
-      res.json({ ...result, dataRestored, linkIssues: await checkSiteLinks() })
+      res.json({ ...result, dataRestored, ...(dataError ? { dataError } : {}), linkIssues: await checkSiteLinks() })
     } catch (e) {
       res.status(400).json({ message: (e as Error).message })
     }
@@ -389,7 +396,7 @@ templatesRouter.put(
     })
     // 보관된 묶음의 매니페스트도 같은 값으로 맞춘다.
     if (hasFiles(updated.id)) await writeManifest(updated.id, manifestOf(updated))
-    res.json({ ...toTemplateResponse(updated), files: await countFiles(updated.id) })
+    res.json({ ...toTemplateResponse(updated), files: await countFiles(updated.id), ...(await countData(updated.id)) })
   }),
 )
 
@@ -412,6 +419,15 @@ templatesRouter.post(
     }
     if (withData && !hasData(row.id)) {
       return res.status(400).json({ message: '이 템플릿에는 메뉴·페이지 데이터(data.json)가 없습니다. 화면만 적용해 주세요.' })
+    }
+    // 파일을 덮어쓰기 전에 데이터 규격부터 확인한다 — 중간에 실패해 반쪽 상태가 남지 않게.
+    if (withData) {
+      const parsed = templateDataSchema.safeParse(await readTemplateData(row.id))
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: `이 템플릿의 데모 데이터(data.json)가 규격에 맞지 않아 적용할 수 없습니다. ${parsed.error.issues[0]?.message ?? ''} 화면만 적용하거나 데이터를 고쳐 다시 설치해 주세요.`,
+        })
+      }
     }
 
     // 1) 지금 켜져 있는 템플릿에 현재 사이트 모습(파일 + 메뉴·페이지)을 갈무리한다.

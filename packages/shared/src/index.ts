@@ -1357,28 +1357,46 @@ const templateMenuBase = z.object({
 })
 
 /** 템플릿 zip 의 data.json 규격 */
+/** 언어별 값 — 키는 언어 코드(ko·en…), 개수를 묶어 크기 폭탄을 막는다. */
+const i18nRecord = (valueMax: number) =>
+  z
+    .record(z.string().max(10), z.string().max(valueMax))
+    .default({})
+    .refine((value) => Object.keys(value).length <= 8, '언어는 8개까지 담을 수 있습니다.')
+
 export const templateDataSchema = z.object({
-  menus: z.array(templateMenuBase.extend({ children: z.array(templateMenuBase).max(30).default([]) })).max(30).default([]),
+  menus: z.array(templateMenuBase.extend({ children: z.array(templateMenuBase).max(100).default([]) })).max(100).default([]),
   pages: z
     .array(
       z.object({
-        slug: z.string().trim().min(1).max(80),
+        /** 주소에 쓰이는 식별자 — 페이지 관리와 같은 글자만 받는다. */
+        slug: z
+          .string()
+          .trim()
+          .min(1)
+          .max(80)
+          .regex(/^[a-z0-9가-힣-]+$/, '페이지 slug 는 영문 소문자·숫자·한글·하이픈만 쓸 수 있습니다.'),
         title: z.string().trim().min(1).max(200),
         description: z.string().max(500).default(''),
-        content: z.string().max(500_000).default(''),
+        content: z.string().max(2_000_000).default(''),
         published: z.boolean().default(true),
         showInNav: z.boolean().default(false),
         sortOrder: z.number().int().default(0),
         /** 언어별 제목·본문 — { ko, en, … }. 비어 있으면 한국어 값을 쓴다. */
-        titleI18n: z.record(z.string().max(200)).default({}),
-        contentI18n: z.record(z.string().max(500_000)).default({}),
+        titleI18n: i18nRecord(200),
+        contentI18n: i18nRecord(2_000_000),
         metaTitle: z.string().max(200).default(''),
         metaDescription: z.string().max(500).default(''),
         metaKeywords: z.string().max(500).default(''),
       }),
     )
-    .max(100)
-    .default([]),
+    .max(500)
+    .default([])
+    // slug 가 겹치면 DB unique 제약에서 터진다 — 규격 단계에서 막는다.
+    .refine(
+      (pages) => new Set(pages.map((page) => page.slug)).size === pages.length,
+      '페이지 slug 가 겹칩니다. slug 는 페이지마다 달라야 합니다.',
+    ),
 })
 
 export type TemplateData = z.infer<typeof templateDataSchema>
@@ -1414,13 +1432,14 @@ export function findTemplateLinkIssues(
 
   const linkedSlugs = new Set<string>()
   for (const menu of menus) {
+    // 꺼진 메뉴는 어디에도 보이지 않는다 — 연결로도, 문제로도 세지 않는다.
+    if (!menu.published) continue
     const url = menu.url.trim()
     // 빈 주소(묶음 이름)와 외부 주소는 대조하지 않는다.
     if (!url || /^https?:\/\//.test(url)) continue
     const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/'
-    // 약관(/terms)처럼 고정 주소로 이어지는 페이지도 '메뉴가 있다'로 본다.
-    const single = path.match(/^\/([^/]+)$/)?.[1]
-    if (single) linkedSlugs.add(single)
+    // 약관 묶음(/terms·/privacy)은 고정 주소가 같은 이름의 페이지를 그려 준다 — '메뉴가 있다'로 본다.
+    if (path === '/terms' || path === '/privacy') linkedSlugs.add(path.slice(1))
     const pageSlug = path.match(/^\/page\/([^/]+)$/)?.[1]
     if (pageSlug) {
       linkedSlugs.add(pageSlug)
@@ -1431,7 +1450,7 @@ export function findTemplateLinkIssues(
     }
     // 상세 화면(/board/3 같은 것)은 앞부분이 고정 화면이면 통과시킨다.
     const known = staticPaths.has(path) || [...staticPaths].some((base) => base !== '/' && path.startsWith(`${base}/`))
-    if (!known && menu.published) {
+    if (!known) {
       issues.push({ kind: 'menu', label: menu.label, url, message: `'${menu.label}' 메뉴의 주소(${url})에 해당하는 화면이 없습니다.` })
     }
   }

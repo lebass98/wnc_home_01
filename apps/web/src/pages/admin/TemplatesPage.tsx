@@ -3,7 +3,7 @@ import { unzipSync } from 'fflate'
 import { Link } from 'react-router-dom'
 import type { SiteTemplateDetail, SiteTemplateFile, SiteTemplateInfo, TemplateChange, TemplateFeature, TemplateLinkIssue } from '@wnc/shared'
 import { TEMPLATE_FEATURES, TEMPLATE_FEATURE_LABEL } from '@wnc/shared'
-import { api } from '../../lib/api'
+import { api, IS_DEMO } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { invalidateSiteDesign } from '../../lib/siteDesign'
 import { invalidatePageLayouts } from '../../lib/pageLayouts'
@@ -509,7 +509,9 @@ function ApplyModal({
               </span>
               <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
                 이 템플릿에 담긴 메뉴 {row.dataMenus ?? 0}개와 페이지 {row.dataPages ?? 0}개로 갈아 끼웁니다.
-                지금 메뉴·페이지는 백업에 담겨, 적용 기록에서 함께 되돌릴 수 있습니다.
+                {IS_DEMO
+                  ? ' 지금 메뉴·페이지는 쓰던 템플릿에 담겨, 그 템플릿을 다시 켜면 되살릴 수 있습니다.'
+                  : ' 지금 메뉴·페이지는 백업에 담겨, 적용 기록에서 함께 되돌릴 수 있습니다.'}
               </span>
             </span>
           </label>
@@ -608,14 +610,17 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
       return
     setWorking(true)
     try {
-      const res = await api<{ restored: number; dataRestored: { menus: number; pages: number } | null }>(
-        `/templates/apply-backups/${item.stamp}/restore`,
-        { method: 'POST', auth: true },
-      )
+      const res = await api<{
+        restored: number
+        dataRestored: { menus: number; pages: number } | null
+        dataError?: string
+      }>(`/templates/apply-backups/${item.stamp}/restore`, { method: 'POST', auth: true })
       load()
       const restoredNote = res.dataRestored
         ? ` 메뉴 ${res.dataRestored.menus}개·페이지 ${res.dataRestored.pages}개도 되돌렸습니다.`
-        : ''
+        : res.dataError
+          ? `\n${res.dataError}`
+          : ''
       alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote} 홈페이지를 새로고침하면 바로 보입니다.`)
     } catch (e) {
       alert((e as Error).message)

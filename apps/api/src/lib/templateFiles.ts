@@ -233,14 +233,19 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
     // 압축을 풀면 폴더가 한 겹 더 있을 수 있어(templates/pages/..) 뒤에서부터 본다.
     const name = parts[parts.length - 1]
     const folder = parts[parts.length - 2] as Folder | undefined
-    // 데모 데이터 — 매니페스트 옆에 놓인 것만 받는다. 깨진 JSON 은 조용히 버리지 않고 알린다.
-    if (name === DATA_FILE && !folder) {
+    // 데모 데이터 — 매니페스트처럼 폴더 한 겹 감싸임도 허용한다(단 pages/ 같은 소스 폴더 안은 제외).
+    // 깨진 JSON 과 지나친 크기는 조용히 버리지 않고 알린다.
+    if (name === DATA_FILE && (!folder || !FOLDERS.includes(folder))) {
+      const data = entry.getData()
+      if (data.length > 10 * 1024 * 1024) {
+        throw new Error('data.json 이 10MB 를 넘습니다. 메뉴·페이지 데이터만 담았는지 확인해 주세요.')
+      }
       try {
-        JSON.parse(entry.getData().toString('utf8'))
+        JSON.parse(data.toString('utf8'))
       } catch {
         throw new Error('data.json 을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
       }
-      await writeFile(path.join(dir, DATA_FILE), entry.getData())
+      await writeFile(path.join(dir, DATA_FILE), data)
       hasDataFile = true
       continue
     }

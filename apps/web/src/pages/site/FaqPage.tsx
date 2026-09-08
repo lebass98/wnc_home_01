@@ -109,16 +109,16 @@ export default function FaqPage() {
                 })}
               </div>
 
-              <div className="flex h-[52px] items-stretch overflow-hidden rounded-lg bg-slate-50">
+              <div className="flex h-[52px] w-full items-stretch overflow-hidden rounded-lg bg-slate-50 lg:w-auto lg:shrink-0">
                 <input
                   type="search"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                   placeholder="질문 검색"
                   aria-label="질문 검색"
-                  className="w-44 bg-transparent pl-5 text-[0.95rem] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none sm:w-56"
+                  className="min-w-0 flex-1 bg-transparent pl-5 text-[0.95rem] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none lg:w-56 lg:flex-none"
                 />
-                <span className="grid w-[52px] place-items-center text-slate-900" aria-hidden>
+                <span className="grid w-[52px] shrink-0 place-items-center text-slate-900" aria-hidden>
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>

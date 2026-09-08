@@ -328,13 +328,13 @@ export default function BoardPage() {
                 e.preventDefault()
                 update({ q: keyword, scope: scopeInput === 'all' ? '' : scopeInput, page: '' })
               }}
-              className="flex h-[52px] items-stretch overflow-hidden rounded-lg bg-slate-50"
+              className="flex h-[52px] w-full items-stretch overflow-hidden rounded-lg bg-slate-50 sm:w-auto sm:shrink-0"
             >
               <select
                 value={scopeInput}
                 onChange={(e) => setScopeInput(e.target.value)}
                 aria-label="검색 범위"
-                className="w-32 cursor-pointer appearance-none bg-transparent bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23111%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-[length:14px_14px] bg-[right_14px_center] bg-no-repeat pl-5 pr-9 text-sm font-medium text-slate-900 transition hover:bg-black hover:text-white focus:outline-none"
+                className="w-32 shrink-0 cursor-pointer appearance-none bg-transparent bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23111%22 stroke-width=%222%22><path d=%22M6 9l6 6 6-6%22/></svg>')] bg-[length:14px_14px] bg-[right_14px_center] bg-no-repeat pl-5 pr-9 text-sm font-medium text-slate-900 transition hover:bg-black hover:text-white focus:outline-none"
               >
                 {SCOPES.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -347,12 +347,12 @@ export default function BoardPage() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="검색어를 입력하세요"
-                className="w-40 bg-transparent pl-4 text-[0.95rem] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none sm:w-52"
+                className="min-w-0 flex-1 bg-transparent pl-4 text-[0.95rem] font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none sm:w-52 sm:flex-none"
               />
               <button
                 type="submit"
                 aria-label="검색"
-                className="grid w-[52px] place-items-center text-slate-900 transition hover:bg-slate-200"
+                className="grid w-[52px] shrink-0 place-items-center text-slate-900 transition hover:bg-slate-200"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

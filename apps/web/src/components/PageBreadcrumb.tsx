@@ -1,3 +1,4 @@
+import { useComponentSettings } from '../lib/componentSettings'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { findGroup, pathOf, pickMenu, useSiteMenu } from '../lib/menus'
@@ -85,6 +86,7 @@ const CELL = 'relative h-12 w-full px-4 text-left'
 const LABEL = 'block w-full truncate text-sm font-bold tracking-tight text-white'
 
 export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
+  const { breadcrumb } = useComponentSettings()
   const [open, setOpen] = useState(-1)
   const ref = useRef<HTMLElement>(null)
   const navigate = useNavigate()
@@ -107,6 +109,8 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
     }
   }, [open])
 
+  if (!breadcrumb.visible) return null
+
   return (
     <nav ref={ref} aria-label="현재 위치" className="flex w-full justify-center">
       {/*
@@ -123,6 +127,7 @@ export default function PageBreadcrumb({ crumbs }: { crumbs: Crumb[] }) {
 
             // 집 — 아이콘만
             if (crumb.home) {
+              if (!breadcrumb.showHome) return null
               return (
                 <Link
                   key="home"

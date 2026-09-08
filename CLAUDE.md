@@ -133,6 +133,8 @@ packages/shared/ 프론트·백엔드 공용 타입
 ```
 
 - 공용 타입은 `packages/shared/src/index.ts` 한 곳에서 관리한다. API 응답 형태를 바꾸면 여기도 함께 고친다.
+  **별도 파일로 쪼개 `export * from` 으로 재내보내지 않는다** — 이 패키지는 CJS 로
+  읽혀 재내보낸 이름이 감지되지 않아, API 서버가 기동조차 못 하는 사고가 실제로 있었다.
 - **데모 모드**: GitHub Pages 는 정적 호스팅이라 백엔드가 없다. API 를 추가하면
   `apps/web/src/lib/demoApi.ts` 에도 같은 엔드포인트를 구현해야 Pages 배포본이 동작한다.
 

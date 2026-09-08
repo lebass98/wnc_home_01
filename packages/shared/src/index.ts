@@ -1,5 +1,7 @@
 // 프론트엔드와 백엔드가 공유하는 타입 정의
 
+import { z } from 'zod'
+
 export type Role = 'ADMIN' | 'EDITOR'
 
 export interface AdminUser {
@@ -1328,4 +1330,83 @@ export interface SiteStats {
   sources: StatCount[]
   /** 많이 본 화면 상위 */
   pages: StatCount[]
+}
+
+/* ------------------------------------------------------------------
+ * 컴포넌트 관리 — 사이트 공통 영역(헤더·푸터·비주얼·브레드크럼) 설정
+ * ------------------------------------------------------------------ */
+
+/** 사이트 공통 컴포넌트의 설정 계약. API와 데모에서 같은 검증을 사용한다. */
+const imageUrl = z.string().max(2_100_000).refine((value) =>
+  value === '' || /^\/(?!\/)[^\\\s]*$/.test(value) || /^https?:\/\/[^\s]+$/i.test(value) || /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(value),
+'이미지는 사이트 내부 경로 또는 http(s) 이미지 주소를 입력하세요.')
+const caption = z.string().max(500)
+export const SUB_VISUAL_PAGES = [
+  { key: 'about', path: '/about', label: '회사소개', image: 'about' },
+  { key: 'directions', path: '/about/directions', label: '오시는 길', image: 'directions' },
+  { key: 'services', path: '/services', label: '사업분야', image: 'services' },
+  { key: 'service', path: '/service', label: '서비스 안내', image: 'services' },
+  { key: 'products', path: '/products', label: '제품소개', image: 'products' },
+  { key: 'board', path: '/board', label: '공지 및 소식', image: 'board' },
+  { key: 'faq', path: '/contact/faq', label: '자주 묻는 질문', image: 'faq' },
+  { key: 'contact', path: '/contact', label: '고객문의', image: 'contact' },
+  { key: 'terms', path: '/terms', label: '이용약관', image: 'terms' },
+  { key: 'privacy', path: '/privacy', label: '개인정보처리방침', image: 'privacy' },
+  { key: 'custom', path: '/page', label: '고객서비스', image: 'policy' },
+] as const
+
+export const componentSettingsSchema = z.object({
+  header: z.object({ transparent: z.boolean(), logoText: z.string().max(80), logoImage: imageUrl }),
+  footer: z.object({ showMenu: z.boolean(), showSocial: z.boolean() }),
+  mainVisual: z.object({
+    autoplay: z.boolean(),
+    interval: z.number().int().min(2000).max(30000),
+    slides: z.array(z.object({ title: z.string().trim().min(1, '슬라이드 제목을 입력하세요.').max(200), description: caption, image: imageUrl })).min(1).max(6),
+  }),
+  subVisual: z.object({
+    showEyebrow: z.boolean(),
+    overlayOpacity: z.number().int().min(0).max(80),
+    pages: z.record(z.object({ image: imageUrl, eyebrow: z.string().max(100) })).refine(
+      (pages) => SUB_VISUAL_PAGES.every(({ key }) => key in pages) && Object.keys(pages).length === SUB_VISUAL_PAGES.length,
+      '모든 서브 비주얼 페이지 설정이 필요합니다.'),
+  }),
+  breadcrumb: z.object({ visible: z.boolean(), showHome: z.boolean() }),
+})
+
+export type ComponentSettings = z.infer<typeof componentSettingsSchema>
+export type ComponentKey = keyof ComponentSettings
+export const COMPONENT_CATALOG: { key: ComponentKey; name: string; description: string; scope: string; path: string }[] = [
+  { key: 'header', name: '헤더', description: '사이트 로고와 상단 배경을 관리합니다.', scope: '사이트 전체', path: '/' },
+  { key: 'footer', name: '푸터', description: '하단 메뉴와 SNS 노출을 관리합니다.', scope: '사이트 전체', path: '/' },
+  { key: 'mainVisual', name: '메인 비주얼', description: '슬라이드 이미지·문구와 재생 방식을 관리합니다.', scope: '메인 페이지', path: '/' },
+  { key: 'subVisual', name: '서브 비주얼', description: '페이지별 배경 이미지와 소제목을 관리합니다.', scope: '서브 페이지', path: '/about' },
+  { key: 'breadcrumb', name: '브레드크럼', description: '현재 위치 안내와 홈 아이콘을 관리합니다.', scope: '서브 페이지', path: '/about' },
+]
+
+export const DEFAULT_COMPONENT_SETTINGS: ComponentSettings = {
+  header: { transparent: true, logoText: '', logoImage: '' },
+  footer: { showMenu: true, showSocial: true },
+  mainVisual: { autoplay: true, interval: 3000, slides: [
+    { title: '고객과 우리의 생각을\n함께 구현하다', description: '필요한 것을 정확히 짚어내는 설계로\n비즈니스가 다음 단계로 나아가도록 돕습니다', image: '/images/main/main_hero_01.jpg' },
+    { title: '기획부터 운영까지\n한 팀이 책임집니다', description: '흩어진 과정을 하나로 묶어\n더 빠르고 단단하게 만들어 냅니다', image: '/images/main/main_hero_02.jpg' },
+    { title: '오래 쓸 수 있는\n서비스를 만듭니다', description: '눈에 보이는 화면 뒤의 구조까지\n길게 쓰일 것을 생각하며 짓습니다', image: '/images/main/main_hero_03.jpg' },
+  ] },
+  subVisual: { showEyebrow: true, overlayOpacity: 0, pages: Object.fromEntries(SUB_VISUAL_PAGES.map((page) => [page.key, {
+    image: `/images/subvisual/subvisual_${page.image}.jpg`, eyebrow: page.label,
+  }])) },
+  breadcrumb: { visible: true, showHome: true },
+}
+
+export interface ComponentSettingsResponse {
+  settings: ComponentSettings
+  revisions: Record<ComponentKey, number>
+}
+
+export function defaultComponentResponse(): ComponentSettingsResponse {
+  return { settings: structuredClone(DEFAULT_COMPONENT_SETTINGS), revisions: { header: 0, footer: 0, mainVisual: 0, subVisual: 0, breadcrumb: 0 } }
+}
+
+export function subVisualPage(pathname: string) {
+  return [...SUB_VISUAL_PAGES].sort((a, b) => b.path.length - a.path.length)
+    .find(({ path }) => pathname === path || pathname.startsWith(`${path}/`))
 }

@@ -1,3 +1,4 @@
+import ComponentsPage from './pages/admin/ComponentsPage'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ThemeProvider } from './lib/theme'
@@ -133,6 +134,7 @@ export default function App() {
             <Route path="pages/:id" element={<PageEditPage />} />
             <Route path="pages/:id/detail" element={<PageDetailPage />} />
             <Route path="pages/code/:key" element={<SitePageEditPage />} />
+            <Route path="components" element={<ComponentsPage />} />
             <Route path="templates" element={<TemplatesPage />} />
             <Route path="templates/code" element={<TemplateCodePage />} />
             <Route path="popups" element={<PopupListPage />} />

@@ -59,16 +59,18 @@ function ControlButton({
 export default function HeroSlider({
   slides,
   interval = 3000,
+  autoplay = true,
 }: {
   slides: HeroSlide[]
   /** 한 장이 머무는 시간(ms). 넘어가는 시간은 포함하지 않는다. */
   interval?: number
+  autoplay?: boolean
 }) {
   const count = slides.length
   const [index, setIndex] = useState(0)
   // -1 이면 다음 장으로, 1 이면 이전 장으로 밀리는 중. 0 이면 멈춰 있다.
   const [offset, setOffset] = useState<-1 | 0 | 1>(0)
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(autoplay)
   const moving = offset !== 0
 
   // 이미 움직이는 중이면 무시한다 — 연타해도 한 장씩만 넘어간다.

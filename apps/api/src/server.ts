@@ -1,3 +1,4 @@
+import { componentsRouter } from './routes/components.js'
 import express from 'express'
 import cors from 'cors'
 import { env } from './lib/env.js'
@@ -69,6 +70,7 @@ app.use('/api/privacy-revisions', privacyRevisionsRouter)
 app.use('/api/site-pages', sitePagesRouter)
 app.use('/api/menus', menusRouter)
 app.use('/api/design', designRouter)
+app.use('/api/components', componentsRouter)
 app.use('/api/templates', templatesRouter)
 app.use('/api/uploads', uploadsRouter)
 app.use('/api/activity-logs', activityLogsRouter)

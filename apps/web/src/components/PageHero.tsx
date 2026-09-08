@@ -1,3 +1,5 @@
+import { subVisualPage } from '@wnc/shared'
+import { componentImageUrl, useComponentSettings } from '../lib/componentSettings'
 import { useLocation, NavLink } from 'react-router-dom'
 import Reveal from './Reveal'
 import PageBreadcrumb, { type Crumb } from './PageBreadcrumb'
@@ -88,9 +90,13 @@ export default function PageHero({
   eyebrow,
 }: PageHeroProps) {
   const { pathname } = useLocation()
+  const components = useComponentSettings()
+  const page = subVisualPage(pathname)
+  const configured = page ? components.subVisual.pages[page.key] : undefined
+  const showBreadcrumb = components.breadcrumb.visible && !!breadcrumb?.length
   const autoMeta = resolveSubVisual(pathname)
-  const currentBgImage = bgImage || autoMeta.image
-  const currentEyebrow = eyebrow !== undefined ? eyebrow : autoMeta.eyebrow
+  const currentBgImage = componentImageUrl(configured?.image || bgImage || autoMeta.image)
+  const currentEyebrow = components.subVisual.showEyebrow ? (configured?.eyebrow ?? eyebrow ?? autoMeta.eyebrow) : ''
 
   return (
     <section className="relative z-20 min-h-[320px] bg-slate-950 sm:min-h-[360px]">
@@ -114,13 +120,14 @@ export default function PageHero({
           aria-hidden
         />
         {/* 하단 미세한 경계 하이라이트 */}
+        <div className="absolute inset-0 bg-black" style={{ opacity: components.subVisual.overlayOpacity / 100 }} aria-hidden />
         <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" aria-hidden />
       </div>
 
       {/* 내용 영역 */}
       <div
         className={`container-wnc relative z-10 pt-36 text-center sm:pt-40 ${
-          breadcrumb && breadcrumb.length > 0 ? 'pb-12 sm:pb-14' : 'pb-16 sm:pb-20'
+          showBreadcrumb ? 'pb-12 sm:pb-14' : 'pb-16 sm:pb-20'
         }`}
       >
         {currentEyebrow && (
@@ -140,7 +147,7 @@ export default function PageHero({
         )}
 
         {/* 묶음 탭 — 길 안내 풀다운과 같은 목록이므로, 길 안내가 있으면 그리지 않는다 */}
-        {tabs && tabs.length > 0 && !(breadcrumb && breadcrumb.length > 0) && (
+        {tabs && tabs.length > 0 && !(showBreadcrumb) && (
           <Reveal as="nav" index={3} aria-label="묶음 이동" className="mt-8 flex justify-center gap-7">
             {tabs.map((tab) => (
               <NavLink
@@ -160,9 +167,9 @@ export default function PageHero({
         )}
 
         {/* 길 안내 — 히어로 맨 아래 가운데에 막대로 붙인다 */}
-        {breadcrumb && breadcrumb.length > 0 && (
+        {showBreadcrumb && (
           <Reveal index={3} className="mt-12 sm:mt-14">
-            <PageBreadcrumb crumbs={breadcrumb} />
+            <PageBreadcrumb crumbs={breadcrumb!} />
           </Reveal>
         )}
       </div>

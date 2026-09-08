@@ -1,3 +1,4 @@
+import { componentSettingsSchema, defaultComponentResponse, type ComponentSettingsResponse } from '@wnc/shared'
 import { describeActivity, summarizeActivityBody, type ActivityLog } from '@wnc/shared'
 import type {
   Contact,
@@ -87,6 +88,7 @@ function basicTemplate(): DemoTemplate {
 const TREND_DAYS = 14
 
 interface DemoDb {
+  componentSettings?: ComponentSettingsResponse
   posts: Post[]
   contacts: Contact[]
   categories: DemoCategory[]
@@ -567,6 +569,23 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   const [rawPath, search = ''] = path.split('?')
   const params = new URLSearchParams(search)
   const db = load()
+
+  if (rawPath === '/components' && method === 'GET') return structuredClone(db.componentSettings ?? defaultComponentResponse())
+  const componentMatch = rawPath.match(/^\/components\/([^/]+)$/)
+  if (componentMatch && method === 'PUT') {
+    if (localStorage.getItem('wnc_admin_token') !== 'demo-token') throw new DemoError('관리자 로그인이 필요합니다.', 401)
+    const key = componentSettingsSchema.keyof().safeParse(componentMatch[1])
+    if (!key.success) throw new DemoError('알 수 없는 컴포넌트입니다.', 400)
+    const parsed = componentSettingsSchema.shape[key.data].safeParse(body?.value)
+    if (!parsed.success || !Number.isInteger(body?.revision) || body.revision < 0) throw new DemoError('입력값을 확인해 주세요.', 400)
+    const settings = db.componentSettings ?? defaultComponentResponse()
+    if (settings.revisions[key.data] !== body.revision) throw new DemoError('다른 화면에서 설정이 변경되었습니다. 최신 설정을 다시 불러와 주세요.', 409)
+    Object.assign(settings.settings, { [key.data]: parsed.data })
+    settings.revisions[key.data]++
+    db.componentSettings = settings
+    save(db)
+    return { key: key.data, value: parsed.data, revision: settings.revisions[key.data] }
+  }
 
   const num = (key: string, fallback: number) => {
     const v = Number(params.get(key))

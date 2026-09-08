@@ -567,3 +567,11 @@ model ActivityLog {
   @@index([actorId, createdAt])
   @@index([createdAt])
 }
+
+/// 사이트 공통 컴포넌트별 설정. 버전으로 동시에 편집한 설정의 덮어쓰기를 막는다.
+model ComponentSetting {
+  key       String   @id
+  value     String
+  revision  Int      @default(1)
+  updatedAt DateTime @updatedAt
+}

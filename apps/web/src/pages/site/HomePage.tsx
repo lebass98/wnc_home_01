@@ -1,3 +1,4 @@
+import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Paginated, PostListItem, ProductListItem } from '@wnc/shared'
@@ -13,28 +14,6 @@ const asset = (path: string) => {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
-
-/** 히어로 슬라이드 — 고해상도 배경 이미지와 매끄러운 패럴랙스 드리프트 */
-const SLIDES = [
-  {
-    title: ['고객과 우리의 생각을', '함께 구현하다'],
-    desc: ['필요한 것을 정확히 짚어내는 설계로', '비즈니스가 다음 단계로 나아가도록 돕습니다'],
-    gradient: 'linear-gradient(135deg, #1b2a3a 0%, #24404a 55%, #2f5f63 100%)',
-    image: asset('/images/main/main_hero_01.jpg'),
-  },
-  {
-    title: ['기획부터 운영까지', '한 팀이 책임집니다'],
-    desc: ['흩어진 과정을 하나로 묶어', '더 빠르고 단단하게 만들어 냅니다'],
-    gradient: 'linear-gradient(135deg, #21243a 0%, #2f3557 55%, #3f5f7a 100%)',
-    image: asset('/images/main/main_hero_02.jpg'),
-  },
-  {
-    title: ['오래 쓸 수 있는', '서비스를 만듭니다'],
-    desc: ['눈에 보이는 화면 뒤의 구조까지', '길게 쓰일 것을 생각하며 짓습니다'],
-    gradient: 'linear-gradient(135deg, #1d2b26 0%, #2b4a41 55%, #3d6e71 100%)',
-    image: asset('/images/main/main_hero_03.jpg'),
-  },
-]
 
 /** 개발 철학 — 번호를 붙여 네 칸으로 늘어놓는다. */
 const PHILOSOPHY = [
@@ -72,6 +51,7 @@ const DEFAULT_PROJECT_THUMBNAILS = [
 
 export default function HomePage() {
   const boards = useBoards()
+  const { mainVisual } = useComponentSettings()
   const [posts, setPosts] = useState<PostListItem[]>([])
   const [products, setProducts] = useState<ProductListItem[]>([])
 
@@ -86,7 +66,12 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroSlider slides={SLIDES} />
+      <HeroSlider
+        key={JSON.stringify(mainVisual)}
+        slides={mainVisual.slides.map((slide) => ({ title: slide.title.split('\n'), desc: slide.description.split('\n'), image: componentImageUrl(slide.image) }))}
+        interval={mainVisual.interval}
+        autoplay={mainVisual.autoplay}
+      />
 
       {/* 소개 */}
       <section className="py-24 sm:py-28">

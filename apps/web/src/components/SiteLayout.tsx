@@ -1,3 +1,4 @@
+import { componentImageUrl, useComponentSettings } from '../lib/componentSettings'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { DEFAULT_COMPANY } from '@wnc/shared'
@@ -22,6 +23,7 @@ export default function SiteLayout() {
   const setting = useSiteSetting()
   const company = setting ?? DEFAULT_COMPANY
   const design = useSiteDesign()
+  const components = useComponentSettings()
   const [open, setOpen] = useState(false)
   const [sitemapOpen, setSitemapOpen] = useState(false)
   const { pathname } = useLocation()
@@ -30,9 +32,9 @@ export default function SiteLayout() {
   const siteMenu = useSiteMenu()
   const menu = pickMenu(siteMenu, 'gnb')
   const footerMenu = pickMenu(siteMenu, 'footer')
-  const logo = company.companyNameEn || company.companyName
+  const logo = components.header.logoText || company.companyNameEn || company.companyName
   // [환경설정]의 '사이트 타이틀 이미지' 를 올렸으면 헤더 로고로 그 그림을 쓴다.
-  const logoImage = setting?.titleImage ?? null
+  const logoImage = componentImageUrl(components.header.logoImage) || setting?.titleImage || null
 
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function SiteLayout() {
 
   // 투명 상태에서는 헤더 글자를 흰색으로 뒤집는다.
   // 모바일 메뉴는 화면 전체를 덮는 별도 판이라 헤더 색은 건드리지 않는다.
-  const transparent = overHero && !scrolled
+  const transparent = components.header.transparent && overHero && !scrolled
 
   const Header = headerComponent(design.header)
   const Footer = footerComponent(design.footer)
@@ -93,7 +95,7 @@ export default function SiteLayout() {
         <Outlet />
       </main>
 
-      <Footer company={company} menu={footerMenu} onOpenSitemap={() => setSitemapOpen(true)} />
+      <Footer company={components.footer.showSocial ? company : { ...company, snsFacebook: '', snsYoutube: '', snsBlog: '', snsInstagram: '' }} menu={components.footer.showMenu ? footerMenu : []} onOpenSitemap={() => setSitemapOpen(true)} />
     </div>
   )
 }

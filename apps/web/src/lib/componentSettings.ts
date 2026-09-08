@@ -52,5 +52,8 @@ export function useComponentSettings() {
 
 /** 기본 정적 이미지는 GitHub Pages의 하위 경로를 적용하고 업로드·외부 주소는 그대로 쓴다. */
 export function componentImageUrl(value: string) {
-  return value.startsWith('/images/') ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}${value}` : value
+  const url = value.startsWith('/images/') ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}${value}` : value
+  // 기본 서브비주얼 교체 후 기존 브라우저 캐시를 갱신한다.
+  const builtInSubVisual = /\/images\/subvisual\/subvisual_(about|directions|services|products|board|faq|contact|terms|privacy|policy)\.jpg$/
+  return !/^https?:\/\//.test(url) && builtInSubVisual.test(url) ? `${url}?v=20260908-hd` : url
 }

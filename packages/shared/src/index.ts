@@ -1104,6 +1104,9 @@ export interface SiteTemplateInfo {
   pageLayouts: SitePageLayoutMap
   /** 이 템플릿이 보관한 파일 수 (화면·레이아웃·부품) */
   files?: number
+  /** 함께 담긴 데모 데이터 — 메뉴·페이지 개수 (없으면 0) */
+  dataMenus?: number
+  dataPages?: number
   /** 라이선스 — 비워 둘 수 있다 */
   license: string
   /** 요구하는 워드앤코드 버전 */
@@ -1169,6 +1172,7 @@ const ACTIVITY_TARGETS: Record<string, string> = {
   categories: '제품 카테고리',
   pages: '페이지',
   settings: '환경설정',
+  components: '컴포넌트',
   popups: '팝업',
   faqs: '자주 묻는 질문',
   'privacy-revisions': '개인정보 이력',
@@ -1226,7 +1230,7 @@ export function describeActivity(
   let action: string
   if (root === 'uploads') action = last === 'file' ? '첨부 업로드' : '이미지 업로드'
   else if (last && ACTIVITY_VERBS[last]) action = ACTIVITY_VERBS[last]
-  else if (root === 'settings' || root === 'design' || root === 'board-settings') action = '저장'
+  else if (root === 'components' || root === 'settings' || root === 'design' || root === 'board-settings') action = '저장'
   else action = METHOD_VERB[method.toUpperCase()] ?? method
 
   // 본문에서 이름이 될 만한 값을 하나 골라 붙인다
@@ -1330,6 +1334,114 @@ export interface SiteStats {
   sources: StatCount[]
   /** 많이 본 화면 상위 */
   pages: StatCount[]
+}
+
+/* ------------------------------------------------------------------
+ * 템플릿 데모 데이터 — 워드프레스 '데모 데이터 가져오기' 방식
+ *
+ * 템플릿 zip 에 화면 파일과 함께 data.json(메뉴 트리·페이지 샘플)을 담고,
+ * 활성화할 때 "화면만" / "메뉴·페이지 포함" 을 고르게 한다.
+ * 서버와 데모 모드가 같은 검증·대조 규칙을 쓰도록 여기에 둔다.
+ * ------------------------------------------------------------------ */
+
+/** 메뉴 한 항목 — 메뉴 관리의 입력 규칙과 같은 한도를 쓴다. */
+const templateMenuBase = z.object({
+  label: z.string().trim().min(1).max(50),
+  url: z.string().trim().max(500),
+  newTab: z.boolean().default(false),
+  autoChildren: z.enum(['none', 'categories', 'boards']).default('none'),
+  published: z.boolean().default(true),
+  showInGnb: z.boolean().default(true),
+  showInFooter: z.boolean().default(true),
+  showInSitemap: z.boolean().default(true),
+})
+
+/** 템플릿 zip 의 data.json 규격 */
+export const templateDataSchema = z.object({
+  menus: z.array(templateMenuBase.extend({ children: z.array(templateMenuBase).max(30).default([]) })).max(30).default([]),
+  pages: z
+    .array(
+      z.object({
+        slug: z.string().trim().min(1).max(80),
+        title: z.string().trim().min(1).max(200),
+        description: z.string().max(500).default(''),
+        content: z.string().max(500_000).default(''),
+        published: z.boolean().default(true),
+        showInNav: z.boolean().default(false),
+        sortOrder: z.number().int().default(0),
+        /** 언어별 제목·본문 — { ko, en, … }. 비어 있으면 한국어 값을 쓴다. */
+        titleI18n: z.record(z.string().max(200)).default({}),
+        contentI18n: z.record(z.string().max(500_000)).default({}),
+        metaTitle: z.string().max(200).default(''),
+        metaDescription: z.string().max(500).default(''),
+        metaKeywords: z.string().max(500).default(''),
+      }),
+    )
+    .max(100)
+    .default([]),
+})
+
+export type TemplateData = z.infer<typeof templateDataSchema>
+export type TemplateMenuSeed = TemplateData['menus'][number]
+export type TemplatePageSeed = TemplateData['pages'][number]
+
+/** 메뉴·페이지 대조에서 나온 어긋남 한 건 */
+export interface TemplateLinkIssue {
+  /** menu: 갈 곳 없는 메뉴, page: 메뉴가 없는 발행 페이지 */
+  kind: 'menu' | 'page'
+  label: string
+  url: string
+  message: string
+}
+
+/**
+ * 메뉴 주소와 실제 화면을 대조한다.
+ * 라우트는 템플릿에 담기지 않아 모든 템플릿이 같은 주소를 쓴다 —
+ * 고정 화면 주소 + 관리자 페이지(/page/slug)만 유효하다.
+ */
+export function findTemplateLinkIssues(
+  menus: { label: string; url: string; published: boolean }[],
+  pages: { slug: string; title: string; published: boolean }[],
+): TemplateLinkIssue[] {
+  // 고정 화면 — 화면 등록부의 주소에, 등록부 밖에서 라우트만 가진 약관 묶음을 더한다.
+  const staticPaths = new Set([
+    ...SITE_PAGES.filter((p) => p.kind !== 'layout' && p.path && !p.path.includes(':')).map((p) => p.path),
+    '/terms',
+    '/privacy',
+  ])
+  const pageSlugs = new Set(pages.filter((p) => p.published).map((p) => p.slug))
+  const issues: TemplateLinkIssue[] = []
+
+  const linkedSlugs = new Set<string>()
+  for (const menu of menus) {
+    const url = menu.url.trim()
+    // 빈 주소(묶음 이름)와 외부 주소는 대조하지 않는다.
+    if (!url || /^https?:\/\//.test(url)) continue
+    const path = url.split(/[?#]/)[0].replace(/\/$/, '') || '/'
+    // 약관(/terms)처럼 고정 주소로 이어지는 페이지도 '메뉴가 있다'로 본다.
+    const single = path.match(/^\/([^/]+)$/)?.[1]
+    if (single) linkedSlugs.add(single)
+    const pageSlug = path.match(/^\/page\/([^/]+)$/)?.[1]
+    if (pageSlug) {
+      linkedSlugs.add(pageSlug)
+      if (!pageSlugs.has(pageSlug)) {
+        issues.push({ kind: 'menu', label: menu.label, url, message: `'${menu.label}' 메뉴가 가리키는 페이지(${pageSlug})가 없거나 발행되지 않았습니다.` })
+      }
+      continue
+    }
+    // 상세 화면(/board/3 같은 것)은 앞부분이 고정 화면이면 통과시킨다.
+    const known = staticPaths.has(path) || [...staticPaths].some((base) => base !== '/' && path.startsWith(`${base}/`))
+    if (!known && menu.published) {
+      issues.push({ kind: 'menu', label: menu.label, url, message: `'${menu.label}' 메뉴의 주소(${url})에 해당하는 화면이 없습니다.` })
+    }
+  }
+
+  for (const page of pages) {
+    if (page.published && !linkedSlugs.has(page.slug)) {
+      issues.push({ kind: 'page', label: page.title, url: `/page/${page.slug}`, message: `'${page.title}' 페이지로 가는 메뉴가 없습니다.` })
+    }
+  }
+  return issues
 }
 
 /* ------------------------------------------------------------------

@@ -77,7 +77,7 @@ export default function ComponentsPage() {
     setBusy(true); setError(''); setMessage('')
     try {
       const value = await api<ComponentSettingsResponse>('/components')
-      setSaved(value)
+      setSaved((current) => current ? { settings: { ...current.settings, [selected]: value.settings[selected] }, revisions: { ...current.revisions, [selected]: value.revisions[selected] } } : value)
       setDraft((current) => current ? { ...current, [selected]: value.settings[selected] } : value.settings)
       setSlideIndex(0)
     } catch (e) { setError((e as Error).message) }
@@ -101,7 +101,7 @@ export default function ComponentsPage() {
       <section className="card min-w-0 p-5 sm:p-7" aria-label={`${meta.name} 설정`}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5 dark:border-slate-700">
           <div><h2 className="text-xl font-bold">{meta.name}</h2><p className="mt-1 text-sm text-slate-500">{meta.scope} · {sectionDirty ? '저장하지 않은 변경사항' : '저장된 설정'}</p></div>
-          <Link to={selected === 'subVisual' ? visualPage.path : meta.path} target="_blank" rel="noopener noreferrer" className="btn-secondary">저장된 화면 보기 ↗</Link>
+          <Link to={selected === 'subVisual' && pageKey !== 'custom' ? visualPage.path : meta.path} target="_blank" rel="noopener noreferrer" className="btn-secondary">저장된 화면 보기 ↗</Link>
         </div>
         {error && <ErrorMessage message={error} />}
         {message && <p role="status" className="mb-5 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">{message}</p>}

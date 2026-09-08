@@ -1,4 +1,4 @@
-import { componentSettingsSchema, defaultComponentResponse, type ComponentSettingsResponse } from '@wnc/shared'
+import { componentSettingsSchema, defaultComponentResponse, findTemplateLinkIssues, type ComponentSettingsResponse } from '@wnc/shared'
 import { describeActivity, summarizeActivityBody, type ActivityLog } from '@wnc/shared'
 import type {
   Contact,
@@ -54,6 +54,8 @@ const STORAGE_KEY = 'wnc_demo_db'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
+  /** 함께 담긴 메뉴·페이지 — '현재 사이트 담기'와 활성화 전환 때 갈무리된다. */
+  data?: { menus: DemoMenuItem[]; pages: DemoPage[] }
   id: number
   name: string
   description: string
@@ -792,15 +794,25 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     }
     return active
   }
-  const templateItem = ({ ...t }: DemoTemplate) => ({
+  const templateItem = ({ data, ...t }: DemoTemplate) => ({
     ...t,
     pageLayouts: { ...t.pageLayouts },
+    dataMenus: data ? data.menus.filter((m) => m.parentId === null).length : 0,
+    dataPages: data ? data.pages.length : 0,
     // 데모에는 템플릿 정보를 적어 두지 않는다.
     license: '',
     coreVersion: '',
     requires: [],
     changelog: [],
   })
+  /** 지금 메뉴·페이지를 템플릿에 담을 형태로 복사한다. */
+  const cloneSiteData = () => structuredClone({ menus: db.menus, pages: db.pages })
+  /** 메뉴 주소와 화면이 서로 맞는지 — 실제 API 와 같은 규칙을 쓴다. */
+  const demoLinkIssues = () =>
+    findTemplateLinkIssues(
+      db.menus.map((m) => ({ label: m.label, url: m.url, published: m.published })),
+      db.pages.map((pg) => ({ slug: pg.slug, title: pg.title, published: pg.published })),
+    )
   const templatesSorted = () =>
     [...db.templates].sort((a, b) => Number(b.active) - Number(a.active) || b.updatedAt.localeCompare(a.updatedAt))
 
@@ -822,6 +834,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   // --- 템플릿 관리 ---
   if (rawPath === '/templates' && method === 'GET') return templatesSorted().map((t) => ({ ...templateItem(t), files: 0 }))
+  if (rawPath === '/templates/link-check' && method === 'GET') return demoLinkIssues()
   // 적용 기록 — 데모에는 사이트 파일이 없어 비어 있다.
   if (rawPath === '/templates/apply-backups' && method === 'GET') return []
   if (rawPath.startsWith('/templates/apply-backups/')) {
@@ -849,6 +862,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       header: base.header,
       footer: base.footer,
       pageLayouts: { ...base.pageLayouts },
+      // 실제 API 처럼 지금 메뉴·페이지를 출발점으로 담는다.
+      data: cloneSiteData(),
       createdAt: now,
       updatedAt: now,
     }
@@ -878,8 +893,14 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     save(db)
     return templateItem(created)
   }
-  if (/^\/templates\/\d+\/snapshot$/.test(rawPath)) {
-    throw new DemoError('GitHub Pages 데모에서는 사이트 파일을 담을 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  if (/^\/templates\/\d+\/snapshot$/.test(rawPath) && method === 'POST') {
+    const t = db.templates.find((x) => x.id === Number(rawPath.split('/')[2]))
+    if (!t) throw new DemoError('템플릿을 찾을 수 없습니다.', 404)
+    // 데모에는 사이트 파일이 없어 메뉴·페이지만 담긴다.
+    t.data = cloneSiteData()
+    t.updatedAt = new Date().toISOString()
+    save(db)
+    return { ...templateItem(t), files: 0 }
   }
   const templateMatch = rawPath.match(/^\/templates\/(\d+)(\/(activate|duplicate|export))?$/)
   if (templateMatch) {
@@ -888,11 +909,65 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     const action = templateMatch[3]
 
     if (action === 'activate' && method === 'POST') {
+      // 이미 켜져 있으면 실제 API 처럼 아무것도 바꾸지 않는다.
+      if (t.active) {
+        return {
+          templates: templatesSorted().map((x) => ({ ...templateItem(x), files: 0 })),
+          applied: 0,
+          backup: '',
+          dataApplied: null,
+          linkIssues: demoLinkIssues(),
+        }
+      }
+      const withData = body?.withData === true
+      if (withData && !t.data) {
+        throw new DemoError('이 템플릿에는 메뉴·페이지 데이터가 없습니다. 화면만 적용해 주세요.', 400)
+      }
+      // 실제 API 처럼, 쓰던 템플릿에 지금 메뉴·페이지를 갈무리해 둔다.
+      const current = db.templates.find((x) => x.active)
+      if (current && current.id !== t.id) current.data = cloneSiteData()
       for (const x of db.templates) x.active = false
       t.active = true
+      let dataApplied: { menus: number; pages: number } | null = null
+      if (withData && t.data) {
+        const now = new Date().toISOString()
+        const incoming = structuredClone(t.data)
+        db.menus = incoming.menus
+        // 실제 API 는 페이지를 전부 지우고 1버전으로 새로 만든다 — 이력도 v1 한 건씩만 남긴다.
+        db.pages = incoming.pages.map((pg) => ({
+          ...pg,
+          version: 1,
+          publishedAt: pg.published ? now : null,
+          updatedAt: now,
+        }))
+        db.pageVersions = db.pages.map((pg, i) => ({
+          id: i + 1,
+          pageId: pg.id,
+          version: 1,
+          title: pg.title,
+          description: pg.description,
+          content: pg.content,
+          published: pg.published,
+          showInNav: pg.showInNav,
+          note: '템플릿 데모 데이터 적용',
+          authorName: '템플릿',
+          createdAt: now,
+        }))
+        // 새 항목이 이어서 만들어질 수 있게 번호를 맞춘다.
+        db.nextMenuId = Math.max(0, ...db.menus.map((m) => m.id)) + 1
+        db.nextPageId = Math.max(0, ...db.pages.map((pg) => pg.id)) + 1
+        db.nextPageVersionId = db.pageVersions.length + 1
+        dataApplied = { menus: db.menus.filter((m) => m.parentId === null).length, pages: db.pages.length }
+      }
       save(db)
-      // 데모에는 파일이 없어 구성만 바뀐다.
-      return { templates: templatesSorted().map((x) => ({ ...templateItem(x), files: 0 })), applied: 0 }
+      // 데모에는 파일이 없어 화면은 구성만 바뀐다.
+      return {
+        templates: templatesSorted().map((x) => ({ ...templateItem(x), files: 0 })),
+        applied: 0,
+        backup: '',
+        dataApplied,
+        linkIssues: demoLinkIssues(),
+      }
     }
     if (action === 'duplicate' && method === 'POST') {
       const now = new Date().toISOString()
@@ -904,6 +979,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
         builtin: false,
         active: false,
         pageLayouts: { ...t.pageLayouts },
+        // 담긴 메뉴·페이지도 제 몫으로 복사한다 — 원본과 같은 객체를 나눠 쓰지 않는다.
+        data: t.data ? structuredClone(t.data) : undefined,
         createdAt: now,
         updatedAt: now,
       }

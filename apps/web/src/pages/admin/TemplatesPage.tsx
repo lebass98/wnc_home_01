@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { unzipSync } from 'fflate'
 import { Link } from 'react-router-dom'
-import type { SiteTemplateDetail, SiteTemplateFile, SiteTemplateInfo, TemplateChange, TemplateFeature } from '@wnc/shared'
+import type { SiteTemplateDetail, SiteTemplateFile, SiteTemplateInfo, TemplateChange, TemplateFeature, TemplateLinkIssue } from '@wnc/shared'
 import { TEMPLATE_FEATURES, TEMPLATE_FEATURE_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { invalidateSiteDesign } from '../../lib/siteDesign'
 import { invalidatePageLayouts } from '../../lib/pageLayouts'
+import { invalidateSiteMenu } from '../../lib/menus'
 import { FOOTERS, HEADERS } from '../../layouts'
 import { Badge, EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination, RowMenu, ToggleSwitch } from '../../components/ui'
 
@@ -22,6 +23,8 @@ interface ApplyBackupItem {
   stamp: string
   createdAt: string
   files: number
+  /** 메뉴·페이지 데이터도 담겨 있는지 */
+  hasData: boolean
 }
 
 /** 등록부에서 레이아웃 이름을 찾는다 — 등록이 지워진 키는 키 그대로 보여 준다. */
@@ -59,6 +62,10 @@ export default function TemplatesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  /** 적용 방식(화면만/메뉴·페이지 포함)을 고르는 대화상자의 대상 */
+  const [applyTarget, setApplyTarget] = useState<SiteTemplateInfo | null>(null)
+  /** 적용 직후 메뉴·화면 대조에서 나온 어긋남 */
+  const [linkIssues, setLinkIssues] = useState<TemplateLinkIssue[] | null>(null)
 
   async function load() {
     try {
@@ -76,11 +83,18 @@ export default function TemplatesPage() {
   function refreshSite() {
     invalidateSiteDesign()
     invalidatePageLayouts()
+    // 메뉴·페이지 데이터를 함께 적용했을 수 있으므로 GNB·푸터·사이트맵 메뉴도 다시 읽는다.
+    invalidateSiteMenu()
   }
 
-  async function activate(row: SiteTemplateInfo) {
+  function activate(row: SiteTemplateInfo) {
     if (row.active) {
       alert('사용 중인 템플릿은 끌 수 없습니다.\n다른 템플릿을 켜면 이 템플릿은 자동으로 꺼집니다.')
+      return
+    }
+    // 메뉴·페이지 데이터가 함께 담긴 템플릿이면 적용 방식을 고르게 한다.
+    if ((row.dataMenus ?? 0) > 0 || (row.dataPages ?? 0) > 0) {
+      setApplyTarget(row)
       return
     }
     if (
@@ -91,15 +105,28 @@ export default function TemplatesPage() {
       )
     )
       return
+    void runActivate(row, false)
+  }
+
+  /** 실제 적용 — withData 면 메뉴·페이지도 템플릿 데이터로 갈아 끼운다. */
+  async function runActivate(row: SiteTemplateInfo, withData: boolean) {
     setWorking(true)
     try {
-      const res = await api<{ templates: SiteTemplateInfo[]; applied: number }>(`/templates/${row.id}/activate`, {
-        method: 'POST',
-        auth: true,
-      })
+      const res = await api<{
+        templates: SiteTemplateInfo[]
+        applied: number
+        dataApplied: { menus: number; pages: number } | null
+        linkIssues: TemplateLinkIssue[]
+      }>(`/templates/${row.id}/activate`, { method: 'POST', auth: true, body: { withData } })
       setRows(res.templates)
+      setApplyTarget(null)
       refreshSite()
-      alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.`)
+      const dataNote = res.dataApplied
+        ? ` 메뉴 ${res.dataApplied.menus}개·페이지 ${res.dataApplied.pages}개도 함께 적용했습니다.`
+        : ''
+      alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.${dataNote}`)
+      // 적용 결과에서 어긋난 곳이 나오면 이어서 보여 준다.
+      setLinkIssues(res.linkIssues.length > 0 ? res.linkIssues : null)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -112,7 +139,7 @@ export default function TemplatesPage() {
     if (
       !confirm(
         `지금 사이트 모습을 '${row.name}' 템플릿에 담을까요?\n\n` +
-          '이 템플릿에 보관돼 있던 파일은 지금 사이트 파일로 바뀝니다.',
+          '이 템플릿에 보관돼 있던 파일과 메뉴·페이지 데이터는 지금 사이트의 것으로 바뀝니다.',
       )
     )
       return
@@ -120,7 +147,7 @@ export default function TemplatesPage() {
     try {
       const next = await api<SiteTemplateInfo>(`/templates/${row.id}/snapshot`, { method: 'POST', auth: true })
       setRows((prev) => prev?.map((r) => (r.id === next.id ? next : r)) ?? null)
-      alert(`파일 ${next.files ?? 0}개를 담았습니다.`)
+      alert(`파일 ${next.files ?? 0}개와 메뉴 ${next.dataMenus ?? 0}개·페이지 ${next.dataPages ?? 0}개를 담았습니다.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -291,6 +318,12 @@ export default function TemplatesPage() {
                       </span>
                       <span aria-hidden>·</span>
                       <span>파일 {row.files ?? 0}개</span>
+                      {((row.dataMenus ?? 0) > 0 || (row.dataPages ?? 0) > 0) && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>데이터: 메뉴 {row.dataMenus}개 · 페이지 {row.dataPages}개</span>
+                        </>
+                      )}
                     </p>
                   </div>
 
@@ -401,6 +434,15 @@ export default function TemplatesPage() {
         />
       )}
       {historyOpen && <ApplyHistoryModal onClose={() => setHistoryOpen(false)} />}
+      {applyTarget && (
+        <ApplyModal
+          row={applyTarget}
+          working={working}
+          onClose={() => setApplyTarget(null)}
+          onApply={(withData) => runActivate(applyTarget, withData)}
+        />
+      )}
+      {linkIssues && <LinkIssuesModal issues={linkIssues} onClose={() => setLinkIssues(null)} />}
       {importOpen && (
         <ImportModal
           onClose={() => setImportOpen(false)}
@@ -411,6 +453,115 @@ export default function TemplatesPage() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * 적용 방식 선택 — 워드프레스의 '데모 데이터 가져오기'처럼,
+ * 화면만 바꿀지 메뉴·페이지 데이터까지 함께 갈아 끼울지 고른다.
+ */
+function ApplyModal({
+  row,
+  working,
+  onClose,
+  onApply,
+}: {
+  row: SiteTemplateInfo
+  working: boolean
+  onClose: () => void
+  onApply: (withData: boolean) => void
+}) {
+  const [withData, setWithData] = useState(false)
+
+  return (
+    // 적용이 도는 중에는 ESC·배경 클릭으로 닫히지 않게 한다 — 진행 상황을 잃지 않는다.
+    <Modal title={`'${row.name}' 템플릿 적용`} onClose={() => { if (!working) onClose() }}>
+      <div className="space-y-4">
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+          이 템플릿의 화면·레이아웃·부품 파일이 사이트에 덮어써집니다. 지금 사이트 모습은 사용 중이던 템플릿에
+          자동으로 담기고, 덮어쓰기 전 원본도 백업으로 남습니다.
+        </p>
+
+        <div className="space-y-2.5" role="radiogroup" aria-label="적용 범위">
+          <label
+            className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+              !withData ? 'border-brand-500 bg-brand-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            <input type="radio" name="apply-scope" className="mt-1 accent-blue-600" checked={!withData} onChange={() => setWithData(false)} />
+            <span>
+              <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">화면만 적용</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                디자인(화면 파일)만 바뀌고, 지금 쓰는 메뉴와 페이지는 그대로 둡니다.
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+              withData ? 'border-brand-500 bg-brand-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            <input type="radio" name="apply-scope" className="mt-1 accent-blue-600" checked={withData} onChange={() => setWithData(true)} />
+            <span>
+              <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                메뉴·페이지 데이터도 함께 적용
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                이 템플릿에 담긴 메뉴 {row.dataMenus ?? 0}개와 페이지 {row.dataPages ?? 0}개로 갈아 끼웁니다.
+                지금 메뉴·페이지는 백업에 담겨, 적용 기록에서 함께 되돌릴 수 있습니다.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {withData && (
+          <p className="rounded-lg bg-amber-50 p-3.5 text-xs leading-5 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            지금 쓰는 메뉴 구성과 페이지 관리의 모든 페이지(버전 이력 포함)가 템플릿 데이터로 바뀝니다.
+            게시글·제품·문의 등 다른 데이터는 바뀌지 않습니다.
+          </p>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={working}>
+            취소
+          </button>
+          <button type="button" className="btn-primary" onClick={() => onApply(withData)} disabled={working}>
+            {working ? '적용 중…' : '적용'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/** 적용 직후 메뉴·화면 대조 결과 — 갈 곳 없는 메뉴, 메뉴 없는 페이지를 알려 준다. */
+function LinkIssuesModal({ issues, onClose }: { issues: TemplateLinkIssue[]; onClose: () => void }) {
+  return (
+    <Modal title="메뉴·화면 대조 결과" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+          적용은 끝났지만, 메뉴와 화면이 서로 맞지 않는 곳이 {issues.length}건 있습니다. 메뉴 관리와 페이지
+          관리에서 정리해 주세요.
+        </p>
+        <ul className="max-h-72 space-y-2 overflow-y-auto">
+          {issues.map((issue, i) => (
+            <li key={i} className="flex items-start gap-2.5 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-900/50">
+              <Badge tone={issue.kind === 'menu' ? 'red' : 'amber'}>{issue.kind === 'menu' ? '메뉴' : '페이지'}</Badge>
+              <span className="min-w-0 flex-1 leading-5 text-slate-700 dark:text-slate-300">{issue.message}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end gap-2">
+          <Link to="/admin/menus" className="btn-secondary" onClick={onClose}>
+            메뉴 관리로
+          </Link>
+          <button type="button" className="btn-primary" onClick={onClose}>
+            확인
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -447,21 +598,25 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
   }
 
   async function restore(item: ApplyBackupItem) {
+    const dataNote = item.hasData ? '\n그때의 메뉴·페이지 데이터도 함께 되돌아갑니다.' : ''
     if (
       !confirm(
         `${formatStamp(item.createdAt)} 시점으로 사이트를 되돌릴까요?\n\n` +
-          `파일 ${item.files}개가 그때 내용으로 덮어써집니다.\n지금 모습도 새 기록으로 남아 다시 되돌릴 수 있습니다.`,
+          `파일 ${item.files}개가 그때 내용으로 덮어써집니다.${dataNote}\n지금 모습도 새 기록으로 남아 다시 되돌릴 수 있습니다.`,
       )
     )
       return
     setWorking(true)
     try {
-      const res = await api<{ restored: number }>(`/templates/apply-backups/${item.stamp}/restore`, {
-        method: 'POST',
-        auth: true,
-      })
+      const res = await api<{ restored: number; dataRestored: { menus: number; pages: number } | null }>(
+        `/templates/apply-backups/${item.stamp}/restore`,
+        { method: 'POST', auth: true },
+      )
       load()
-      alert(`파일 ${res.restored}개를 되돌렸습니다. 홈페이지를 새로고침하면 바로 보입니다.`)
+      const restoredNote = res.dataRestored
+        ? ` 메뉴 ${res.dataRestored.menus}개·페이지 ${res.dataRestored.pages}개도 되돌렸습니다.`
+        : ''
+      alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote} 홈페이지를 새로고침하면 바로 보입니다.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -497,7 +652,9 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{formatStamp(item.createdAt)}</p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">파일 {item.files}개</p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      파일 {item.files}개{item.hasData && ' · 메뉴·페이지 데이터 포함'}
+                    </p>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
                     <button type="button" onClick={() => toggle(item.stamp)} className="btn-secondary px-2.5 py-1 text-xs">
@@ -1048,6 +1205,8 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   const [showManifest, setShowManifest] = useState(false)
   const [problem, setProblem] = useState('')
   const [saving, setSaving] = useState(false)
+  /** zip 에 담긴 데모 데이터 개수 — data.json 이 없으면 null */
+  const [dataInfo, setDataInfo] = useState<{ menus: number; pages: number } | null>(null)
 
   /** 고른 zip 안을 들여다본다 — template.json 과 담긴 파일 목록을 미리 확인한다. */
   async function inspect(picked: File) {
@@ -1056,6 +1215,7 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
     setEntries([])
     setShowManifest(false)
     setProblem('')
+    setDataInfo(null)
     try {
       const zip = unzipSync(new Uint8Array(await picked.arrayBuffer()))
       const names = Object.keys(zip)
@@ -1071,6 +1231,19 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       }
       setManifest(parsed as SiteTemplateFile)
       setEntries(names.filter((n) => !n.endsWith('/') && n.split('/').pop() !== 'template.json'))
+      // 데모 데이터(data.json)가 담겨 있으면 개수를 보여 준다 — 깨져 있으면 서버가 설치 때 알린다.
+      const dataName = names.find((n) => n.split('/').pop() === 'data.json')
+      if (dataName) {
+        try {
+          const data = JSON.parse(new TextDecoder().decode(zip[dataName]))
+          setDataInfo({
+            menus: Array.isArray(data?.menus) ? data.menus.length : 0,
+            pages: Array.isArray(data?.pages) ? data.pages.length : 0,
+          })
+        } catch {
+          setDataInfo(null)
+        }
+      }
     } catch {
       setProblem('zip 파일을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
     }
@@ -1236,7 +1409,9 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         {problem && <ErrorMessage message={problem} />}
         {manifest && (
           <p className="text-sm text-green-700 dark:text-green-400">
-            '{manifest.name}' 템플릿을 확인했습니다 (파일 {entries.length}개) — 설치를 누르면 목록에 추가됩니다.
+            '{manifest.name}' 템플릿을 확인했습니다 (파일 {entries.length}개
+            {dataInfo && ` · 메뉴 ${dataInfo.menus}개 · 페이지 ${dataInfo.pages}개 데이터 포함`}) — 설치를 누르면 목록에
+            추가됩니다.
           </p>
         )}
 

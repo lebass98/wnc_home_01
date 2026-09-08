@@ -10,6 +10,7 @@ import AdmZip from 'adm-zip'
  * 서버는 uploads/templates/<id> 아래에 풀어 두고, 내보낼 때 zip 으로 압축한다.
  *
  *   template.json      이름·버전·헤더·푸터·화면별 레이아웃
+ *   data.json          데모 데이터 — 메뉴 트리·페이지 샘플 (없어도 된다)
  *   pages/*.tsx        홈페이지 화면 (apps/web/src/pages/site)
  *   layouts/*          레이아웃과 등록부 (apps/web/src/layouts)
  *   components/*.tsx   화면·레이아웃이 가져다 쓰는 부품 (apps/web/src/components)
@@ -55,6 +56,30 @@ export function templateDir(id: number): string {
 /** 이 템플릿의 파일이 보관되어 있는지 */
 export function hasFiles(id: number): boolean {
   return existsSync(path.join(templateDir(id), 'template.json'))
+}
+
+const DATA_FILE = 'data.json'
+
+/** 이 템플릿에 데모 데이터(메뉴·페이지)가 담겨 있는지 */
+export function hasData(id: number): boolean {
+  return existsSync(path.join(templateDir(id), DATA_FILE))
+}
+
+/** 담긴 데모 데이터 — 검증은 부르는 쪽(templateData)이 한다. 없거나 깨져 있으면 null. */
+export async function readTemplateData(id: number): Promise<unknown | null> {
+  const file = path.join(templateDir(id), DATA_FILE)
+  if (!existsSync(file)) return null
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+export async function writeTemplateData(id: number, data: unknown): Promise<void> {
+  const dir = templateDir(id)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  await writeFile(path.join(dir, DATA_FILE), JSON.stringify(data, null, 2), 'utf8')
 }
 
 /** 다룰 수 있는 파일인지 — 소스와 스타일만 담는다. */
@@ -164,6 +189,8 @@ export async function packZip(id: number): Promise<Buffer> {
   const zip = new AdmZip()
   const manifest = path.join(dir, 'template.json')
   if (existsSync(manifest)) zip.addLocalFile(manifest)
+  const dataFile = path.join(dir, DATA_FILE)
+  if (existsSync(dataFile)) zip.addLocalFile(dataFile)
   for (const folder of FOLDERS) {
     for (const name of await listSources(path.join(dir, folder))) {
       zip.addLocalFile(path.join(dir, folder, name), folder)
@@ -176,7 +203,7 @@ export async function packZip(id: number): Promise<Buffer> {
  * 올린 zip 을 풀어 템플릿 파일로 저장한다.
  * 묶음 밖으로 새는 경로(../ 등)와 다룰 수 없는 파일은 버린다.
  */
-export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest: TemplateManifest; files: number }> {
+export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest: TemplateManifest; files: number; hasData: boolean }> {
   const zip = new AdmZip(buffer)
   const entries = zip.getEntries()
 
@@ -199,12 +226,24 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
   for (const folder of FOLDERS) await mkdir(path.join(dir, folder), { recursive: true })
 
   let files = 0
+  let hasDataFile = false
   for (const entry of entries) {
     if (entry.isDirectory) continue
     const parts = entry.entryName.split('/').filter((p) => p && p !== '.')
     // 압축을 풀면 폴더가 한 겹 더 있을 수 있어(templates/pages/..) 뒤에서부터 본다.
     const name = parts[parts.length - 1]
     const folder = parts[parts.length - 2] as Folder | undefined
+    // 데모 데이터 — 매니페스트 옆에 놓인 것만 받는다. 깨진 JSON 은 조용히 버리지 않고 알린다.
+    if (name === DATA_FILE && !folder) {
+      try {
+        JSON.parse(entry.getData().toString('utf8'))
+      } catch {
+        throw new Error('data.json 을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
+      }
+      await writeFile(path.join(dir, DATA_FILE), entry.getData())
+      hasDataFile = true
+      continue
+    }
     if (!folder || !FOLDERS.includes(folder)) continue
     if (!isSourceName(name) || name.includes('..')) continue
     await writeFile(path.join(dir, folder, name), entry.getData())
@@ -212,7 +251,7 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
   }
 
   await writeFile(path.join(dir, 'template.json'), JSON.stringify(manifest, null, 2), 'utf8')
-  return { manifest, files }
+  return { manifest, files, hasData: hasDataFile }
 }
 
 /**
@@ -246,6 +285,26 @@ export async function applyToLive(id: number): Promise<{ applied: number; backup
   return { applied, backup: stamp }
 }
 
+/** 백업 폴더에 그 시점의 메뉴·페이지 데이터를 남긴다 — 되돌리기가 함께 되돌린다. */
+export async function writeBackupData(stamp: string, data: unknown): Promise<void> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const dir = path.join(APPLY_BACKUP_DIR, stamp)
+  await mkdir(dir, { recursive: true })
+  await writeFile(path.join(dir, DATA_FILE), JSON.stringify(data, null, 2), 'utf8')
+}
+
+/** 백업에 담긴 메뉴·페이지 데이터 — 없거나 깨져 있으면 null. */
+export async function readBackupData(stamp: string): Promise<unknown | null> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const file = path.join(APPLY_BACKUP_DIR, stamp, DATA_FILE)
+  if (!existsSync(file)) return null
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
 /** 적용 백업 이름인지 — 시각 형식만 다룬다. 바깥 경로로 새지 않게 한다. */
 function isStamp(name: string): boolean {
   return /^\d{4}-\d{2}-\d{2}T[\d-]+Z$/.test(name)
@@ -256,6 +315,8 @@ export interface ApplyBackup {
   stamp: string
   createdAt: string
   files: number
+  /** 메뉴·페이지 데이터도 담겨 있는지 */
+  hasData: boolean
 }
 
 /**
@@ -272,7 +333,7 @@ export async function listApplyBackups(): Promise<ApplyBackup[]> {
       for (const folder of FOLDERS) files += (await listSources(path.join(dir, folder))).length
       // 폴더 이름이 곧 시각이다. '2026-09-03T09-52-46-792Z' → ISO 로 되돌린다.
       const iso = stamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z')
-      return { stamp, createdAt: iso, files }
+      return { stamp, createdAt: iso, files, hasData: existsSync(path.join(dir, DATA_FILE)) }
     }),
   )
 }

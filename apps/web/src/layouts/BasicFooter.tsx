@@ -18,7 +18,7 @@ export default function BasicFooter({ company, menu, onOpenSitemap }: SiteFooter
         </Link>
 
         {/* 메뉴 — 1차 메뉴 아래 2차 메뉴를 세로로. 열 사이에 옅은 세로선 */}
-        <div className="mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-y-10 text-left sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-white/30">
+        {menu.length > 0 && <div className="mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-y-10 text-left sm:grid-cols-3 lg:grid-cols-5 lg:divide-x lg:divide-white/30">
           {menu.map((item) => (
             <div key={item.id} className="px-4 lg:px-8">
               <MenuLink item={item} className="text-base font-bold transition hover:text-white/80">
@@ -37,7 +37,7 @@ export default function BasicFooter({ company, menu, onOpenSitemap }: SiteFooter
               )}
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* SNS — 주소가 있는 것만 보인다 */}
         {social.length > 0 && (

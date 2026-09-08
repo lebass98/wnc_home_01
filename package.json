@@ -14,7 +14,8 @@
     "db:push": "npm run db:push --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/api",
-    "build:web": "npm run build --workspace=apps/web"
+    "build:web": "npm run build --workspace=apps/web",
+    "db:seed:boards": "npm run db:seed:boards --workspace=apps/api"
   },
   "engines": {
     "node": ">=20"

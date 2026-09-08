@@ -1,0 +1,55 @@
+{
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "file": "board-01.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-5f1cc423-ef1a-43ca-a39c-bd8d57863107.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: sunlit contemporary Korean digital agency office with plants and spacious collaborative desks. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-02.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-ccd75ee2-4c4c-4a2e-8a41-34726d87a78d.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: close-up laptop on designer desk showing abstract website layout blocks, notebook and color swatches. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-03.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-a938a396-4ed3-4c00-a207-5b0f0cae99f5.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: team brainstorming with colorful sticky notes on glass in bright meeting room. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-04.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-938ae311-eb14-4bd1-af84-5b869a228e82.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: modern cloud server aisle with subtle blue lights and meticulously organized equipment. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-05.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-f28708e9-cc40-4077-8d78-b08473fd8747.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: designer holding smartphone showing abstract mobile application interface at studio desk. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-06.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-d300321a-7578-4103-a516-4186beae037d.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: small professional workshop in airy conference room, audience seen from behind. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-07.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-2af8fa05-335a-4e56-b169-0c16b5fa8663.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: minimal architectural photograph of contemporary office lobby with warm wood and glass. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-08.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-b569c683-cd48-461c-a997-71933819c30c.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: overhead flat lay of design tools, keyboard, color cards and sketchbook on neutral desk. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-09.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-3a84043a-0a44-48ed-9c88-46dd2eaf694b.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: small team collaborating around laptop in relaxed bright studio, candid editorial moment. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    },
+    {
+      "file": "board-10.jpg",
+      "source": "/Users/ijaegwang/.codex/generated_images/01a07e76-9116-7cf2-9852-d68db82f41dc/exec-b19c771b-0336-447b-af47-cea33c61915f.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: Korean digital agency website board thumbnail, landscape 3:2. Primary request: sustainable workspace with green plants, recycled stationery, warm morning sunlight. Premium realistic editorial photography, natural materials, restrained navy and warm neutral colors, clear focal subject readable at thumbnail size. No readable text, no logos, no watermark. Generate one image."
+    }
+  ]
+}

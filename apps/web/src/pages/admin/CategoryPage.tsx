@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import type { CategoryNode } from '@wnc/shared'
 import { MAX_CATEGORY_DEPTH, CATEGORY_DEPTH_LABEL } from '@wnc/shared'
 import { api } from '../../lib/api'
@@ -34,6 +34,28 @@ export default function CategoryPage() {
   useEffect(load, [load])
 
   const flat = flattenCategories(nodes)
+  const nameRef = useRef<HTMLInputElement>(null)
+
+  /** 뿌리부터 이 카테고리까지의 이름 경로 — 폼의 '추가 위치' 안내에 쓴다. */
+  const pathOf = (id: number | null): string[] => {
+    const names: string[] = []
+    let cursor = flat.find((c) => c.id === id)
+    while (cursor) {
+      names.unshift(cursor.name)
+      cursor = flat.find((x) => x.id === cursor!.parentId)
+    }
+    return names
+  }
+
+  // 지금 폼 내용이 저장되면 몇 차가 되는지
+  const formDepth = (flat.find((c) => c.id === form.parentId)?.depth ?? 0) + 1
+
+  /** 트리의 [+ 하위] — 그 카테고리 아래에 추가하도록 폼을 채우고 이름 칸에 커서를 둔다. */
+  function startAddUnder(parentId: number | null) {
+    setForm({ id: null, name: '', parentId })
+    setFormError('')
+    nameRef.current?.focus()
+  }
 
   /** 부모로 선택 가능한 후보 — 3차는 더 하위를 가질 수 없으므로 제외한다. */
   const parentOptions = flat.filter((c) => {
@@ -105,7 +127,11 @@ export default function CategoryPage() {
       <div key={node.id}>
         <div
           className={`flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 py-2.5 pr-2 ${
-            form.id === node.id ? 'bg-brand-50 dark:bg-brand-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+            form.id === node.id
+              ? 'bg-brand-50 dark:bg-brand-900/30'
+              : form.id === null && form.parentId === node.id
+                ? 'bg-amber-50 dark:bg-amber-900/20' // 이 카테고리 아래에 추가하는 중
+                : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
           }`}
           style={{ paddingLeft: `${(node.depth - 1) * 1.5 + 0.5}rem` }}
         >
@@ -147,6 +173,16 @@ export default function CategoryPage() {
               </svg>
             </button>
           </div>
+          {node.depth < MAX_CATEGORY_DEPTH && (
+            <button
+              type="button"
+              onClick={() => startAddUnder(node.id)}
+              title={`'${node.name}' 아래에 ${CATEGORY_DEPTH_LABEL[node.depth + 1]} 추가`}
+              className="shrink-0 text-sm font-medium text-slate-500 hover:text-brand-600 dark:text-slate-400"
+            >
+              +하위
+            </button>
+          )}
           <button
             type="button"
             onClick={() =>
@@ -195,7 +231,7 @@ export default function CategoryPage() {
 
         <form onSubmit={handleSubmit} className="card h-fit p-5">
           <h2 className="font-semibold text-slate-900 dark:text-slate-100">
-            {form.id === null ? '카테고리 추가' : '카테고리 수정'}
+            {form.id !== null ? '카테고리 수정' : form.parentId === null ? '대분류 추가' : '하위 카테고리 추가'}
           </h2>
 
           <div className="mt-4 space-y-4">
@@ -226,12 +262,32 @@ export default function CategoryPage() {
               </p>
             </div>
 
+            {/* 어디에 몇 차로 들어가는지 — 상위를 고를 때마다 바로 바뀐다. */}
+            <div className="rounded-lg bg-slate-50 px-3 py-2.5 dark:bg-slate-900/50">
+              <p className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                {pathOf(form.parentId).map((n) => (
+                  <span key={n} className="inline-flex items-center gap-1">
+                    <span>{n}</span>
+                    <span className="text-slate-400">›</span>
+                  </span>
+                ))}
+                <span className="font-semibold text-brand-600">{form.name.trim() || '(새 카테고리)'}</span>
+              </p>
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                <Badge tone={formDepth === 1 ? 'blue' : formDepth === 2 ? 'green' : 'slate'}>
+                  {CATEGORY_DEPTH_LABEL[formDepth]}
+                </Badge>
+                {formDepth}차로 {form.id === null ? '추가' : '저장'}됩니다.
+              </p>
+            </div>
+
             <div>
               <label htmlFor="cat-name" className="label">
                 카테고리명 <span className="text-red-500">*</span>
               </label>
               <input
                 id="cat-name"
+                ref={nameRef}
                 required
                 maxLength={60}
                 value={form.name}
@@ -247,7 +303,7 @@ export default function CategoryPage() {
             <button type="submit" disabled={saving} className="btn-primary flex-1">
               {saving ? '저장 중...' : form.id === null ? '추가' : '수정'}
             </button>
-            {form.id !== null && (
+            {(form.id !== null || form.parentId !== null || form.name !== '') && (
               <button type="button" onClick={() => setForm(EMPTY)} className="btn-secondary">
                 취소
               </button>

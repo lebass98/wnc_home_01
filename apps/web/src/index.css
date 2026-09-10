@@ -1,3 +1,6 @@
+/* 인테리어 템플릿의 세리프 제목 글꼴 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,6 +26,10 @@
 
 @layer components {
   /* 사이트 섹션 공통 좌우 여백 */
+  /* 인테리어 템플릿 — 세리프 제목 */
+  .font-serif-kr {
+    font-family: 'Noto Serif KR', serif;
+  }
   .container-wnc {
     @apply mx-auto w-full max-w-site px-5 sm:px-8 lg:px-10;
   }

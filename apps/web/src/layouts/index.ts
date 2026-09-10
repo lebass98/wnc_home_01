@@ -6,6 +6,8 @@ import BasicSubLayout from './BasicSubLayout'
 import LeftMenuSubLayout from './LeftMenuSubLayout'
 import PolicySubLayout from './PolicySubLayout'
 import BasicHeader from './BasicHeader'
+import InteriorHeader from './InteriorHeader'
+import InteriorFooter from './InteriorFooter'
 import CenterHeader from './CenterHeader'
 import BasicFooter from './BasicFooter'
 import SimpleFooter from './SimpleFooter'
@@ -92,6 +94,7 @@ export interface HeaderDef {
 export const HEADERS: HeaderDef[] = [
   { key: 'basic', label: '기본 헤더', description: '로고 왼쪽, 메뉴 오른쪽 한 줄. 메뉴에 올리면 2차 메뉴 판이 아래로 펼쳐진다.', component: BasicHeader },
   { key: 'center', label: '센터 헤더', description: '로고 가운데, 그 아래 가운데 정렬 메뉴 두 줄. 2차 메뉴는 드롭다운 카드.', component: CenterHeader },
+  { key: 'interior', label: '인테리어 헤더', description: '상단 가운데에 떠 있는 유리 알약. 햄버거(사이트맵)·1차 메뉴·문의 단추.', component: InteriorHeader },
 ]
 
 /** key 로 헤더를 찾는다 — 모르는 값이면 기본 헤더를 쓴다. */
@@ -120,6 +123,7 @@ export interface FooterDef {
 export const FOOTERS: FooterDef[] = [
   { key: 'basic', label: '기본 푸터', description: '베이지 바탕 가운데 정렬. 메뉴 다섯 열과 SNS·회사 정보를 모두 보여 준다.', component: BasicFooter },
   { key: 'simple', label: '심플 푸터', description: '어두운 바탕 한 단. 로고·회사 정보와 1차 메뉴만 간결하게 담는다.', component: SimpleFooter },
+  { key: 'interior', label: '인테리어 푸터', description: '고객센터 줄 + 갈색 본단 세 단 구성. 메뉴·회사 정보·SNS·로고를 담는다.', component: InteriorFooter },
 ]
 
 /** key 로 푸터를 찾는다 — 모르는 값이면 기본 푸터를 쓴다. */

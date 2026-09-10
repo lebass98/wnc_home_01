@@ -2,7 +2,6 @@ import ComponentsPage from './pages/admin/ComponentsPage'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ThemeProvider } from './lib/theme'
-import DemoBanner from './components/DemoBanner'
 
 import SiteLayout from './components/SiteLayout'
 import HomePage from './pages/site/HomePage'
@@ -73,7 +72,6 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-      <DemoBanner />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           {/* 공개 회사소개 사이트 */}

@@ -258,9 +258,7 @@ export default function HomePage() {
           {/* 가운데 문패 — 이름 위에 주황 리본이 삐딱하게 얹힌다 */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Reveal className="relative">
-              <span className="absolute -top-10 left-1/2 w-max -translate-x-[18%] rounded bg-[#ed6e1f] px-2.5 py-0.5 font-serif-kr text-lg text-white sm:-top-11 sm:text-[26px]">
-                오늘을 완성하는 인테리어
-              </span>
+              
               <h1 className="font-serif-kr text-center text-3xl text-[#171614] sm:text-4xl">워드앤코드 인테리어</h1>
             </Reveal>
           </div>

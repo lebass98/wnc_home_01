@@ -50,7 +50,8 @@ import {
  * 데이터는 localStorage 에 저장되므로 새로고침해도 유지되지만, 기기 간에는 공유되지 않는다.
  */
 
-const STORAGE_KEY = 'wnc_demo_db'
+// 시드 구성이 크게 바뀔 때 버전을 올린다 — 옛 저장본을 버리고 새 시드를 받게 한다.
+const STORAGE_KEY = 'wnc_demo_db_v2'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
@@ -74,14 +75,15 @@ function basicTemplate(): DemoTemplate {
   const now = new Date().toISOString()
   return {
     id: 1,
-    name: 'Basic',
-    description: '워드앤코드 기본 템플릿',
+    name: '인테리어',
+    description: '워드앤코드 인테리어 템플릿',
     author: 'wordncode',
     version: '1.0.0',
     builtin: true,
     active: true,
-    header: 'basic',
-    footer: 'basic',
+    // 배포된 소스(인테리어 시안)와 같은 구성이어야 데모 화면이 어긋나지 않는다.
+    header: 'interior',
+    footer: 'interior',
     pageLayouts: { '/terms': 'left', '/privacy': 'left' },
     createdAt: now,
     updatedAt: now,

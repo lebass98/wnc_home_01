@@ -1518,7 +1518,7 @@ export const DEFAULT_COMPONENT_SETTINGS: ComponentSettings = {
   header: { transparent: true, logoText: '', logoImage: '' },
   footer: { showMenu: true, showSocial: true },
   mainVisual: { autoplay: true, interval: 3000, slides: [
-    { title: '고객과 우리의 생각을\n함께 구현하다', description: '필요한 것을 정확히 짚어내는 설계로\n비즈니스가 다음 단계로 나아가도록 돕습니다', image: '/images/main/main_hero_01.jpg' },
+    { title: '고객과 우리의 생각을\n함께 구현하다', description: '필요한 것을 정확히 짚어내는 설계로\n비즈니스가 다음 단계로 나아가도록 돕습니다', image: '/images/interior/hero-main.png' },
     { title: '기획부터 운영까지\n한 팀이 책임집니다', description: '흩어진 과정을 하나로 묶어\n더 빠르고 단단하게 만들어 냅니다', image: '/images/main/main_hero_02.jpg' },
     { title: '오래 쓸 수 있는\n서비스를 만듭니다', description: '눈에 보이는 화면 뒤의 구조까지\n길게 쓰일 것을 생각하며 짓습니다', image: '/images/main/main_hero_03.jpg' },
   ] },

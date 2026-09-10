@@ -77,11 +77,14 @@ export async function ensureBuiltin(): Promise<TemplateRow> {
     found ??
     (await prisma.siteTemplate.create({
       data: {
-        name: 'Basic',
-        description: '워드앤코드 관리자 기본 템플릿 샘플',
+        name: '인테리어',
+        description: '워드앤코드 인테리어 템플릿',
         author: 'wordncode',
         builtin: true,
         active: true,
+        // 저장소의 사이트 소스가 곧 이 템플릿이다 — 소스와 같은 구성을 쓴다.
+        header: 'interior',
+        footer: 'interior',
         pageLayouts: JSON.stringify({ '/terms': 'left', '/privacy': 'left' }),
       },
     }))

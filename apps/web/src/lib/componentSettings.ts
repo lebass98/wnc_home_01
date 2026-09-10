@@ -40,7 +40,7 @@ function subscribe(listener: () => void) {
   return () => { listeners.delete(listener) }
 }
 window.addEventListener('storage', (event) => {
-  if (event.key === CHANGE_KEY || event.key === 'wnc_demo_db') refresh()
+  if (event.key === CHANGE_KEY || event.key?.startsWith('wnc_demo_db')) refresh()
 })
 window.addEventListener('focus', refresh)
 

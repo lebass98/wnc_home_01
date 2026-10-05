@@ -34,21 +34,115 @@ interface ApplyBackupItem {
 const headerLabel = (key: string) => HEADERS.find((h) => h.key === key)?.label ?? key
 const footerLabel = (key: string) => FOOTERS.find((f) => f.key === key)?.label ?? key
 
-/** 템플릿 아이콘 — 팔레트 */
-function TemplateIcon() {
+/**
+ * 템플릿 미리보기 — 실제로 적용했을 때의 메인·서브페이지 화면을 좌우로 나란히 보여 준다.
+ * 서버가 헤드리스 브라우저로 홈페이지를 찍은 그림이라, 켜 본 적 없는 템플릿은 빈 자리로 남는다.
+ */
+function TemplateThumbs({ row, onOpen }: { row: SiteTemplateInfo; onOpen: (which: 'main' | 'sub') => void }) {
+  const thumbs = row.thumbnails
+  const items = [
+    { which: 'main' as const, label: '메인', src: thumbs?.main },
+    { which: 'sub' as const, label: `서브${thumbs?.subLabel ? ` · ${thumbs.subLabel}` : ''}`, src: thumbs?.sub },
+  ]
   return (
-    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-slate-900 text-white dark:bg-slate-700">
-      <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24" aria-hidden>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z"
+    <div className="grid w-full shrink-0 grid-cols-2 gap-3 lg:w-[26rem]">
+      {items.map((item) => (
+        <figure key={item.which} className="min-w-0">
+          {item.src ? (
+            <button
+              type="button"
+              onClick={() => onOpen(item.which)}
+              aria-label={`${row.name} ${item.label} 미리보기 크게 보기`}
+              className="group block aspect-[16/10] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900"
+            >
+              <img
+                src={item.src}
+                alt={`${row.name} 템플릿 ${item.label} 화면`}
+                loading="lazy"
+                className="h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.03]"
+              />
+            </button>
+          ) : (
+            <div className="grid aspect-[16/10] w-full place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 text-center text-[11px] leading-4 text-slate-400 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-500">
+              {row.active ? '[미리보기 새로 찍기]로 만들 수 있습니다' : '적용하면 미리보기가 만들어집니다'}
+            </div>
+          )}
+          <figcaption className="mt-1.5 truncate text-xs text-slate-500 dark:text-slate-400">{item.label}</figcaption>
+        </figure>
+      ))}
+    </div>
+  )
+}
+
+/** 미리보기 크게 보기 — 메인·서브를 오가며 본다. */
+function ThumbLightbox({
+  row,
+  which,
+  onChange,
+  onClose,
+}: {
+  row: SiteTemplateInfo
+  which: 'main' | 'sub'
+  onChange: (which: 'main' | 'sub') => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') onChange('main')
+      if (e.key === 'ArrowRight') onChange('sub')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onChange, onClose])
+  const thumbs = row.thumbnails
+  if (!thumbs) return null
+  const tabs = [
+    { key: 'main' as const, label: '메인' },
+    { key: 'sub' as const, label: `서브 · ${thumbs.subLabel}` },
+  ]
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-8" role="dialog" aria-modal aria-label={`${row.name} 미리보기`}>
+      <div className="fixed inset-0 bg-slate-900/80" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-6xl">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-white">
+          <p className="text-sm font-semibold">
+            {row.name}
+            <span className="ml-2 text-xs font-normal text-white/60">{formatStamp(thumbs.takenAt)} 촬영</span>
+          </p>
+          <div className="flex items-center gap-1.5">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => onChange(t.key)}
+                aria-pressed={which === t.key}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                  which === t.key ? 'bg-white text-slate-900' : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="닫기"
+              className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <img
+          src={which === 'main' ? thumbs.main : thumbs.sub}
+          alt={`${row.name} 템플릿 ${which === 'main' ? '메인' : thumbs.subLabel} 화면`}
+          className="w-full rounded-xl shadow-2xl"
         />
-        <circle cx="7.5" cy="11" r="1.1" fill="currentColor" stroke="none" />
-        <circle cx="10.5" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
-        <circle cx="15" cy="7.5" r="1.1" fill="currentColor" stroke="none" />
-      </svg>
-    </span>
+      </div>
+    </div>
   )
 }
 
@@ -69,6 +163,8 @@ export default function TemplatesPage() {
   const [applyTarget, setApplyTarget] = useState<SiteTemplateInfo | null>(null)
   /** 적용 직후 메뉴·화면 대조에서 나온 어긋남 */
   const [linkIssues, setLinkIssues] = useState<TemplateLinkIssue[] | null>(null)
+  /** 크게 보고 있는 미리보기 */
+  const [preview, setPreview] = useState<{ row: SiteTemplateInfo; which: 'main' | 'sub' } | null>(null)
 
   async function load() {
     try {
@@ -127,6 +223,7 @@ export default function TemplatesPage() {
         applied: number
         dataApplied: { menus: number; pages: number } | null
         linkIssues: TemplateLinkIssue[]
+        thumbError?: string
       }>(`/templates/${row.id}/activate`, { method: 'POST', auth: true, body: { withData } })
       setRows(res.templates)
       setApplyTarget(null)
@@ -134,7 +231,8 @@ export default function TemplatesPage() {
       const dataNote = res.dataApplied
         ? ` 메뉴 ${res.dataApplied.menus}개·페이지 ${res.dataApplied.pages}개도 함께 적용했습니다.`
         : ''
-      alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.${dataNote}`)
+      const thumbNote = res.thumbError ? `\n\n${res.thumbError}` : ''
+      alert(`'${row.name}' 템플릿을 적용했습니다. 파일 ${res.applied}개를 사이트에 반영했습니다.${dataNote}${thumbNote}`)
       // 적용 결과에서 어긋난 곳이 나오면 이어서 보여 준다.
       setLinkIssues(res.linkIssues.length > 0 ? res.linkIssues : null)
     } catch (e) {
@@ -155,9 +253,25 @@ export default function TemplatesPage() {
       return
     setWorking(true)
     try {
-      const next = await api<SiteTemplateInfo>(`/templates/${row.id}/snapshot`, { method: 'POST', auth: true })
+      const next = await api<SiteTemplateInfo & { thumbError?: string }>(`/templates/${row.id}/snapshot`, { method: 'POST', auth: true })
       setRows((prev) => prev?.map((r) => (r.id === next.id ? next : r)) ?? null)
-      alert(`파일 ${next.files ?? 0}개와 메뉴 ${next.dataMenus ?? 0}개·페이지 ${next.dataPages ?? 0}개를 담았습니다.`)
+      alert(
+        `파일 ${next.files ?? 0}개와 메뉴 ${next.dataMenus ?? 0}개·페이지 ${next.dataPages ?? 0}개를 담았습니다.` +
+          (next.thumbError ? `\n\n${next.thumbError}` : ''),
+      )
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  /** 미리보기 새로 찍기 — 컴포넌트 설정 등으로 화면이 바뀌었을 때. */
+  async function retakeThumbs(row: SiteTemplateInfo) {
+    setWorking(true)
+    try {
+      const next = await api<SiteTemplateInfo>(`/templates/${row.id}/thumbnails`, { method: 'POST', auth: true })
+      setRows((prev) => prev?.map((r) => (r.id === next.id ? next : r)) ?? null)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -258,6 +372,12 @@ export default function TemplatesPage() {
       />
 
       {error && <ErrorMessage message={error} />}
+      {working && (
+        <p role="status" className="mb-4 flex items-center gap-2 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-700 dark:bg-slate-800 dark:text-brand-300">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+          처리 중입니다. 사이트 화면을 찍어 미리보기를 만드느라 몇 초 걸릴 수 있습니다.
+        </p>
+      )}
 
       {!rows ? (
         <Loading />
@@ -299,9 +419,11 @@ export default function TemplatesPage() {
               paged.map((row) => (
                 <div
                   key={row.id}
-                  className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center dark:border-slate-700"
+                  className={`flex flex-col gap-4 rounded-xl border p-4 lg:flex-row lg:items-center ${
+                    row.active ? 'border-brand-200 bg-brand-50/30 dark:border-brand-900 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'
+                  }`}
                 >
-                  <TemplateIcon />
+                  <TemplateThumbs row={row} onOpen={(which) => setPreview({ row, which })} />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -367,6 +489,11 @@ export default function TemplatesPage() {
                                 label: '현재 사이트 담기',
                                 icon: 'M5 13l4 4L19 7M4 20h16',
                                 onClick: () => snapshot(row),
+                              },
+                              {
+                                label: '미리보기 새로 찍기',
+                                icon: 'M3 9a2 2 0 012-2h1.5l1.4-2h8.2l1.4 2H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9zm9 8a3.5 3.5 0 100-7 3.5 3.5 0 000 7z',
+                                onClick: () => retakeThumbs(row),
                               },
                             ]
                           : []),
@@ -447,6 +574,14 @@ export default function TemplatesPage() {
             setCreateOpen(false)
             load()
           }}
+        />
+      )}
+      {preview && (
+        <ThumbLightbox
+          row={preview.row}
+          which={preview.which}
+          onChange={(which) => setPreview((p) => (p ? { ...p, which } : p))}
+          onClose={() => setPreview(null)}
         />
       )}
       {historyOpen && (
@@ -658,6 +793,7 @@ function ApplyHistoryModal({
         dataError?: string
         activated: string | null
         templates: SiteTemplateInfo[]
+        thumbError?: string
       }>(`/templates/apply-backups/${item.stamp}/restore`, { method: 'POST', auth: true })
       load()
       onRestored(res.templates)
@@ -667,7 +803,8 @@ function ApplyHistoryModal({
           ? `\n${res.dataError}`
           : ''
       const activatedNote = res.activated ? ` '${res.activated}' 템플릿을 다시 켰습니다.` : ''
-      alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote}${activatedNote} 홈페이지를 새로고침하면 바로 보입니다.`)
+      const thumbNote = res.thumbError ? `\n\n${res.thumbError}` : ''
+      alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote}${activatedNote} 홈페이지를 새로고침하면 바로 보입니다.${thumbNote}`)
     } catch (e) {
       alert((e as Error).message)
     } finally {

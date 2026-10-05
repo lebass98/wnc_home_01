@@ -37,6 +37,11 @@ app.use(express.json({ limit: '10mb' }))
 // 업로드된 이미지를 정적으로 서빙한다.
 // 확장자와 다른 내용이 실행되지 않도록 nosniff 를 붙이고,
 // 예전에 올라간 SVG 가 열리더라도 스크립트가 돌지 않도록 가둬 둔다.
+// 템플릿 원본 소스와 적용 백업(메뉴·페이지 데이터)도 uploads 아래에 있지만 공개 파일이 아니다 —
+// 관리자 API(/api/templates)로만 다루고, 정적 경로로는 내주지 않는다.
+app.use(['/uploads/templates', '/uploads/template-apply-backups'], (_req, res) => {
+  res.status(404).end()
+})
 app.use(
   '/uploads',
   express.static(UPLOAD_DIR, {

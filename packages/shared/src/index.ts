@@ -1107,6 +1107,11 @@ export interface SiteTemplateInfo {
   /** 함께 담긴 데모 데이터 — 메뉴·페이지 개수 (없으면 0) */
   dataMenus?: number
   dataPages?: number
+  /**
+   * 미리보기 — 이 템플릿을 실제로 적용했을 때의 메인·서브페이지 화면을 찍은 그림.
+   * 켜 본 적 없는 템플릿은 null 이다.
+   */
+  thumbnails?: SiteTemplateThumbs | null
   /** 라이선스 — 비워 둘 수 있다 */
   license: string
   /** 요구하는 워드앤코드 버전 */
@@ -1115,6 +1120,15 @@ export interface SiteTemplateInfo {
   changelog: TemplateChange[]
   createdAt: string
   updatedAt: string
+}
+
+/** 템플릿 미리보기 그림 주소 */
+export interface SiteTemplateThumbs {
+  main: string
+  sub: string
+  /** 서브로 찍은 화면 이름 (예: 회사소개) */
+  subLabel: string
+  takenAt: string
 }
 
 /** 내보내기/가져오기에 쓰는 템플릿 파일(JSON) 형식 */

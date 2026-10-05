@@ -37,6 +37,7 @@ import {
   writeTemplateData,
 } from '../lib/templateFiles.js'
 import { templateDataSchema } from '@wnc/shared'
+import { captureThumbs, copyThumbs, readThumbs, removeThumbs } from '../lib/templateThumbs.js'
 
 /**
  * 템플릿 관리 — 헤더·푸터·화면별 레이아웃 선택을 한 벌(템플릿)로 묶어
@@ -76,13 +77,30 @@ async function countData(id: number): Promise<{ dataMenus: number; dataPages: nu
   return { dataMenus: parsed.data.menus.length, dataPages: parsed.data.pages.length }
 }
 
+/** 목록 한 줄 — 저장된 값에 파일 수·데모 데이터 개수·미리보기를 붙인다. */
+async function itemOf(row: Parameters<typeof toTemplateResponse>[0]) {
+  return {
+    ...toTemplateResponse(row),
+    files: await countFiles(row.id),
+    ...(await countData(row.id)),
+    thumbnails: await readThumbs(row.id),
+  }
+}
+
 async function listAll() {
   await ensureBuiltin()
   const rows = await prisma.siteTemplate.findMany({ orderBy: [{ active: 'desc' }, { updatedAt: 'desc' }] })
-  return Promise.all(
-    rows.map(async (r) => ({ ...toTemplateResponse(r), files: await countFiles(r.id), ...(await countData(r.id)) })),
-  )
+  return Promise.all(rows.map(itemOf))
 }
+
+/** 템플릿 파일을 사이트에 덮어쓴 직후 — 개발 서버(Vite)가 바뀐 파일을 알아챌 때까지 잠시 기다렸다 찍는다. */
+async function captureAfterApply(id: number) {
+  await new Promise((r) => setTimeout(r, 1500))
+  return captureThumbs(id)
+}
+
+/** 촬영 결과 — 실패했으면 이유를 응답에 실어 관리자 화면이 알려 준다. */
+const thumbNote = (r: Awaited<ReturnType<typeof captureThumbs>>) => (r.ok ? {} : { thumbError: r.reason })
 
 /** 이 템플릿의 매니페스트 — 파일 묶음에 함께 담긴다. */
 function manifestOf(row: {
@@ -146,7 +164,9 @@ templatesRouter.post(
     // 지금 사이트 소스와 메뉴·페이지를 그대로 담아 둔다 — 이 시점의 모습이 이 템플릿의 출발점이다.
     await snapshotLive(created.id, manifestOf(created))
     await writeTemplateData(created.id, await dumpSiteData())
-    res.status(201).json({ ...toTemplateResponse(created), files: await countFiles(created.id), ...(await countData(created.id)) })
+    // 지금 사이트 모습에서 출발하므로 켜진 템플릿의 미리보기를 그대로 쓴다.
+    await copyThumbs(base.id, created.id)
+    res.status(201).json(await itemOf(created))
   }),
 )
 
@@ -227,7 +247,7 @@ templatesRouter.post('/import-zip', requireAuth,
             changelog: JSON.stringify(manifest.changelog ?? []),
           },
         })
-        return res.status(201).json({ ...toTemplateResponse(updated), files, ...(await countData(updated.id)) })
+        return res.status(201).json({ ...(await itemOf(updated)), files })
       } catch (e) {
         // 압축이 잘못됐으면 만들어 둔 행과 폴더를 되돌린다.
         await prisma.siteTemplate.delete({ where: { id: placeholder.id } }).catch(() => {})
@@ -311,6 +331,7 @@ templatesRouter.post(
       if (switchTo && current) {
         await snapshotLive(current.id, manifestOf(current))
         await writeTemplateData(current.id, currentData)
+        await captureThumbs(current.id)
       }
       const result = await restoreApplyBackup(req.params.stamp)
       await writeBackupData(result.backup, currentData)
@@ -322,8 +343,12 @@ templatesRouter.post(
           prisma.siteTemplate.update({ where: { id: switchTo.id }, data: { active: true } }),
         ])
       }
+      // 되돌린 화면을 켜진 템플릿의 미리보기로 다시 찍는다.
+      const activeNow = switchTo ?? current
+      const shot = activeNow ? await captureAfterApply(activeNow.id) : null
       res.json({
         ...result,
+        ...(shot ? thumbNote(shot) : {}),
         dataRestored,
         ...(dataError ? { dataError } : {}),
         activated: switchTo ? switchTo.name : null,
@@ -361,7 +386,7 @@ templatesRouter.get(
 
     const [files, assets, languages] = await Promise.all([describeFiles(row.id), collectAssets(row.id), listLanguages()])
     res.json({
-      template: { ...toTemplateResponse(row), files: await countFiles(row.id), ...(await countData(row.id)) },
+      template: await itemOf(row),
       ...files,
       assets,
       languages,
@@ -384,7 +409,25 @@ templatesRouter.post(
     const files = await snapshotLive(row.id, manifestOf(row))
     // 화면 파일과 함께 지금 메뉴·페이지도 담는다 — 이 템플릿을 다시 켤 때 되살릴 수 있다.
     await writeTemplateData(row.id, await dumpSiteData())
-    res.json({ ...toTemplateResponse(row), files, ...(await countData(row.id)) })
+    const shot = await captureThumbs(row.id)
+    res.json({ ...(await itemOf(row)), files, ...thumbNote(shot) })
+  }),
+)
+
+/** 미리보기 새로 찍기 — 컴포넌트 설정 등으로 화면이 바뀌었을 때. 켜진 템플릿만 찍을 수 있다. */
+templatesRouter.post(
+  '/:id/thumbnails',
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const row = await findTemplate(req.params.id)
+    if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
+    if (!row.active) {
+      return res.status(400).json({ message: '미리보기는 사이트에 적용된(켜진) 템플릿만 찍을 수 있습니다. 이 템플릿을 먼저 활성화하세요.' })
+    }
+    const shot = await captureThumbs(row.id)
+    if (!shot.ok) return res.status(500).json({ message: shot.reason })
+    res.json(await itemOf(row))
   }),
 )
 
@@ -445,7 +488,7 @@ templatesRouter.put(
     })
     // 보관된 묶음의 매니페스트도 같은 값으로 맞춘다.
     if (hasFiles(updated.id)) await writeManifest(updated.id, manifestOf(updated))
-    res.json({ ...toTemplateResponse(updated), files: await countFiles(updated.id), ...(await countData(updated.id)) })
+    res.json(await itemOf(updated))
   }),
 )
 
@@ -486,6 +529,8 @@ templatesRouter.post(
     if (current) {
       await snapshotLive(current.id, manifestOf(current))
       await writeTemplateData(current.id, currentData)
+      // 끄기 전 마지막 모습을 미리보기로 남긴다.
+      await captureThumbs(current.id)
     }
 
     // 2) 새 템플릿의 파일을 사이트에 적용하고, 백업에 지금 메뉴·페이지도 남긴다.
@@ -504,8 +549,12 @@ templatesRouter.post(
       prisma.siteTemplate.update({ where: { id: row.id }, data: { active: true } }),
     ])
 
-    // 5) 메뉴 주소와 화면이 서로 맞는지 대조해 어긋난 곳을 알려 준다.
+    // 5) 적용된 사이트를 찍어 이 템플릿의 미리보기로 남긴다.
+    const shot = await captureAfterApply(row.id)
+
+    // 6) 메뉴 주소와 화면이 서로 맞는지 대조해 어긋난 곳을 알려 준다.
     res.json({
+      ...thumbNote(shot),
       templates: await listAll(),
       applied: applied.applied,
       backup: applied.backup,
@@ -540,7 +589,8 @@ templatesRouter.post(
       await cp(templateDir(row.id), templateDir(created.id), { recursive: true })
       await writeManifest(created.id, manifestOf(created))
     }
-    res.status(201).json({ ...toTemplateResponse(created), files: await countFiles(created.id), ...(await countData(created.id)) })
+    await copyThumbs(row.id, created.id)
+    res.status(201).json(await itemOf(created))
   }),
 )
 
@@ -577,6 +627,7 @@ templatesRouter.delete(
 
     await prisma.siteTemplate.delete({ where: { id: row.id } })
     if (existsSync(templateDir(row.id))) await rm(templateDir(row.id), { recursive: true, force: true })
+    await removeThumbs(row.id)
     res.json({ ok: true })
   }),
 )

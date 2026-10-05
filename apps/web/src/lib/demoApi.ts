@@ -71,6 +71,18 @@ interface DemoTemplate {
   updatedAt: string
 }
 
+/**
+ * 데모의 템플릿 미리보기 — 데모에는 사이트를 찍을 서버가 없어, 로컬에서 실제로 적용해 찍어 둔 그림을 싣는다.
+ * 데모에서 템플릿이 바꾸는 것은 헤더·푸터뿐이라 그 구성으로 고른다. 맞는 그림이 없으면 미리보기 없음.
+ */
+const DEMO_THUMB_TAKEN_AT = '2026-10-05T08:52:45.000Z'
+function demoThumbnails(t: DemoTemplate) {
+  const key = t.header === 'interior' ? 'interior' : t.header === 'basic' && t.footer === 'basic' ? 'basic' : null
+  if (!key) return null
+  const base = `${import.meta.env.BASE_URL}images/templates/${key}`
+  return { main: `${base}-main.jpg`, sub: `${base}-sub.jpg`, subLabel: '회사소개', takenAt: DEMO_THUMB_TAKEN_AT }
+}
+
 function basicTemplate(): DemoTemplate {
   const now = new Date().toISOString()
   return {
@@ -815,6 +827,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   }
   const templateItem = ({ data, ...t }: DemoTemplate) => ({
     ...t,
+    thumbnails: demoThumbnails({ ...t }),
     pageLayouts: { ...t.pageLayouts },
     dataMenus: data ? data.menus.filter((m) => m.parentId === null).length : 0,
     dataPages: data ? data.pages.length : 0,
@@ -911,6 +924,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     db.templates.push(created)
     save(db)
     return templateItem(created)
+  }
+  if (/^\/templates\/\d+\/thumbnails$/.test(rawPath) && method === 'POST') {
+    throw new DemoError('GitHub Pages 데모에서는 사이트 화면을 찍을 수 없어 미리보기를 새로 만들 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
   }
   if (/^\/templates\/\d+\/snapshot$/.test(rawPath) && method === 'POST') {
     const t = db.templates.find((x) => x.id === Number(rawPath.split('/')[2]))

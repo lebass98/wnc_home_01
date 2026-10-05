@@ -209,6 +209,8 @@ export default function SitePopups() {
   const openSeq = usePopupOpenSeq()
 
   useEffect(() => {
+    // 템플릿 미리보기를 찍는 헤드리스 브라우저에서는 팝업을 띄우지 않는다 — 화면을 가린다.
+    if ((window as { __WNC_CAPTURE__?: boolean }).__WNC_CAPTURE__) return
     api<Popup[]>('/popups/active')
       .then(setPopups)
       // 팝업은 부가 기능이라 실패해도 사이트 이용에는 지장이 없다.

@@ -309,7 +309,7 @@ export default function TemplateCodePage() {
 
       <div className="grid gap-5 lg:grid-cols-[19rem_minmax(0,1fr)]">
         {/* 왼쪽 — 구조 */}
-        <aside className="card flex max-h-[calc(100vh-13rem)] flex-col overflow-hidden lg:sticky lg:top-24">
+        <aside className="card flex max-h-[calc(100vh-13rem)] flex-col overflow-hidden lg:sticky lg:top-[8.75rem] lg:max-h-[calc(100vh-15.75rem)]">
           <div className="border-b border-slate-200 p-3 dark:border-slate-700">
             <p className="mb-2 px-1 text-sm font-semibold text-slate-900 dark:text-slate-100">화면 / 레이아웃</p>
             <input
@@ -345,7 +345,7 @@ export default function TemplateCodePage() {
         </aside>
 
         {/* 오른쪽 — 코드창. 넓은 화면에서는 세로를 꽉 채운다. */}
-        <section className="card flex flex-col p-5 lg:h-[calc(100vh-13rem)]">
+        <section className="card flex flex-col p-5 lg:h-[calc(100vh-15.75rem)]">
           {!activeKey ? (
             <p className="grid flex-1 place-items-center py-20 text-center text-sm text-slate-500 dark:text-slate-400">
               왼쪽 구조에서 고칠 화면·레이아웃·부품을 골라 주세요.

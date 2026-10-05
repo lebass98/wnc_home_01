@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import ThemeToggle from './ThemeToggle'
 import LanguageSwitcher from './LanguageSwitcher'
+import AdminTabBar, { type TabMenu } from './AdminTabs'
 import { useEnableDarkMode } from '../lib/theme'
 import { useBoards } from '../lib/boards'
 
@@ -17,6 +18,8 @@ interface NavLeaf {
   adminOnly?: boolean
   /** 이 경로들로 시작할 때는 활성 처리하지 않는다 (형제 메뉴가 담당하는 화면). */
   notWhen?: string[]
+  /** 메뉴 경로 밖이지만 상단 탭에서는 이 메뉴로 묶을 경로 */
+  also?: string[]
 }
 
 /** 하위 메뉴를 품은 항목 */
@@ -71,6 +74,8 @@ const NAV: NavItem[] = [
         // 글 목록·작성·수정 화면까지 이 메뉴로 묶는다. (환경설정·신고현황은 제외)
         end: false,
         notWhen: ['/admin/posts/settings', '/admin/posts/reports'],
+        // 게시판 추가·수정 화면(/admin/boards)도 게시판 목록 탭 안에서 열린다.
+        also: ['/admin/boards'],
         icon: 'M4 6h16M4 12h16M4 18h16',
       },
       {
@@ -205,6 +210,10 @@ export default function AdminLayout() {
       }))
     return { ...item, children: [...item.children, ...shortcuts] }
   })
+  // 상단 탭이 될 메뉴 — 사이드바에 보이는 화면 메뉴(그룹의 하위 메뉴·게시판 바로가기 포함)를 펼친다.
+  const tabMenus: TabMenu[] = nav
+    .flatMap((item) => (isGroup(item) ? item.children : [item]))
+    .map((leaf) => ({ ...leaf, label: navLabel(leaf.label) }))
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -417,6 +426,9 @@ export default function AdminLayout() {
             </button>
           </div>
         </header>
+
+        {/* 열어 본 화면을 탭으로 남긴다 — 넓은 화면(lg 이상)에서만 보인다. */}
+        {user && <AdminTabBar key={user.id} userId={user.id} menus={tabMenus} />}
 
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />

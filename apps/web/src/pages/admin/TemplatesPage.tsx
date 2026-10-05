@@ -45,7 +45,7 @@ function TemplateThumbs({ row, onOpen }: { row: SiteTemplateInfo; onOpen: (which
     { which: 'sub' as const, label: `서브${thumbs?.subLabel ? ` · ${thumbs.subLabel}` : ''}`, src: thumbs?.sub },
   ]
   return (
-    <div className="grid w-full shrink-0 grid-cols-2 gap-3 lg:w-[26rem]">
+    <div className="grid w-full grid-cols-2 gap-3">
       {items.map((item) => (
         <figure key={item.which} className="min-w-0">
           {item.src ? (
@@ -411,15 +411,17 @@ export default function TemplatesPage() {
             </div>
           </div>
 
-          {/* 목록 */}
-          <div className="mt-5 space-y-3">
+          {/* 목록 — 넓은 화면에서는 한 줄에 두 개씩 카드로 놓는다. */}
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
             {paged.length === 0 ? (
-              <EmptyState label={query ? '검색 결과가 없습니다.' : '등록된 템플릿이 없습니다.'} />
+              <div className="lg:col-span-2">
+                <EmptyState label={query ? '검색 결과가 없습니다.' : '등록된 템플릿이 없습니다.'} />
+              </div>
             ) : (
               paged.map((row) => (
                 <div
                   key={row.id}
-                  className={`flex flex-col gap-4 rounded-xl border p-4 lg:flex-row lg:items-center ${
+                  className={`flex flex-col gap-4 rounded-xl border p-4 ${
                     row.active ? 'border-brand-200 bg-brand-50/30 dark:border-brand-900 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700'
                   }`}
                 >
@@ -461,7 +463,8 @@ export default function TemplatesPage() {
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2.5">
+                  {/* 작업 — 카드 맨 아래에 모아, 나란한 두 카드의 단추 줄이 같은 높이에 온다. */}
+                  <div className="-mb-1 flex h-14 items-center justify-end gap-2.5 border-t border-slate-200 dark:border-slate-700">
                     {row.active && (
                       <Link to="/admin/templates/code" className="btn-secondary hidden sm:inline-flex">
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">

@@ -135,6 +135,7 @@ export default function StatsPage() {
       {/* 기간 고르기 */}
       <div className="card mb-4 flex flex-col gap-3 p-4 lg:flex-row lg:items-end lg:justify-between">
         <DateRangePicker start={from} end={to} onChange={(s, e) => { setFrom(s); setTo(e) }} className="lg:max-w-xl" />
+        {/* 단추 높이를 옆 입력폼(.input, 42px)과 맞춘다 */}
         <div className="flex flex-wrap gap-1.5">
           {[
             { label: '오늘', days: 1 },
@@ -142,7 +143,7 @@ export default function StatsPage() {
             { label: '30일', days: 30 },
             { label: '90일', days: 90 },
           ].map((q) => (
-            <button key={q.label} type="button" onClick={() => quick(q.days)} className="btn-secondary px-3 py-2 text-xs">
+            <button key={q.label} type="button" onClick={() => quick(q.days)} className="btn-secondary px-3 py-3 text-xs">
               {q.label}
             </button>
           ))}

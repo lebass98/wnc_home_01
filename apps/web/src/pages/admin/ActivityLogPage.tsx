@@ -230,13 +230,14 @@ export default function ActivityLogPage() {
               endLabel="종료일시"
               className="w-full max-w-xl"
             />
+            {/* 단추 높이를 옆 입력폼(.input, 42px)과 맞춘다 — text-xs(16px) + py-3(24px) + 테두리 2px */}
             <div className="flex flex-wrap gap-1.5">
               {QUICK_RANGES.map((r) => (
                 <button
                   key={r.label}
                   type="button"
                   onClick={() => quickRange(r.days)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300"
+                  className="rounded-lg border border-slate-200 px-3 py-3 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-600 dark:text-slate-300"
                 >
                   {r.label}
                 </button>
@@ -378,7 +379,7 @@ function LogRow({
   const hasDetail = Boolean(log.detail)
   return (
     <>
-      <tr className={`align-top ${checked ? 'bg-brand-50/60 dark:bg-brand-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'}`}>
+      <tr className={`align-middle ${checked ? 'bg-brand-50/60 dark:bg-brand-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'}`}>
         <td className="px-3 py-3">
           {hasDetail && (
             <button

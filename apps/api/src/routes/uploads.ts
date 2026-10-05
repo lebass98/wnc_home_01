@@ -4,6 +4,18 @@ import path from 'node:path'
 import { Router } from 'express'
 import multer from 'multer'
 import { requireAuth } from '../lib/auth.js'
+import { prisma } from '../lib/prisma.js'
+
+/** 올린 파일의 원래 이름을 미디어 정보에 적어 둔다 — [미디어 라이브러리]에서 찾기 쉽게. */
+function rememberOriginalName(filename: string, originalname: string) {
+  // multer 는 파일명을 latin1 로 넘겨 한글이 깨진다 — utf8 로 되살린다.
+  const originalName = Buffer.from(originalname, 'latin1').toString('utf8').slice(0, 200)
+  const path = `/uploads/${filename}`
+  prisma.mediaAsset
+    .upsert({ where: { path }, create: { path, originalName }, update: { originalName } })
+    .catch(() => {})
+  return originalName
+}
 
 export const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads')
 
@@ -77,8 +89,7 @@ uploadsRouter.post('/file', requireAuth, (req, res) => {
     }
     if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' })
 
-    // multer 는 파일명을 latin1 로 넘겨 한글이 깨진다 — utf8 로 되살린다.
-    const name = Buffer.from(req.file.originalname, 'latin1').toString('utf8')
+    const name = rememberOriginalName(req.file.filename, req.file.originalname)
     res.status(201).json({ url: `/uploads/${req.file.filename}`, name, size: req.file.size })
   })
 })
@@ -94,6 +105,7 @@ uploadsRouter.post('/', requireAuth, (req, res) => {
     }
     if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' })
 
+    rememberOriginalName(req.file.filename, req.file.originalname)
     res.status(201).json({ url: `/uploads/${req.file.filename}` })
   })
 })

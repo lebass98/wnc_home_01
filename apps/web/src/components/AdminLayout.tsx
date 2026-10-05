@@ -105,6 +105,12 @@ const NAV: NavItem[] = [
     icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
   },
   {
+    to: '/admin/media',
+    label: '미디어 라이브러리',
+    end: false,
+    icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zm8-12h.01',
+  },
+  {
     to: '/admin/components',
     label: '컴포넌트 관리',
     end: false,
@@ -124,6 +130,13 @@ const NAV: NavItem[] = [
     end: false,
     adminOnly: true,
     icon: 'M4 6h16M4 12h10M4 18h7',
+  },
+  {
+    to: '/admin/redirects',
+    label: '리디렉션',
+    end: false,
+    adminOnly: true,
+    icon: 'M13 5l7 7-7 7M4 12h15',
   },
   {
     to: '/admin/popups',
@@ -148,6 +161,12 @@ const NAV: NavItem[] = [
     label: '문의 관리',
     end: false,
     icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+  },
+  {
+    to: '/admin/trash',
+    label: '휴지통',
+    end: false,
+    icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
   },
   {
     to: '/admin/activity-logs',

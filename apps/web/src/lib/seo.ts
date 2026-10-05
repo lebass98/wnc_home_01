@@ -205,9 +205,16 @@ type BoardPageKind = 'list' | 'board' | 'post'
  * 게시판 화면의 제목·설명을 환경설정의 템플릿으로 채운다.
  * 'SEO 를 제공할 페이지' 에서 꺼 둔 유형은 아무것도 건드리지 않는다.
  */
-export function useBoardSeo(kind: BoardPageKind, vars: Record<string, string | undefined>) {
+export function useBoardSeo(
+  kind: BoardPageKind,
+  vars: Record<string, string | undefined>,
+  /** 글에서 직접 정한 검색 제목·설명 — 있으면 환경설정의 템플릿보다 앞선다. */
+  override?: { title?: string | null; description?: string | null },
+) {
   // 객체를 그대로 의존성에 쓰면 매 렌더마다 바뀌므로 값만 비교한다.
   const key = JSON.stringify(vars)
+  const overrideTitle = override?.title?.trim() || ''
+  const overrideDescription = override?.description?.trim() || ''
 
   useEffect(() => {
     let alive = true
@@ -227,8 +234,8 @@ export function useBoardSeo(kind: BoardPageKind, vars: Record<string, string | u
 
         // {site_name} 은 사이트 설정에서 채운다.
         const parsed = { site_name: site.siteName, ...(JSON.parse(key) as Record<string, string | undefined>) }
-        const title = fillTemplate(titleTemplate, parsed)
-        const description = fillTemplate(descTemplate, parsed)
+        const title = overrideTitle || fillTemplate(titleTemplate, parsed)
+        const description = overrideDescription || fillTemplate(descTemplate, parsed)
 
         pageTitle = title || null
         renderTitle()
@@ -241,7 +248,7 @@ export function useBoardSeo(kind: BoardPageKind, vars: Record<string, string | u
     return () => {
       alive = false
     }
-  }, [kind, key])
+  }, [kind, key, overrideTitle, overrideDescription])
 }
 
 /**

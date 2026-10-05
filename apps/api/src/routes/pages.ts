@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { optionalAuth, requireAuth } from '../lib/auth.js'
+import { isScheduled, publishAtSchema, publishedNow } from '../lib/publish.js'
+import { trashPage } from '../lib/trash.js'
 
 export const pagesRouter = Router()
 
@@ -29,6 +31,8 @@ const pageInputSchema = z.object({
   contentI18n: localizedContentSchema,
   attachments: z.array(attachmentSchema).max(5, '첨부파일은 5개까지 올릴 수 있습니다.').optional(),
   published: z.boolean(),
+  /** 예약 발행 — 이 시각부터 홈페이지에 보인다. */
+  publishAt: publishAtSchema,
   showInNav: z.boolean(),
   sortOrder: z.number().int().optional(),
   metaTitle: z.string().max(120).nullable().optional(),
@@ -97,6 +101,9 @@ function toListItem(p: PageRow) {
     views: p.views,
     version: p.version,
     publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+    publishAt: p.publishAt ? p.publishAt.toISOString() : null,
+    /** 공개로 저장했지만 예약 시각이 아직 오지 않았다. */
+    scheduled: isScheduled(p as { published: boolean; publishAt: Date | null }),
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   }
@@ -196,6 +203,8 @@ pagesRouter.get(
             : {}
         : { published: true }),
       ...search,
+      // 방문자에게는 예약 시각이 지난 페이지만 보인다.
+      ...(includeDrafts ? {} : publishedNow()),
     }
 
     const orderBy =
@@ -251,7 +260,7 @@ pagesRouter.get(
   '/nav',
   asyncHandler(async (_req, res) => {
     const items = await prisma.page.findMany({
-      where: { published: true, showInNav: true },
+      where: { published: true, showInNav: true, ...publishedNow() },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     })
     res.json(items.map(toListItem))
@@ -265,11 +274,13 @@ pagesRouter.get(
   asyncHandler(async (req, res) => {
     const page = await prisma.page.findUnique({ where: { slug: req.params.slug } })
     if (!page) return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
-    if (!page.published && !req.user) {
+    // 비공개·예약 시각 전 페이지는 관리자에게만 보인다.
+    const visible = page.published && !isScheduled(page)
+    if (!visible && !req.user) {
       return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
     }
 
-    if (page.published) {
+    if (visible) {
       await prisma.page.update({ where: { id: page.id }, data: { views: { increment: 1 } } })
       page.views += 1
     }
@@ -322,7 +333,8 @@ pagesRouter.post(
         contentI18n: JSON.stringify(data.contentI18n ?? {}),
         attachments: JSON.stringify(data.attachments ?? []),
         published: data.published,
-        publishedAt: data.published ? new Date() : null,
+        publishedAt: data.published ? (data.publishAt ?? new Date()) : null,
+        publishAt: data.publishAt,
         showInNav: data.showInNav,
         sortOrder: data.sortOrder ?? 0,
         version: 1,
@@ -367,6 +379,7 @@ pagesRouter.put(
     if (existing.content !== content || (existing.contentI18n ?? '{}') !== contentI18n) changes.push('본문')
     if ((existing.attachments ?? '[]') !== attachments) changes.push('첨부파일')
     if (existing.published !== data.published) changes.push('발행 상태')
+    if ((existing.publishAt?.getTime() ?? null) !== (data.publishAt?.getTime() ?? null)) changes.push('예약 시각')
     if (existing.showInNav !== data.showInNav) changes.push('메뉴 노출')
     const seo = {
       metaTitle: orNull(data.metaTitle),
@@ -395,7 +408,8 @@ pagesRouter.put(
         contentI18n,
         attachments,
         published: data.published,
-        publishedAt: data.published ? (existing.publishedAt ?? new Date()) : null,
+        publishedAt: data.published ? (data.publishAt ?? existing.publishedAt ?? new Date()) : null,
+        publishAt: data.publishAt,
         showInNav: data.showInNav,
         sortOrder: data.sortOrder ?? existing.sortOrder,
         ...seo,
@@ -415,10 +429,9 @@ pagesRouter.delete(
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
 
-    const existing = await prisma.page.findUnique({ where: { id } })
-    if (!existing) return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
-
-    await prisma.page.delete({ where: { id } })
+    // 바로 지우지 않고 휴지통으로 옮긴다 — 버전 이력까지 함께 담겨 [휴지통]에서 30일 안에 되살릴 수 있다.
+    const moved = await trashPage(id, req.user!.email)
+    if (!moved) return res.status(404).json({ message: '페이지를 찾을 수 없습니다.' })
     res.status(204).end()
   }),
 )

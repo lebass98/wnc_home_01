@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import type { BoardCategory, Paginated, PostListItem } from '@wnc/shared'
 import { api, qs } from '../../lib/api'
 import { boardName, useBoards } from '../../lib/boards'
-import { formatDate } from '../../lib/format'
+import { formatDate, formatStamp } from '../../lib/format'
 import { Badge, EmptyState, ErrorMessage, Loading, PageHeader, Pagination } from '../../components/ui'
 import { boardUsesImage, postImage } from '../../lib/postImages'
 
@@ -36,7 +36,7 @@ export default function PostListPage() {
   useEffect(load, [load])
 
   async function handleDelete(id: number, title: string) {
-    if (!confirm(`'${title}' 게시글을 삭제할까요?\n삭제한 글은 복구할 수 없습니다.`)) return
+    if (!confirm(`'${title}' 게시글을 휴지통으로 옮길까요?\n[휴지통]에서 30일 안에 되살릴 수 있습니다.`)) return
     try {
       await api(`/posts/${id}`, { method: 'DELETE', auth: true })
       load()
@@ -170,7 +170,11 @@ export default function PostListPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{post.authorName}</td>
                     <td className="px-4 py-3">
-                      {post.published ? (
+                      {post.scheduled && post.publishAt ? (
+                        <span title={`${formatStamp(post.publishAt)}에 홈페이지에 공개됩니다`}>
+                          <Badge tone="amber">예약</Badge>
+                        </span>
+                      ) : post.published ? (
                         <Badge tone="green">공개</Badge>
                       ) : (
                         <Badge tone="slate">비공개</Badge>

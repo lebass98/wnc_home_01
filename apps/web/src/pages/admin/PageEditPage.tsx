@@ -8,6 +8,8 @@ import RichEditor from '../../components/RichEditor'
 import RichText from '../../components/RichText'
 import LocalizedInput from '../../components/LocalizedInput'
 import PageVersionHistory from '../../components/PageVersionHistory'
+import PublishSchedule from '../../components/PublishSchedule'
+import SeoPreview from '../../components/SeoPreview'
 import SitePreviewModal from '../../components/SitePreviewModal'
 import { Badge, ErrorMessage, Loading, Modal, PageHeader } from '../../components/ui'
 
@@ -25,6 +27,7 @@ const EMPTY: PageInput = {
   contentI18n: { ko: '' },
   attachments: [],
   published: false,
+  publishAt: null,
   showInNav: false,
   sortOrder: 0,
   metaTitle: '',
@@ -181,6 +184,7 @@ export default function PageEditPage() {
           contentI18n: { ko: page.content, ...page.contentI18n },
           attachments: page.attachments ?? [],
           published: page.published,
+          publishAt: page.publishAt,
           showInNav: page.showInNav,
           sortOrder: page.sortOrder,
           metaTitle: page.metaTitle ?? '',
@@ -422,7 +426,10 @@ export default function PageEditPage() {
               {current && (
                 <div className="mt-2 flex items-center gap-2.5">
                   <Badge tone="blue">v{current.version}</Badge>
-                  {current.published && (
+                  {current.scheduled && current.publishAt && (
+                    <Badge tone="amber">예약 {formatStamp(current.publishAt)}</Badge>
+                  )}
+                  {current.published && !current.scheduled && (
                     <a
                       href={`${import.meta.env.BASE_URL}page/${current.slug}`}
                       target="_blank"
@@ -435,6 +442,11 @@ export default function PageEditPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* 예약 발행 — '발행'일 때 공개 시점을 고른다 */}
+          <div className="mt-5">
+            <PublishSchedule published={form.published} publishAt={form.publishAt} onChange={(v) => set('publishAt', v)} />
           </div>
 
           {/* 제목 — 언어 칩 */}
@@ -674,6 +686,15 @@ export default function PageEditPage() {
                 placeholder="https://… 또는 /uploads/… — 비우면 사이트 기본 이미지"
               />
             </div>
+          </div>
+          {/* 입력한 값이 검색 결과·SNS 에 어떻게 보일지 */}
+          <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
+            <SeoPreview
+              title={form.metaTitle?.trim() || form.titleI18n?.ko?.trim() || form.title || '제목 없음'}
+              description={form.metaDescription?.trim() || form.description?.trim() || ''}
+              path={`/page/${form.slug || 'new-page'}`}
+              image={form.ogImage?.trim() || null}
+            />
           </div>
         </div>
 

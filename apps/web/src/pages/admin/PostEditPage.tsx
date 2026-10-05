@@ -4,13 +4,32 @@ import type { BoardCategory, Post, PostInput } from '@wnc/shared'
 import { useBoards } from '../../lib/boards'
 import { api } from '../../lib/api'
 import ThumbnailInput from '../../components/ThumbnailInput'
+import PublishSchedule from '../../components/PublishSchedule'
+import SeoPreview from '../../components/SeoPreview'
 import { boardUsesImage, postImage } from '../../lib/postImages'
 import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 
 // 편집기는 무거우므로 필요할 때 내려받는다 (제품·페이지·팝업 편집과 같은 방식).
 const RichEditor = lazy(() => import('../../components/RichEditor'))
 
-const EMPTY: PostInput = { category: '', title: '', content: '', thumbnail: null, subCategory: null, published: true }
+const EMPTY: PostInput = {
+  category: '',
+  title: '',
+  content: '',
+  thumbnail: null,
+  subCategory: null,
+  published: true,
+  publishAt: null,
+  metaTitle: '',
+  metaDescription: '',
+  ogImage: '',
+}
+
+/** 본문 앞부분 — 검색 설명을 비워 두면 홈페이지가 대신 쓰는 요약 */
+function summaryOf(html: string, max = 120) {
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
 
 export default function PostEditPage() {
   const boards = useBoards(true)
@@ -34,6 +53,10 @@ export default function PostEditPage() {
           thumbnail: post.thumbnail,
           subCategory: post.subCategory,
           published: post.published,
+          publishAt: post.publishAt,
+          metaTitle: post.metaTitle ?? '',
+          metaDescription: post.metaDescription ?? '',
+          ogImage: post.ogImage ?? '',
         }),
       )
       .catch((e: Error) => setError(e.message))
@@ -185,6 +208,59 @@ export default function PostEditPage() {
               공개 — 체크를 해제하면 임시저장 상태로 홈페이지에 노출되지 않습니다.
             </span>
           </label>
+
+          <PublishSchedule published={form.published} publishAt={form.publishAt} onChange={(v) => set('publishAt', v)} />
+
+          {/* 검색 노출 — 비워 두면 제목·본문 요약·대표 이미지를 대신 쓴다 */}
+          <details className="group rounded-xl border border-slate-200 dark:border-slate-700" open={Boolean(form.metaTitle || form.metaDescription || form.ogImage)}>
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200">
+              검색 노출(SEO)·SNS 공유
+              <span className="text-xs font-normal text-slate-400 group-open:hidden">비워 두면 제목·본문 요약을 씁니다 ▾</span>
+            </summary>
+            <div className="grid gap-5 border-t border-slate-200 p-4 lg:grid-cols-2 dark:border-slate-700">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="metaTitle" className="label">
+                    검색 제목
+                  </label>
+                  <input
+                    id="metaTitle"
+                    maxLength={120}
+                    value={form.metaTitle ?? ''}
+                    onChange={(e) => set('metaTitle', e.target.value)}
+                    className="input"
+                    placeholder={form.title || '비우면 글 제목'}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="metaDescription" className="label">
+                    검색 설명
+                  </label>
+                  <textarea
+                    id="metaDescription"
+                    rows={3}
+                    maxLength={400}
+                    value={form.metaDescription ?? ''}
+                    onChange={(e) => set('metaDescription', e.target.value)}
+                    className="input"
+                    placeholder="비우면 본문 앞부분을 씁니다"
+                  />
+                </div>
+                <ThumbnailInput
+                  value={form.ogImage || null}
+                  onChange={(url) => set('ogImage', url ?? '')}
+                  label="공유 이미지"
+                  hint="카카오톡·페이스북 등에 링크를 붙였을 때 보이는 그림입니다. 비우면 대표 이미지를 씁니다. (1200×630 권장)"
+                />
+              </div>
+              <SeoPreview
+                title={form.metaTitle?.trim() || form.title || '제목 없음'}
+                description={form.metaDescription?.trim() || summaryOf(form.content)}
+                path={isNew ? '/board/새-글' : `/board/${id}`}
+                image={form.ogImage || form.thumbnail}
+              />
+            </div>
+          </details>
         </div>
 
         <div className="mt-8 flex gap-3 border-t border-slate-200 pt-6 dark:border-slate-700">

@@ -8,6 +8,7 @@ import {
 } from '@wnc/shared'
 import { describeActivity, summarizeActivityBody, type ActivityLog } from '@wnc/shared'
 import type {
+  RedirectRule,
   Contact,
   ContactStatus,
   DashboardStats,
@@ -146,7 +147,8 @@ const TREND_DAYS = 14
 
 interface DemoDb {
   componentSettings?: ComponentSettingsResponse
-  posts: Post[]
+  /** 글 — 예약 여부(scheduled)는 저장하지 않고 응답할 때 계산한다. 예전 저장본은 예약·SEO 값이 없다. */
+  posts: DemoStoredPost[]
   contacts: Contact[]
   categories: DemoCategory[]
   products: DemoProduct[]
@@ -173,6 +175,12 @@ interface DemoDb {
   nextFaqCategoryId: number
   nextPrivacyRevisionId: number
   nextPostId: number
+  /** 휴지통 — 실제 API 처럼 지운 글·페이지를 담아 두었다가 되살린다. */
+  trash?: DemoTrashItem[]
+  nextTrashId?: number
+  /** 리디렉션 규칙 */
+  redirects?: RedirectRule[]
+  nextRedirectId?: number
   nextContactId: number
   nextCategoryId: number
   nextProductId: number
@@ -302,8 +310,83 @@ function save(db: DemoDb) {
   }
 }
 
-function toListItem(p: Post): PostListItem {
-  const { id, category, title, thumbnail, subCategory, published, views, authorName, createdAt } = p
+type DemoStoredPost = Omit<Post, 'scheduled' | 'publishAt' | 'metaTitle' | 'metaDescription' | 'ogImage'> &
+  Partial<Pick<Post, 'publishAt' | 'metaTitle' | 'metaDescription' | 'ogImage'>>
+
+interface DemoTrashItem {
+  id: number
+  type: 'post' | 'page'
+  originalId: number
+  title: string
+  summary: string
+  /** 원래 행과 딸린 행(페이지 버전 이력) */
+  payload: { row: unknown; versions?: DemoPageVersion[] }
+  deletedBy: string
+  deletedAt: string
+}
+
+const TRASH_KEEP_DAYS = 30
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** 경로를 같은 모양으로 — 실제 API 의 normalizePath 와 같다. */
+function normalizeRedirectPath(raw: string): string {
+  let p = raw.trim().split(/[?#]/)[0]
+  if (/^https?:\/\//i.test(p)) {
+    try {
+      p = new URL(p).pathname
+    } catch {
+      // 그대로 경로로 본다.
+    }
+  }
+  p = `/${p}`.replace(/\/{2,}/g, '/')
+  return p.length > 1 ? p.replace(/\/+$/, '') : p
+}
+
+/** 리디렉션 입력 검사 — 실제 API 와 같은 규칙과 문구 */
+function validateRedirect(body: any): Pick<RedirectRule, 'fromPath' | 'toUrl' | 'code' | 'enabled' | 'note'> {
+  const fromRaw = String(body?.fromPath ?? '').trim()
+  const toUrl = String(body?.toUrl ?? '').trim()
+  if (!fromRaw) throw new DemoError('옛 주소를 입력하세요.', 400)
+  const fromPath = normalizeRedirectPath(fromRaw)
+  if (fromPath === '/') throw new DemoError('홈(/)은 넘길 수 없습니다.', 400)
+  if (/^\/(admin|api|uploads)(\/|$)/i.test(fromPath)) throw new DemoError('관리자(/admin)·API(/api)·업로드(/uploads) 주소는 넘길 수 없습니다.', 400)
+  if (!toUrl) throw new DemoError('새 주소를 입력하세요.', 400)
+  if (!toUrl.startsWith('/') && !/^https?:\/\//i.test(toUrl)) throw new DemoError('새 주소는 /로 시작하는 사이트 주소나 https:// 주소여야 합니다.', 400)
+  if (toUrl.startsWith('/') && normalizeRedirectPath(toUrl) === fromPath) throw new DemoError('옛 주소와 새 주소가 같습니다.', 400)
+  return { fromPath, toUrl, code: body?.code === 302 ? 302 : 301, enabled: body?.enabled !== false, note: String(body?.note ?? '').trim().slice(0, 200) }
+}
+
+/** 휴지통에 담는다 — 실제 API 의 trashPost·trashPage 와 같은 모양 */
+function pushTrash(db: DemoDb, item: Omit<DemoTrashItem, 'id' | 'deletedBy' | 'deletedAt'>) {
+  db.trash ??= []
+  db.nextTrashId ??= 1
+  db.trash.unshift({ ...item, id: db.nextTrashId++, deletedBy: DEMO_USER.email, deletedAt: new Date().toISOString() })
+}
+
+/** 예약 시각이 아직 오지 않았는지 — 실제 API 의 isScheduled 와 같다. */
+const isScheduledAt = (published: boolean, publishAt?: string | null) =>
+  published && !!publishAt && Date.parse(publishAt) > Date.now()
+
+/** 글 응답 — 예약 여부를 그때그때 계산하고, 예전 저장본에 없는 값을 채운다. */
+function postOut(p: DemoStoredPost): Post {
+  return {
+    ...p,
+    publishAt: p.publishAt ?? null,
+    scheduled: isScheduledAt(p.published, p.publishAt),
+    metaTitle: p.metaTitle ?? null,
+    metaDescription: p.metaDescription ?? null,
+    ogImage: p.ogImage ?? null,
+  }
+}
+
+/** 페이지 응답 — 예약 여부를 계산해 붙인다. */
+function pageOut(p: DemoPage) {
+  return { ...p, publishAt: p.publishAt ?? null, scheduled: isScheduledAt(p.published, p.publishAt) }
+}
+
+function toListItem(stored: DemoStoredPost): PostListItem {
+  const p = postOut(stored)
+  const { id, category, title, thumbnail, subCategory, published, publishAt, scheduled, views, authorName, createdAt } = p
   // 본문 앞부분을 한 줄로 줄인다 — 카드형 목록의 요약
   const text = p.content
     .replace(/<[^>]*>/g, ' ')
@@ -311,7 +394,7 @@ function toListItem(p: Post): PostListItem {
     .replace(/\s+/g, ' ')
     .trim()
   const excerpt = text.length > 120 ? `${text.slice(0, 120)}…` : text
-  return { id, category, title, excerpt, thumbnail, subCategory, published, views, authorName, createdAt }
+  return { id, category, title, excerpt, thumbnail, subCategory, published, publishAt, scheduled, views, authorName, createdAt }
 }
 
 function paginate<T>(items: T[], page: number, pageSize: number): Paginated<T> {
@@ -1470,7 +1553,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     const category = params.get('category')
     const q = params.get('q')?.toLowerCase()
 
-    let items = db.posts.filter((p) => includeDrafts || p.published)
+    let items = db.posts.filter((p) => includeDrafts || (p.published && !isScheduledAt(p.published, p.publishAt)))
     const sub = params.get('subCategory')
     if (sub) items = items.filter((p) => p.subCategory === sub)
     if (category) items = items.filter((p) => p.category === category)
@@ -1485,9 +1568,10 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   if (rawPath === '/posts' && method === 'POST') {
     const input = body as PostInput
-    const post: Post = {
+    const post: DemoStoredPost = {
       id: db.nextPostId++,
       ...input,
+      publishAt: input.publishAt || null,
       views: 0,
       authorId: DEMO_USER.id,
       authorName: DEMO_USER.name,
@@ -1496,7 +1580,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     }
     db.posts.unshift(post)
     save(db)
-    return post
+    return postOut(post)
   }
 
   const postMatch = rawPath.match(/^\/posts\/(\d+)$/)
@@ -1507,19 +1591,26 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
     if (method === 'GET') {
       const post = db.posts[index]
-      if (post.published) {
+      const visible = post.published && !isScheduledAt(post.published, post.publishAt)
+      // 예약 시각 전 글은 관리자(미리보기)에게만 보인다.
+      if (!visible && !localStorage.getItem('wnc_admin_token')) throw new DemoError('게시글을 찾을 수 없습니다.', 404)
+      if (visible) {
         post.views += 1
         save(db)
       }
-      return post
+      return postOut(post)
     }
     if (method === 'PUT') {
-      db.posts[index] = { ...db.posts[index], ...(body as PostInput), updatedAt: new Date().toISOString() }
+      const input = body as PostInput
+      db.posts[index] = { ...db.posts[index], ...input, publishAt: input.publishAt || null, updatedAt: new Date().toISOString() }
       save(db)
-      return db.posts[index]
+      return postOut(db.posts[index])
     }
     if (method === 'DELETE') {
-      db.posts.splice(index, 1)
+      // 실제 API 처럼 휴지통으로 옮긴다.
+      const [row] = db.posts.splice(index, 1)
+      const board = db.boards.find((b) => b.slug === row.category)
+      pushTrash(db, { type: 'post', originalId: row.id, title: row.title, summary: board?.name ?? row.category, payload: { row } })
       save(db)
       return undefined
     }
@@ -1796,6 +1887,105 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   }
 
   // --- 페이지 ---
+  // --- 휴지통 — 30일 지난 항목은 읽을 때 비운다 ---
+  if (rawPath === '/trash' || rawPath.startsWith('/trash/')) {
+    const before = Date.now() - TRASH_KEEP_DAYS * DAY_MS
+    db.trash = (db.trash ?? []).filter((t) => Date.parse(t.deletedAt) >= before)
+    if (rawPath === '/trash' && method === 'GET') {
+      const type = params.get('type')
+      return {
+        keepDays: TRASH_KEEP_DAYS,
+        items: db.trash
+          .filter((t) => !type || t.type === type)
+          .map(({ payload: _payload, ...t }) => ({ ...t, expiresAt: new Date(Date.parse(t.deletedAt) + TRASH_KEEP_DAYS * DAY_MS).toISOString() })),
+      }
+    }
+    if (rawPath === '/trash' && method === 'DELETE') {
+      const count = db.trash.length
+      db.trash = []
+      save(db)
+      return { count }
+    }
+    const trashMatch = rawPath.match(/^\/trash\/(\d+)(\/restore)?$/)
+    const item = trashMatch ? db.trash.find((t) => t.id === Number(trashMatch[1])) : undefined
+    if (!item) throw new DemoError('휴지통에서 항목을 찾을 수 없습니다.', 404)
+    if (trashMatch?.[2] && method === 'POST') {
+      if (item.type === 'post') {
+        const row = item.payload.row as DemoStoredPost
+        const id = db.posts.some((p) => p.id === row.id) ? db.nextPostId++ : row.id
+        db.posts.unshift({ ...row, id })
+        db.trash = db.trash.filter((t) => t !== item)
+        save(db)
+        return { type: 'post', id }
+      }
+      const row = item.payload.row as DemoPage
+      if (db.pages.some((p) => p.slug === row.slug)) {
+        throw new DemoError(`같은 주소(/page/${row.slug})의 페이지가 이미 있어 되살릴 수 없습니다. 그 페이지의 주소를 바꾼 뒤 다시 시도하세요.`, 409)
+      }
+      const id = db.pages.some((p) => p.id === row.id) ? db.nextPageId++ : row.id
+      db.pages.unshift({ ...row, id })
+      db.pageVersions.push(...(item.payload.versions ?? []).map((v) => ({ ...v, pageId: id })))
+      db.trash = db.trash.filter((t) => t !== item)
+      save(db)
+      return { type: 'page', id }
+    }
+    if (!trashMatch?.[2] && method === 'DELETE') {
+      db.trash = db.trash.filter((t) => t !== item)
+      save(db)
+      return undefined
+    }
+  }
+
+  // --- 리디렉션 ---
+  if (rawPath === '/redirects/active' && method === 'GET') {
+    return (db.redirects ?? []).filter((r) => r.enabled).map(({ fromPath, toUrl, code }) => ({ fromPath, toUrl, code }))
+  }
+  if (rawPath === '/redirects/hit' && method === 'POST') {
+    const rule = (db.redirects ?? []).find((r) => r.fromPath === normalizeRedirectPath(String(body?.fromPath ?? '')))
+    if (rule) {
+      rule.hits += 1
+      rule.lastHitAt = new Date().toISOString()
+      save(db)
+    }
+    return undefined
+  }
+  if (rawPath === '/redirects' && method === 'GET') {
+    return [...(db.redirects ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+  const redirectMatch = rawPath.match(/^\/redirects(?:\/(\d+))?$/)
+  if (redirectMatch && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
+    db.redirects ??= []
+    db.nextRedirectId ??= 1
+    const id = redirectMatch[1] ? Number(redirectMatch[1]) : null
+    const existing = id ? db.redirects.find((r) => r.id === id) : undefined
+    if (id && !existing) throw new DemoError('리디렉션을 찾을 수 없습니다.', 404)
+    if (method === 'DELETE') {
+      db.redirects = db.redirects.filter((r) => r.id !== id)
+      save(db)
+      return undefined
+    }
+    const input = validateRedirect(body)
+    const clash = db.redirects.find((r) => r.fromPath === input.fromPath && r.id !== id)
+    if (clash) throw new DemoError(`'${input.fromPath}' 은 이미 다른 규칙이 넘기고 있습니다. 그 규칙을 고쳐 주세요.`, 409)
+    const now = new Date().toISOString()
+    if (existing) {
+      Object.assign(existing, input, { updatedAt: now })
+      save(db)
+      return existing
+    }
+    const created: RedirectRule = { id: db.nextRedirectId++, ...input, hits: 0, lastHitAt: null, createdAt: now, updatedAt: now }
+    db.redirects.push(created)
+    save(db)
+    return created
+  }
+
+  // --- 미디어 라이브러리 — 데모에는 업로드 서버가 없어 비어 있다 ---
+  if (rawPath === '/media' && method === 'GET') return []
+  if (rawPath === '/media/alts' && method === 'GET') return {}
+  if (rawPath.startsWith('/media/')) {
+    throw new DemoError('GitHub Pages 데모에서는 업로드 파일을 관리할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
+  }
+
   if (rawPath === '/pages' && method === 'GET') {
     const includeDrafts = params.get('includeDrafts') === '1'
     const status = params.get('status') ?? 'all'
@@ -1803,7 +1993,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     const field = params.get('field') ?? 'all'
     const q = params.get('q')?.toLowerCase()
 
-    let items = db.pages.filter((p) => includeDrafts || p.published)
+    let items = db.pages.filter((p) => includeDrafts || (p.published && !isScheduledAt(p.published, p.publishAt)))
     if (includeDrafts && status === 'published') items = items.filter((p) => p.published)
     if (includeDrafts && status === 'draft') items = items.filter((p) => !p.published)
     if (q) {
@@ -1821,7 +2011,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     else if (sort === 'title') items.sort((a, b) => a.title.localeCompare(b.title, 'ko'))
     else items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
-    return paginate(items, num('page', 1), num('pageSize', 20))
+    return paginate(items.map(pageOut), num('page', 1), num('pageSize', 20))
   }
 
   if (rawPath === '/pages/slug-check' && method === 'GET') {
@@ -1836,8 +2026,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   if (rawPath === '/pages/nav' && method === 'GET') {
     return db.pages
-      .filter((p) => p.published && p.showInNav)
+      .filter((p) => p.published && p.showInNav && !isScheduledAt(p.published, p.publishAt))
       .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      .map(pageOut)
   }
 
   const pageSlugMatch = rawPath.match(/^\/pages\/slug\/(.+)$/)
@@ -1846,10 +2037,13 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     const page = db.pages.find((p) => p.slug === slug)
     // 미발행 페이지는 로그인한 관리자(미리보기)에게만 보인다.
     const loggedIn = Boolean(localStorage.getItem('wnc_admin_token'))
-    if (!page || (!page.published && !loggedIn)) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
-    page.views += 1
-    save(db)
-    return page
+    const visible = !!page && page.published && !isScheduledAt(page.published, page.publishAt)
+    if (!page || (!visible && !loggedIn)) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
+    if (visible) {
+      page.views += 1
+      save(db)
+    }
+    return pageOut(page)
   }
 
   if (rawPath === '/pages/bulk' && method === 'PATCH') {
@@ -1877,7 +2071,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       description: input.description || null,
       content: input.content ?? '',
       published: input.published,
-      publishedAt: input.published ? now : null,
+      publishedAt: input.published ? (input.publishAt || now) : null,
+      publishAt: input.publishAt || null,
       showInNav: input.showInNav,
       sortOrder: input.sortOrder ?? 0,
       views: 0,
@@ -1895,7 +2090,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     db.pages.unshift(page)
     snapshotPage(db, page, '최초 생성')
     save(db)
-    return page
+    return pageOut(page)
   }
 
   // 버전 복원 — /pages/:id/versions/:version/restore
@@ -1954,7 +2149,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     if (idx === -1) throw new DemoError('페이지를 찾을 수 없습니다.', 404)
     const page = db.pages[idx]
 
-    if (method === 'GET') return page
+    if (method === 'GET') return pageOut(page)
 
     if (method === 'PUT') {
       const input = body as PageInput
@@ -1966,6 +2161,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       if ((page.description ?? null) !== (input.description || null)) changes.push('설명')
       if (page.content !== input.content) changes.push('본문')
       if (page.published !== input.published) changes.push('발행 상태')
+      if ((page.publishAt ?? null) !== (input.publishAt || null)) changes.push('예약 시각')
       if (page.showInNav !== input.showInNav) changes.push('메뉴 노출')
       const seo = {
         metaTitle: input.metaTitle?.trim() || null,
@@ -1998,7 +2194,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       page.description = input.description || null
       page.content = input.content ?? ''
       page.published = input.published
-      page.publishedAt = input.published ? (page.publishedAt ?? new Date().toISOString()) : null
+      page.publishedAt = input.published ? (input.publishAt || page.publishedAt || new Date().toISOString()) : null
+      page.publishAt = input.publishAt || null
       page.showInNav = input.showInNav
       page.sortOrder = input.sortOrder ?? page.sortOrder
       page.updatedAt = new Date().toISOString()
@@ -2007,12 +2204,15 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
         snapshotPage(db, page, `${changes.join(', ')} 변경`)
       }
       save(db)
-      return page
+      return pageOut(page)
     }
 
     if (method === 'DELETE') {
-      db.pages.splice(idx, 1)
+      // 실제 API 처럼 버전 이력까지 휴지통으로 옮긴다.
+      const [row] = db.pages.splice(idx, 1)
+      const versions = db.pageVersions.filter((v) => v.pageId === id)
       db.pageVersions = db.pageVersions.filter((v) => v.pageId !== id)
+      pushTrash(db, { type: 'page', originalId: row.id, title: row.title, summary: `/page/${row.slug}`, payload: { row, versions } })
       save(db)
       return undefined
     }

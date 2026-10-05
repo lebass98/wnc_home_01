@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { ThemeProvider } from './lib/theme'
 
 import SiteLayout from './components/SiteLayout'
+import RedirectGate from './components/RedirectGate'
 import HomePage from './pages/site/HomePage'
 import AboutPage from './pages/site/AboutPage'
 import DirectionsPage from './pages/site/DirectionsPage'
@@ -48,6 +49,9 @@ import PrivacyRevisionListPage from './pages/admin/PrivacyRevisionListPage'
 import PrivacyRevisionEditPage from './pages/admin/PrivacyRevisionEditPage'
 import MenuListPage from './pages/admin/MenuListPage'
 import ActivityLogPage from './pages/admin/ActivityLogPage'
+import TrashPage from './pages/admin/TrashPage'
+import RedirectsPage from './pages/admin/RedirectsPage'
+import MediaLibraryPage from './pages/admin/MediaLibraryPage'
 
 /** 로그인하지 않은 접근을 로그인 페이지로 돌려보낸다. */
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -148,9 +152,13 @@ export default function App() {
             <Route path="contacts" element={<ContactListPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="activity-logs" element={<ActivityLogPage />} />
+            <Route path="trash" element={<TrashPage />} />
+            <Route path="redirects" element={<RedirectsPage />} />
+            <Route path="media" element={<MediaLibraryPage />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 없는 주소 — [리디렉션] 규칙을 먼저 보고, 맞는 게 없으면 홈으로 */}
+          <Route path="*" element={<RedirectGate fallback />} />
         </Routes>
       </BrowserRouter>
       </AuthProvider>

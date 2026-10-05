@@ -14,7 +14,7 @@ function isoDaysAgo(n: number): string {
   return d.toISOString()
 }
 
-interface DemoPost extends Omit<Post, 'createdAt' | 'updatedAt'> {
+interface DemoPost extends Omit<Post, 'createdAt' | 'updatedAt' | 'scheduled'> {
   createdAt: string
   updatedAt: string
 }
@@ -37,6 +37,10 @@ export function createDemoPosts(): DemoPost[] {
     // 게시판에 분류를 정해 두지 않았으므로 비워 둔다.
     subCategory: null,
     published: true,
+    publishAt: null,
+    metaTitle: null,
+    metaDescription: null,
+    ogImage: null,
     views: ((i * 37) % 280) + 20,
     authorId: i % 2 === 0 ? 1 : 2,
     authorName: i % 2 === 0 ? '최고관리자' : '김편집',
@@ -189,6 +193,8 @@ export interface DemoPage {
   content: string
   published: boolean
   publishedAt: string | null
+  /** 예약 발행 시각 — 예전 저장본에는 없다. */
+  publishAt?: string | null
   showInNav: boolean
   sortOrder: number
   views: number

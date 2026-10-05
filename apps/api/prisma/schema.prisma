@@ -28,9 +28,16 @@ model Post {
   /// 글 분류 — 게시판에 정해 둔 분류 목록(Board.categories) 중 하나. 안 쓰면 null.
   subCategory String?
   published Boolean  @default(false)
+  /// 예약 발행 — 이 시각이 지나야 홈페이지에 보인다. 비우면 공개 즉시 보인다.
+  publishAt DateTime?
   views     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // --- 검색 노출(SEO) — 비우면 제목·본문 요약·대표 이미지를 쓴다 ---
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
 
   /// 접수된 신고 수 — 자동 가림 기준과 관리자 목록 표시에 쓴다.
   reportCount Int     @default(0)
@@ -143,6 +150,8 @@ model Page {
   published   Boolean @default(false)
   /// 처음 발행한 시각. 미발행 상태면 null.
   publishedAt DateTime?
+  /// 예약 발행 — 이 시각이 지나야 홈페이지에 보인다. 비우면 공개 즉시 보인다.
+  publishAt   DateTime?
   /// 상단 메뉴에 링크를 걸지 여부
   showInNav   Boolean @default(false)
   sortOrder   Int     @default(0)
@@ -576,4 +585,49 @@ model ComponentSetting {
   value     String
   revision  Int      @default(1)
   updatedAt DateTime @updatedAt
+}
+
+/// 휴지통 — 삭제한 글·페이지를 통째로(버전 이력·신고 포함) 담아 두었다가 복원한다. 30일 뒤 자동으로 비운다.
+model TrashItem {
+  id         Int      @id @default(autoincrement())
+  /// post | page
+  type       String
+  /// 원래 id — 복원할 때 같은 번호로 되살린다.
+  originalId Int
+  title      String
+  /// 목록에 보일 짧은 설명 (게시판 이름, 페이지 주소 등)
+  summary    String   @default("")
+  /// 원래 행과 딸린 행을 JSON 으로 담는다.
+  payload    String
+  deletedBy  String   @default("")
+  deletedAt  DateTime @default(now())
+
+  @@index([type, deletedAt])
+}
+
+/// 리디렉션 — 옛 주소로 들어오면 새 주소로 넘긴다. (홈페이지 주소를 바꿨을 때 검색 순위·외부 링크를 지킨다)
+model Redirect {
+  id        Int       @id @default(autoincrement())
+  /// 사이트 안 경로 — /old-page (쿼리·끝 / 없이 저장한다)
+  fromPath  String    @unique
+  /// 넘길 곳 — 사이트 안 경로 또는 https:// 주소
+  toUrl     String
+  /// 301 영구 이동 | 302 임시 이동
+  code      Int       @default(301)
+  enabled   Boolean   @default(true)
+  hits      Int       @default(0)
+  lastHitAt DateTime?
+  note      String    @default("")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+/// 미디어 정보 — 올린 파일의 대체 텍스트·제목. 파일 자체는 uploads 폴더에 있다.
+model MediaAsset {
+  /// /uploads/1700000000-abc.jpg
+  path         String   @id
+  alt          String   @default("")
+  title        String   @default("")
+  originalName String   @default("")
+  updatedAt    DateTime @updatedAt
 }

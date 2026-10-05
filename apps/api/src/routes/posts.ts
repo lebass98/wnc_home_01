@@ -3,6 +3,17 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { optionalAuth, requireAuth } from '../lib/auth.js'
+import { isScheduled, publishAtSchema, publishedNow } from '../lib/publish.js'
+import { trashPost } from '../lib/trash.js'
+
+/** 빈 문자열은 '설정 안 함'으로 본다. */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => v || null)
 
 export const postsRouter = Router()
 
@@ -26,6 +37,12 @@ const postInputSchema = z.object({
     .nullish()
     .transform((v) => v || null),
   published: z.boolean(),
+  /** 예약 발행 — 이 시각부터 홈페이지에 보인다. */
+  publishAt: publishAtSchema,
+  // 검색 노출(SEO) — 비우면 제목·본문 요약·대표 이미지를 쓴다.
+  metaTitle: optionalText(120),
+  metaDescription: optionalText(400),
+  ogImage: optionalText(2000),
 })
 
 const listQuerySchema = z.object({
@@ -81,6 +98,9 @@ function toListItem(post: PostWithAuthor) {
     thumbnail: post.thumbnail ?? null,
     subCategory: post.subCategory ?? null,
     published: post.published,
+    publishAt: post.publishAt ? post.publishAt.toISOString() : null,
+    /** 공개로 저장했지만 예약 시각이 아직 오지 않았다. */
+    scheduled: isScheduled({ published: post.published, publishAt: post.publishAt }),
     views: post.views,
     authorName: post.author.name,
     createdAt: post.createdAt.toISOString(),
@@ -88,7 +108,15 @@ function toListItem(post: PostWithAuthor) {
 }
 
 function toDetail(post: PostWithAuthor) {
-  return { ...toListItem(post), content: post.content, authorId: post.authorId, updatedAt: post.updatedAt.toISOString() }
+  return {
+    ...toListItem(post),
+    content: post.content,
+    authorId: post.authorId,
+    updatedAt: post.updatedAt.toISOString(),
+    metaTitle: post.metaTitle ?? null,
+    metaDescription: post.metaDescription ?? null,
+    ogImage: post.ogImage ?? null,
+  }
 }
 
 /**
@@ -103,11 +131,14 @@ postsRouter.get(
     const includeDrafts = req.query.includeDrafts === '1' && Boolean(req.user)
 
     const where = {
-      // 신고가 쌓여 가려 둔 글은 방문자에게 보이지 않는다. 관리자 목록에는 그대로 둔다.
+      // 신고가 쌓여 가려 둔 글과 예약 시각이 오지 않은 글은 방문자에게 보이지 않는다. 관리자 목록에는 그대로 둔다.
       ...(includeDrafts ? {} : { published: true, hiddenByReport: false }),
       ...(category ? { category } : {}),
       ...(subCategory ? { subCategory } : {}),
-      ...(q ? { OR: [{ title: { contains: q } }, { content: { contains: q } }] } : {}),
+      AND: [
+        ...(includeDrafts ? [] : [publishedNow()]),
+        ...(q ? [{ OR: [{ title: { contains: q } }, { content: { contains: q } }] }] : []),
+      ],
     }
 
     const [items, total] = await Promise.all([
@@ -143,13 +174,14 @@ postsRouter.get(
       include: { author: { select: { name: true } } },
     })
     if (!post) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
-    // 비공개 글과 신고로 가려 둔 글은 관리자에게만 보인다.
-    if ((!post.published || post.hiddenByReport) && !req.user) {
+    // 비공개 글·신고로 가려 둔 글·예약 시각이 오지 않은 글은 관리자에게만 보인다.
+    const visible = post.published && !post.hiddenByReport && !isScheduled(post)
+    if (!visible && !req.user) {
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
     }
 
     // 공개 조회일 때만 조회수를 올린다.
-    if (post.published) {
+    if (visible) {
       await prisma.post.update({ where: { id }, data: { views: { increment: 1 } } })
       post.views += 1
     }
@@ -202,10 +234,9 @@ postsRouter.delete(
     const id = Number(req.params.id)
     if (!Number.isInteger(id)) return res.status(400).json({ message: '잘못된 요청입니다.' })
 
-    const existing = await prisma.post.findUnique({ where: { id } })
-    if (!existing) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
-
-    await prisma.post.delete({ where: { id } })
+    // 바로 지우지 않고 휴지통으로 옮긴다 — [휴지통]에서 30일 안에 되살릴 수 있다.
+    const moved = await trashPost(id, req.user!.email)
+    if (!moved) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' })
     res.status(204).end()
   }),
 )

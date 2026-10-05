@@ -23,6 +23,10 @@ import { menusRouter } from './routes/menus.js'
 import { designRouter } from './routes/design.js'
 import { templatesRouter } from './routes/templates.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
+import { trashRouter } from './routes/trash.js'
+import { redirectsRouter } from './routes/redirects.js'
+import { mediaRouter } from './routes/media.js'
+import { purgeExpiredTrash } from './lib/trash.js'
 import { syncTemplateFolders } from './lib/templates.js'
 import { activityLogsRouter } from './routes/activityLogs.js'
 import { activityLogger } from './lib/activityLog.js'
@@ -79,6 +83,9 @@ app.use('/api/design', designRouter)
 app.use('/api/components', componentsRouter)
 app.use('/api/templates', templatesRouter)
 app.use('/api/uploads', uploadsRouter)
+app.use('/api/trash', trashRouter)
+app.use('/api/redirects', redirectsRouter)
+app.use('/api/media', mediaRouter)
 app.use('/api/activity-logs', activityLogsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))
@@ -86,6 +93,8 @@ app.use(errorHandler)
 
 // 템플릿 폴더(templates/)와 DB 를 맞춘다 — 예전 보관함을 옮기고, git 으로 받은 템플릿을 등록한다.
 syncTemplateFolders().catch((e) => console.error('[templates] 템플릿 폴더를 맞추지 못했습니다:', e))
+// 휴지통에서 보관 기간(30일)이 지난 항목을 비운다.
+purgeExpiredTrash().catch((e) => console.error('[trash] 휴지통을 비우지 못했습니다:', e))
 
 app.listen(env.port, () => {
   console.log(`API 서버 실행 중 → http://localhost:${env.port}`)

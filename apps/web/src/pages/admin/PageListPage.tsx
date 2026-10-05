@@ -200,7 +200,7 @@ export default function PageListPage() {
   }
 
   async function handleDelete(item: PageListItem) {
-    if (!confirm(`'${item.title}' 페이지를 삭제할까요?\n버전 기록까지 함께 지워지며 복구할 수 없습니다.`)) return
+    if (!confirm(`'${item.title}' 페이지를 휴지통으로 옮길까요?\n버전 기록도 함께 담기며 [휴지통]에서 30일 안에 되살릴 수 있습니다.`)) return
     try {
       await api(`/pages/${item.id}`, { method: 'DELETE', auth: true })
       load()
@@ -478,6 +478,10 @@ export default function PageListPage() {
                     <td className="px-4 py-3">
                       {row.published === null ? (
                         <Badge tone="green">공개</Badge>
+                      ) : row.page?.scheduled && row.page.publishAt ? (
+                        <span title={`${formatStamp(row.page.publishAt)}에 홈페이지에 공개됩니다`}>
+                          <Badge tone="amber">예약</Badge>
+                        </span>
                       ) : row.published ? (
                         <Badge tone="green">발행</Badge>
                       ) : (

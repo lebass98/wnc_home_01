@@ -10,7 +10,7 @@ import Reveal from '../../components/Reveal'
 import RichText from '../../components/RichText'
 import { postImage } from '../../lib/postImages'
 import { ErrorMessage, Loading } from '../../components/ui'
-import { useBoardSeo } from '../../lib/seo'
+import { useBoardSeo, usePageMeta } from '../../lib/seo'
 
 /** 편집기로 쓴 글인지 — 태그가 있으면 HTML 로 그린다. */
 const isHtml = (content: string) => /<\/?[a-z][\s\S]*>/i.test(content)
@@ -33,9 +33,20 @@ export default function PostDetailPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  useBoardSeo('post', {
-    board_name: post ? boardName(boards, post.category) : undefined,
-    post_title: post?.title,
+  // 글에서 정한 검색 제목·설명이 있으면 게시판 SEO 템플릿보다 앞선다.
+  useBoardSeo(
+    'post',
+    {
+      board_name: post ? boardName(boards, post.category) : undefined,
+      post_title: post?.title,
+    },
+    { title: post?.metaTitle, description: post?.metaDescription },
+  )
+  // SNS 공유 카드 — 공유 제목·설명·이미지. 비우면 글 제목·대표 이미지를 쓴다.
+  usePageMeta({
+    title: post ? post.metaTitle || post.title : null,
+    description: post?.metaDescription || null,
+    image: post ? post.ogImage || post.thumbnail : null,
   })
 
   useEffect(() => {

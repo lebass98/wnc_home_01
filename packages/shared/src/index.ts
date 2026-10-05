@@ -122,11 +122,21 @@ export interface Post {
   /** 글 분류 — 게시판에 정해 둔 분류 중 하나. 안 쓰면 null. */
   subCategory: string | null
   published: boolean
+  /** 예약 발행 시각 — 이 시각부터 홈페이지에 보인다. 없으면 공개 즉시. */
+  publishAt: string | null
+  /** 공개로 저장했지만 예약 시각이 아직 오지 않았다. */
+  scheduled: boolean
   views: number
   authorId: number
   authorName: string
   createdAt: string
   updatedAt: string
+  /** 검색 결과 제목 — 비우면 글 제목 */
+  metaTitle: string | null
+  /** 검색 결과 설명 — 비우면 본문 요약 */
+  metaDescription: string | null
+  /** SNS 공유 이미지 — 비우면 대표 이미지 */
+  ogImage: string | null
 }
 
 export interface PostListItem {
@@ -140,6 +150,10 @@ export interface PostListItem {
   /** 글 분류 — 게시판에 정해 둔 분류 중 하나. 안 쓰면 null. */
   subCategory: string | null
   published: boolean
+  /** 예약 발행 시각 — 이 시각부터 홈페이지에 보인다. 없으면 공개 즉시. */
+  publishAt: string | null
+  /** 공개로 저장했지만 예약 시각이 아직 오지 않았다. */
+  scheduled: boolean
   views: number
   authorName: string
   createdAt: string
@@ -152,6 +166,11 @@ export interface PostInput {
   thumbnail: string | null
   subCategory: string | null
   published: boolean
+  /** 예약 발행 시각(ISO) — 비우면 공개 즉시 */
+  publishAt?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  ogImage?: string | null
 }
 
 export type ContactStatus = 'NEW' | 'IN_PROGRESS' | 'DONE'
@@ -326,6 +345,10 @@ export interface PageListItem {
   /** 현재 내용의 버전 번호 */
   version: number
   publishedAt: string | null
+  /** 예약 발행 시각 — 이 시각부터 홈페이지에 보인다. 없으면 공개 즉시. */
+  publishAt: string | null
+  /** 공개로 저장했지만 예약 시각이 아직 오지 않았다. */
+  scheduled: boolean
   createdAt: string
   updatedAt: string
 }
@@ -365,6 +388,8 @@ export interface PageInput {
   contentI18n?: LocalizedText
   attachments?: PageAttachment[]
   published: boolean
+  /** 예약 발행 시각(ISO) — 비우면 공개 즉시 */
+  publishAt?: string | null
   showInNav: boolean
   sortOrder?: number
   metaTitle?: string | null
@@ -1202,6 +1227,9 @@ const ACTIVITY_TARGETS: Record<string, string> = {
   contacts: '문의',
   reports: '신고',
   'activity-logs': '활동 로그',
+  trash: '휴지통',
+  redirects: '리디렉션',
+  media: '미디어',
 }
 
 /** 경로 끝 조각(동작 이름) → 우리말 */
@@ -1223,6 +1251,7 @@ const ACTIVITY_VERBS: Record<string, string> = {
   memo: '메모',
   seo: 'SEO 저장',
   company: '회사 정보 저장',
+  thumbnails: '미리보기 찍기',
 }
 
 const METHOD_VERB: Record<string, string> = { POST: '등록', PUT: '수정', PATCH: '수정', DELETE: '삭제' }
@@ -1558,4 +1587,64 @@ export function defaultComponentResponse(): ComponentSettingsResponse {
 export function subVisualPage(pathname: string) {
   return [...SUB_VISUAL_PAGES].sort((a, b) => b.path.length - a.path.length)
     .find(({ path }) => pathname === path || pathname.startsWith(`${path}/`))
+}
+
+
+/* ------------------------------------------------------------------
+ * 휴지통 · 리디렉션 · 미디어 라이브러리
+ * ------------------------------------------------------------------ */
+
+export type TrashType = 'post' | 'page'
+
+export interface TrashEntry {
+  id: number
+  type: TrashType
+  originalId: number
+  title: string
+  /** 게시판 이름 또는 페이지 주소 */
+  summary: string
+  deletedBy: string
+  deletedAt: string
+  /** 자동으로 비워지는 날 */
+  expiresAt: string
+}
+
+export interface TrashList {
+  keepDays: number
+  items: TrashEntry[]
+}
+
+export interface RedirectRule {
+  id: number
+  fromPath: string
+  toUrl: string
+  /** 301 영구 이동 · 302 임시 이동 */
+  code: 301 | 302
+  enabled: boolean
+  hits: number
+  lastHitAt: string | null
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type RedirectInput = Pick<RedirectRule, 'fromPath' | 'toUrl' | 'code' | 'enabled' | 'note'>
+
+export interface MediaUsage {
+  kind: string
+  label: string
+  /** 관리 화면 주소 */
+  link: string
+}
+
+export interface MediaItem {
+  name: string
+  url: string
+  kind: 'image' | 'video' | 'pdf' | 'zip' | 'file'
+  size: number
+  createdAt: string
+  alt: string
+  title: string
+  originalName: string
+  usages: MediaUsage[]
 }

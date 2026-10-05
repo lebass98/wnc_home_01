@@ -60,6 +60,8 @@ export function activityLogger(req: Request, res: Response, next: NextFunction) 
   if (req.path.startsWith('/auth/')) return next()
   // 방문 기록은 화면을 열 때마다 들어와 로그를 뒤덮는다 — 통계에만 쌓는다.
   if (req.path === '/stats/visits') return next()
+  // 리디렉션 이용 횟수도 방문자가 옛 주소로 올 때마다 들어온다 — 규칙 표의 횟수에만 쌓는다.
+  if (req.path === '/redirects/hit') return next()
 
   const ip = clientIp(req)
   res.on('finish', () => {

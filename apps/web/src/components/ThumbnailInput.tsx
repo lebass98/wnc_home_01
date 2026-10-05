@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { IS_DEMO } from '../lib/api'
+import MediaPicker from './MediaPicker'
 
-/** 썸네일 지정 — 파일 업로드와 외부 URL 입력을 모두 지원한다. */
+/** 썸네일 지정 — 파일 업로드, 미디어 라이브러리에서 고르기, 외부 URL 입력을 모두 지원한다. */
 export default function ThumbnailInput({
   value,
   onChange,
@@ -21,7 +22,10 @@ export default function ThumbnailInput({
    */
   fallback?: string | null
 }) {
-  const [mode, setMode] = useState<'upload' | 'url'>('upload')
+  const [mode, setMode] = useState<'upload' | 'library' | 'url'>('upload')
+  const [pickerOpen, setPickerOpen] = useState(false)
+  // 데모에는 업로드 서버가 없어 라이브러리도 비어 있다.
+  const modes = IS_DEMO ? (['upload', 'url'] as const) : (['upload', 'library', 'url'] as const)
   const [urlDraft, setUrlDraft] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -96,17 +100,17 @@ export default function ThumbnailInput({
         </div>
 
         <div className="flex-1">
-          <div className="mb-2 flex gap-1">
-            {(['upload', 'url'] as const).map((m) => (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {modes.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                   mode === m ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
                 }`}
               >
-                {m === 'upload' ? '파일 업로드' : 'URL 입력'}
+                {m === 'upload' ? '파일 업로드' : m === 'library' ? '라이브러리' : 'URL 입력'}
               </button>
             ))}
           </div>
@@ -136,6 +140,13 @@ export default function ThumbnailInput({
                 JPG, PNG, WEBP, GIF · 최대 5MB
               </p>
             </div>
+          ) : mode === 'library' ? (
+            <div>
+              <button type="button" onClick={() => setPickerOpen(true)} className="btn-secondary">
+                라이브러리 열기
+              </button>
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">이미 올린 그림 중에서 고릅니다.</p>
+            </div>
           ) : (
             <div className="flex gap-2">
               <input
@@ -161,6 +172,8 @@ export default function ThumbnailInput({
           )}
 
           {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+
+          {pickerOpen && <MediaPicker onPick={(url) => onChange(url)} onClose={() => setPickerOpen(false)} />}
 
           {value && (
             <button

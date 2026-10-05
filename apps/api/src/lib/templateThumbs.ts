@@ -88,7 +88,19 @@ export async function captureThumbs(id: number): Promise<{ ok: true } | { ok: fa
       ['sub', sub.path],
     ] as const) {
       await page.goto(`${WEB_ORIGIN}${target}`, { waitUntil: 'networkidle', timeout: 30_000 })
-      // 글꼴·첫 화면 이미지와 등장 효과가 자리 잡을 때까지 잠시 기다린다.
+      // 첫 화면에 걸친 사진이 다 받아질 때까지 기다린다 — 큰 히어로 사진이 비거나 반쯤 그려진 채 찍히지 않게.
+      // (배경 그림까지 포함해 끝내 안 오는 그림이 있어도 15초 뒤에는 그대로 찍는다)
+      await page
+        .waitForFunction(
+          () => {
+            const inView = Array.from(document.images).filter((img) => img.getBoundingClientRect().top < window.innerHeight)
+            return inView.length > 0 && inView.every((img) => img.complete && img.naturalWidth > 0)
+          },
+          null,
+          { timeout: 15_000, polling: 200 },
+        )
+        .catch(() => {})
+      // 글꼴과 등장 효과가 자리 잡을 때까지 잠시 더 기다린다.
       await page.evaluate(() => document.fonts.ready)
       await page.waitForTimeout(1200)
       // 임시 파일에 찍고 옮긴다 — 찍는 도중 목록이 반쯤 그려진 그림을 읽지 않게.

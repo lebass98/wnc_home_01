@@ -11,6 +11,7 @@ import AdmZip from 'adm-zip'
  *
  *   template.json      이름·버전·헤더·푸터·화면별 레이아웃
  *   data.json          데모 데이터 — 메뉴 트리·페이지 샘플 (없어도 된다)
+ *   components.json    컴포넌트 설정 — 헤더·푸터 옵션, 메인·서브 비주얼 등 디자인 값 (없어도 된다)
  *   pages/*.tsx        홈페이지 화면 (apps/web/src/pages/site)
  *   layouts/*          레이아웃과 등록부 (apps/web/src/layouts)
  *   components/*.tsx   화면·레이아웃이 가져다 쓰는 부품 (apps/web/src/components)
@@ -80,6 +81,28 @@ export async function writeTemplateData(id: number, data: unknown): Promise<void
   const dir = templateDir(id)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   await writeFile(path.join(dir, DATA_FILE), JSON.stringify(data, null, 2), 'utf8')
+}
+
+const COMPONENTS_FILE = 'components.json'
+
+/**
+ * 이 템플릿의 컴포넌트 설정 — 검증은 부르는 쪽이 한다. 없거나 깨져 있으면 null.
+ * 메인 비주얼 사진처럼 화면 파일이 아니라 설정값으로 정해지는 디자인도 템플릿마다 따로 가진다.
+ */
+export async function readTemplateComponents(id: number): Promise<unknown | null> {
+  const file = path.join(templateDir(id), COMPONENTS_FILE)
+  if (!existsSync(file)) return null
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+export async function writeTemplateComponents(id: number, settings: unknown): Promise<void> {
+  const dir = templateDir(id)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  await writeFile(path.join(dir, COMPONENTS_FILE), JSON.stringify(settings, null, 2), 'utf8')
 }
 
 /** 다룰 수 있는 파일인지 — 소스와 스타일만 담는다. */
@@ -191,6 +214,8 @@ export async function packZip(id: number): Promise<Buffer> {
   if (existsSync(manifest)) zip.addLocalFile(manifest)
   const dataFile = path.join(dir, DATA_FILE)
   if (existsSync(dataFile)) zip.addLocalFile(dataFile)
+  const componentsFile = path.join(dir, COMPONENTS_FILE)
+  if (existsSync(componentsFile)) zip.addLocalFile(componentsFile)
   for (const folder of FOLDERS) {
     for (const name of await listSources(path.join(dir, folder))) {
       zip.addLocalFile(path.join(dir, folder, name), folder)
@@ -249,6 +274,18 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
       hasDataFile = true
       continue
     }
+    // 컴포넌트 설정 — 데모 데이터와 같은 규칙으로 받는다. 규격 검증은 적용할 때 한다.
+    if (name === COMPONENTS_FILE && (!folder || !FOLDERS.includes(folder))) {
+      const raw = entry.getData()
+      if (raw.length > 1024 * 1024) throw new Error('components.json 이 1MB 를 넘습니다. 컴포넌트 설정만 담았는지 확인해 주세요.')
+      try {
+        JSON.parse(raw.toString('utf8'))
+      } catch {
+        throw new Error('components.json 을 읽을 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.')
+      }
+      await writeFile(path.join(dir, COMPONENTS_FILE), raw)
+      continue
+    }
     if (!folder || !FOLDERS.includes(folder)) continue
     if (!isSourceName(name) || name.includes('..')) continue
     await writeFile(path.join(dir, folder, name), entry.getData())
@@ -296,6 +333,25 @@ export async function writeBackupData(stamp: string, data: unknown): Promise<voi
   const dir = path.join(APPLY_BACKUP_DIR, stamp)
   await mkdir(dir, { recursive: true })
   await writeFile(path.join(dir, DATA_FILE), JSON.stringify(data, null, 2), 'utf8')
+}
+
+/** 백업에 그 시점의 컴포넌트 설정을 남긴다 — 되돌리기가 함께 되돌린다. */
+export async function writeBackupComponents(stamp: string, settings: unknown): Promise<void> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const dir = path.join(APPLY_BACKUP_DIR, stamp)
+  await mkdir(dir, { recursive: true })
+  await writeFile(path.join(dir, COMPONENTS_FILE), JSON.stringify(settings, null, 2), 'utf8')
+}
+
+export async function readBackupComponents(stamp: string): Promise<unknown | null> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const file = path.join(APPLY_BACKUP_DIR, stamp, COMPONENTS_FILE)
+  if (!existsSync(file)) return null
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
 /** 백업에 담긴 메뉴·페이지 데이터 — 없거나 깨져 있으면 null. */

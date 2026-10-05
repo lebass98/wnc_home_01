@@ -8,6 +8,7 @@ import { formatStamp } from '../../lib/format'
 import { invalidateSiteDesign } from '../../lib/siteDesign'
 import { invalidatePageLayouts } from '../../lib/pageLayouts'
 import { invalidateSiteMenu } from '../../lib/menus'
+import { invalidateComponentSettings } from '../../lib/componentSettings'
 import { FOOTERS, HEADERS } from '../../layouts'
 import { Badge, EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination, RowMenu, ToggleSwitch } from '../../components/ui'
 
@@ -184,6 +185,8 @@ export default function TemplatesPage() {
     invalidatePageLayouts()
     // 메뉴·페이지 데이터를 함께 적용했을 수 있으므로 GNB·푸터·사이트맵 메뉴도 다시 읽는다.
     invalidateSiteMenu()
+    // 템플릿마다 컴포넌트 설정(메인 비주얼 사진 등)이 따로라 함께 바뀐다.
+    invalidateComponentSettings()
   }
 
   /** 기본 제공 템플릿을 끄고 다른 템플릿을 켤 때 — 지워지지 않고 남는다는 것을 알려 준다. */

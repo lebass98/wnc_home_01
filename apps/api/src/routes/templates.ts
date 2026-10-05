@@ -38,6 +38,13 @@ import {
 } from '../lib/templateFiles.js'
 import { templateDataSchema } from '@wnc/shared'
 import { captureThumbs, copyThumbs, readThumbs, removeThumbs } from '../lib/templateThumbs.js'
+import { applySiteComponents, parseComponents, readSiteComponents } from '../lib/templateComponents.js'
+import {
+  readBackupComponents,
+  readTemplateComponents,
+  writeBackupComponents,
+  writeTemplateComponents,
+} from '../lib/templateFiles.js'
 
 /**
  * 템플릿 관리 — 헤더·푸터·화면별 레이아웃 선택을 한 벌(템플릿)로 묶어
@@ -164,6 +171,7 @@ templatesRouter.post(
     // 지금 사이트 소스와 메뉴·페이지를 그대로 담아 둔다 — 이 시점의 모습이 이 템플릿의 출발점이다.
     await snapshotLive(created.id, manifestOf(created))
     await writeTemplateData(created.id, await dumpSiteData())
+    await writeTemplateComponents(created.id, await readSiteComponents())
     // 지금 사이트 모습에서 출발하므로 켜진 템플릿의 미리보기를 그대로 쓴다.
     await copyThumbs(base.id, created.id)
     res.status(201).json(await itemOf(created))
@@ -327,14 +335,19 @@ templatesRouter.post(
 
       // 되돌리기 직전의 메뉴·페이지를 먼저 담아 둔다 — 파일 백업과 같은 폴더에 남는다.
       const currentData = await dumpSiteData()
+      const currentComponents = await readSiteComponents()
+      const backupComponents = parseComponents(await readBackupComponents(req.params.stamp))
       // 템플릿이 바뀌면 활성화처럼 지금 켜진 템플릿에 현재 모습을 갈무리해 둔다.
       if (switchTo && current) {
         await snapshotLive(current.id, manifestOf(current))
         await writeTemplateData(current.id, currentData)
+        await writeTemplateComponents(current.id, currentComponents)
         await captureThumbs(current.id)
       }
       const result = await restoreApplyBackup(req.params.stamp)
       await writeBackupData(result.backup, currentData)
+      await writeBackupComponents(result.backup, currentComponents)
+      if (backupComponents) await applySiteComponents(backupComponents)
       if (current) await writeBackupMeta(result.backup, { templateId: current.id, templateName: current.name })
       const dataRestored = backupData ? await applySiteData(backupData) : null
       if (switchTo) {
@@ -409,6 +422,7 @@ templatesRouter.post(
     const files = await snapshotLive(row.id, manifestOf(row))
     // 화면 파일과 함께 지금 메뉴·페이지도 담는다 — 이 템플릿을 다시 켤 때 되살릴 수 있다.
     await writeTemplateData(row.id, await dumpSiteData())
+    await writeTemplateComponents(row.id, await readSiteComponents())
     const shot = await captureThumbs(row.id)
     res.json({ ...(await itemOf(row)), files, ...thumbNote(shot) })
   }),
@@ -522,13 +536,18 @@ templatesRouter.post(
       }
     }
 
-    // 1) 지금 켜져 있는 템플릿에 현재 사이트 모습(파일 + 메뉴·페이지)을 갈무리한다.
+    // 켤 템플릿의 컴포넌트 설정 — 없거나 규격에 맞지 않으면 지금 설정을 그대로 둔다.
+    const nextComponents = parseComponents(await readTemplateComponents(row.id))
+
+    // 1) 지금 켜져 있는 템플릿에 현재 사이트 모습(파일 + 메뉴·페이지 + 컴포넌트 설정)을 갈무리한다.
     //    나중에 그 템플릿을 다시 켜면 그때의 메뉴·페이지도 함께 되살릴 수 있다.
     const currentData = await dumpSiteData()
     const current = await prisma.siteTemplate.findFirst({ where: { active: true }, orderBy: { id: 'asc' } })
+    const currentComponents = await readSiteComponents()
     if (current) {
       await snapshotLive(current.id, manifestOf(current))
       await writeTemplateData(current.id, currentData)
+      await writeTemplateComponents(current.id, currentComponents)
       // 끄기 전 마지막 모습을 미리보기로 남긴다.
       await captureThumbs(current.id)
     }
@@ -536,12 +555,15 @@ templatesRouter.post(
     // 2) 새 템플릿의 파일을 사이트에 적용하고, 백업에 지금 메뉴·페이지도 남긴다.
     const applied = await applyToLive(row.id)
     await writeBackupData(applied.backup, currentData)
+    await writeBackupComponents(applied.backup, currentComponents)
     // 이 백업이 어느 템플릿을 쓰던 때의 모습인지 남긴다 — 되돌리면 그 템플릿이 다시 켜진다.
     if (current) await writeBackupMeta(applied.backup, { templateId: current.id, templateName: current.name })
 
     // 3) 함께 적용을 골랐으면 메뉴·페이지를 템플릿 데이터로 갈아 끼운다.
     let dataApplied: { menus: number; pages: number } | null = null
     if (withData) dataApplied = await applySiteData(await readTemplateData(row.id))
+    // 컴포넌트 설정(메인 비주얼 사진 등)은 화면의 일부라 늘 함께 바꾼다.
+    if (nextComponents) await applySiteComponents(nextComponents)
 
     // 4) 켜짐 표시를 옮긴다.
     await prisma.$transaction([
@@ -559,6 +581,7 @@ templatesRouter.post(
       applied: applied.applied,
       backup: applied.backup,
       dataApplied,
+      componentsApplied: Boolean(nextComponents),
       linkIssues: await checkSiteLinks(),
     })
   }),

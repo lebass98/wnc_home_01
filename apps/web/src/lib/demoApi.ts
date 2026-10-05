@@ -1,4 +1,11 @@
-import { componentSettingsSchema, defaultComponentResponse, findTemplateLinkIssues, type ComponentSettingsResponse } from '@wnc/shared'
+import {
+  componentSettingsSchema,
+  defaultComponentResponse,
+  DEFAULT_COMPONENT_SETTINGS,
+  findTemplateLinkIssues,
+  type ComponentSettings,
+  type ComponentSettingsResponse,
+} from '@wnc/shared'
 import { describeActivity, summarizeActivityBody, type ActivityLog } from '@wnc/shared'
 import type {
   Contact,
@@ -57,6 +64,8 @@ const STORAGE_KEY = 'wnc_demo_db_v3'
 interface DemoTemplate {
   /** 함께 담긴 메뉴·페이지 — '현재 사이트 담기'와 활성화 전환 때 갈무리된다. */
   data?: { menus: DemoMenuItem[]; pages: DemoPage[] }
+  /** 컴포넌트 설정(메인 비주얼 사진 등) — 실제 API 처럼 끌 때 담고 켤 때 되살린다. */
+  components?: ComponentSettings
   id: number
   name: string
   description: string
@@ -75,12 +84,26 @@ interface DemoTemplate {
  * 데모의 템플릿 미리보기 — 데모에는 사이트를 찍을 서버가 없어, 로컬에서 실제로 적용해 찍어 둔 그림을 싣는다.
  * 데모에서 템플릿이 바꾸는 것은 헤더·푸터뿐이라 그 구성으로 고른다. 맞는 그림이 없으면 미리보기 없음.
  */
-const DEMO_THUMB_TAKEN_AT = '2026-10-05T08:52:45.000Z'
+const DEMO_THUMB_TAKEN_AT = '2026-10-05T09:04:51.068Z'
 function demoThumbnails(t: DemoTemplate) {
   const key = t.header === 'interior' ? 'interior' : t.header === 'basic' && t.footer === 'basic' ? 'basic' : null
   if (!key) return null
   const base = `${import.meta.env.BASE_URL}images/templates/${key}`
   return { main: `${base}-main.jpg`, sub: `${base}-sub.jpg`, subLabel: '회사소개', takenAt: DEMO_THUMB_TAKEN_AT }
+}
+
+/** 인테리어 시안의 컴포넌트 설정 — 메인 비주얼 첫 장이 시안의 히어로 사진이다. */
+function interiorComponents(): ComponentSettings {
+  const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
+  settings.mainVisual.slides[0] = { ...settings.mainVisual.slides[0], image: '/images/interior/hero-main.png' }
+  return settings
+}
+
+/** 템플릿의 컴포넌트 설정 — 예전 저장본(설정 없음)은 구성으로 미루어 채운다. */
+function templateComponents(t: DemoTemplate): ComponentSettings | undefined {
+  if (t.components) return t.components
+  if (t.header === 'interior') return interiorComponents()
+  return t.builtin ? structuredClone(DEFAULT_COMPONENT_SETTINGS) : undefined
 }
 
 function basicTemplate(): DemoTemplate {
@@ -114,6 +137,7 @@ function interiorTemplate(): DemoTemplate {
     header: 'interior',
     footer: 'interior',
     pageLayouts: { '/terms': 'left', '/privacy': 'left' },
+    components: interiorComponents(),
     createdAt: now,
     updatedAt: now,
   }
@@ -825,7 +849,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     }
     return active
   }
-  const templateItem = ({ data, ...t }: DemoTemplate) => ({
+  const templateItem = ({ data, components, ...t }: DemoTemplate) => ({
     ...t,
     thumbnails: demoThumbnails({ ...t }),
     pageLayouts: { ...t.pageLayouts },
@@ -839,6 +863,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   })
   /** 지금 메뉴·페이지를 템플릿에 담을 형태로 복사한다. */
   const cloneSiteData = () => structuredClone({ menus: db.menus, pages: db.pages })
+  /** 지금 컴포넌트 설정을 템플릿에 담을 형태로 복사한다. */
+  const cloneComponents = () => structuredClone(db.componentSettings?.settings ?? DEFAULT_COMPONENT_SETTINGS)
   /** 메뉴 주소와 화면이 서로 맞는지 — 실제 API 와 같은 규칙을 쓴다. */
   const demoLinkIssues = () =>
     findTemplateLinkIssues(
@@ -894,8 +920,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       header: base.header,
       footer: base.footer,
       pageLayouts: { ...base.pageLayouts },
-      // 실제 API 처럼 지금 메뉴·페이지를 출발점으로 담는다.
+      // 실제 API 처럼 지금 메뉴·페이지와 컴포넌트 설정을 출발점으로 담는다.
       data: cloneSiteData(),
+      components: cloneComponents(),
       createdAt: now,
       updatedAt: now,
     }
@@ -933,8 +960,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     if (!t) throw new DemoError('템플릿을 찾을 수 없습니다.', 404)
     // 실제 API 처럼 켜진 템플릿에만 담는다 — 꺼진 템플릿이 남의 모습으로 덮이지 않게.
     if (!t.active) throw new DemoError('현재 사이트는 켜져 있는 템플릿에만 담을 수 있습니다. 이 템플릿을 먼저 활성화하세요.', 400)
-    // 데모에는 사이트 파일이 없어 메뉴·페이지만 담긴다.
+    // 데모에는 사이트 파일이 없어 메뉴·페이지와 컴포넌트 설정만 담긴다.
     t.data = cloneSiteData()
+    t.components = cloneComponents()
     t.updatedAt = new Date().toISOString()
     save(db)
     return { ...templateItem(t), files: 0 }
@@ -962,9 +990,20 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       }
       // 실제 API 처럼, 쓰던 템플릿에 지금 메뉴·페이지를 갈무리해 둔다.
       const current = db.templates.find((x) => x.active)
-      if (current && current.id !== t.id) current.data = cloneSiteData()
+      if (current && current.id !== t.id) {
+        current.data = cloneSiteData()
+        current.components = cloneComponents()
+      }
       for (const x of db.templates) x.active = false
       t.active = true
+      // 컴포넌트 설정(메인 비주얼 사진 등)은 화면의 일부라 늘 함께 바꾼다. 판을 올려 열린 편집 화면이 최신 값을 다시 읽게 한다.
+      const nextComponents = templateComponents(t)
+      if (nextComponents) {
+        const settings = db.componentSettings ?? defaultComponentResponse()
+        settings.settings = structuredClone(nextComponents)
+        for (const key of Object.keys(settings.revisions) as (keyof typeof settings.revisions)[]) settings.revisions[key]++
+        db.componentSettings = settings
+      }
       let dataApplied: { menus: number; pages: number } | null = null
       if (withData && t.data) {
         const now = new Date().toISOString()
@@ -1018,6 +1057,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
         pageLayouts: { ...t.pageLayouts },
         // 담긴 메뉴·페이지도 제 몫으로 복사한다 — 원본과 같은 객체를 나눠 쓰지 않는다.
         data: t.data ? structuredClone(t.data) : undefined,
+        components: t.components ? structuredClone(t.components) : undefined,
         createdAt: now,
         updatedAt: now,
       }

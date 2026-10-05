@@ -25,8 +25,6 @@ interface NavLeaf {
 /** 하위 메뉴를 품은 항목 */
 interface NavGroup {
   label: string
-  /** 이 경로로 시작하면 하위 메뉴를 펼친다. */
-  match: string
   icon: string
   children: NavLeaf[]
   /** 사이트 전체 설정·구조를 바꾸는 화면 — 최고관리자(ADMIN)에게만 보인다. */
@@ -37,6 +35,30 @@ type NavItem = NavLeaf | NavGroup
 
 const isGroup = (item: NavItem): item is NavGroup => 'children' in item
 
+/** 경로가 base 이거나 그 아래인지 — '/admin/pages' 는 '/admin/pages/3' 을 품지만 '/admin/pagesX' 는 아니다. */
+const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`)
+
+/** 지금 화면이 이 하위 메뉴에 속하는지 — 게시판 바로가기처럼 ?category= 가 붙은 메뉴는 분류까지 같아야 한다. */
+function leafActive(leaf: NavLeaf, pathname: string, search = ''): boolean {
+  const [path, query] = leaf.to.split('?')
+  if (query) {
+    const have = new URLSearchParams(search)
+    return pathname === path && [...new URLSearchParams(query)].every(([k, v]) => have.get(k) === v)
+  }
+  if (leaf.notWhen?.some((x) => under(pathname, x))) return false
+  if (leaf.end) return pathname === leaf.to
+  return under(pathname, path) || (leaf.also ?? []).some((x) => under(pathname, x))
+}
+
+/** 지금 화면이 들어 있는 그룹 */
+function activeGroupOf(items: NavItem[], pathname: string): string | null {
+  return items.find((item) => isGroup(item) && item.children.some((c) => leafActive(c, pathname)))?.label ?? null
+}
+
+/**
+ * 왼쪽 메뉴 — 자주 쓰는 화면(대시보드·통계·문의)은 한 번에 닿게 두고, 나머지는 하는 일별로 묶는다.
+ * 그룹 안의 하위 메뉴도 adminOnly 면 편집자에게 감춘다. 하위 메뉴가 하나도 안 남는 그룹은 통째로 감춘다.
+ */
 const NAV: NavItem[] = [
   {
     to: '/admin',
@@ -51,30 +73,16 @@ const NAV: NavItem[] = [
     icon: 'M3 3v18h18M7 15l3-4 3 3 5-7',
   },
   {
-    to: '/admin/settings',
-    label: '환경설정',
-    end: false,
-    adminOnly: true,
-    icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
-  },
-  {
     label: '게시판 관리',
-    match: '/admin/posts',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
     children: [
       {
-        to: '/admin/posts/settings',
-        label: '환경설정',
-        end: false,
-        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
-      },
-      {
         to: '/admin/posts',
         label: '게시판 목록',
-        // 글 목록·작성·수정 화면까지 이 메뉴로 묶는다. (환경설정·신고현황은 제외)
         end: false,
+        // 글 목록·작성·수정 화면까지 이 메뉴로 묶는다. (게시판 설정·신고현황은 제외)
         notWhen: ['/admin/posts/settings', '/admin/posts/reports'],
-        // 게시판 추가·수정 화면(/admin/boards)도 게시판 목록 탭 안에서 열린다.
+        // 게시판 추가·수정 화면(/admin/boards)도 게시판 목록에 속한다.
         also: ['/admin/boards'],
         icon: 'M4 6h16M4 12h16M4 18h16',
       },
@@ -84,77 +92,67 @@ const NAV: NavItem[] = [
         end: false,
         icon: 'M3 21V5a2 2 0 012-2h9l-1 3h5a1 1 0 011 1v7a1 1 0 01-1 1h-6l1-3H5',
       },
+      {
+        to: '/admin/posts/settings',
+        label: '게시판 설정',
+        end: false,
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      },
     ],
   },
   {
-    to: '/admin/products',
     label: '제품 관리',
-    end: false,
     icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+    children: [
+      {
+        to: '/admin/products',
+        label: '제품 목록',
+        end: false,
+        icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+      },
+      {
+        to: '/admin/categories',
+        label: '제품 카테고리',
+        end: false,
+        icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
+      },
+    ],
   },
   {
-    to: '/admin/categories',
-    label: '제품 카테고리',
-    end: false,
-    icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
-  },
-  {
-    to: '/admin/pages',
-    label: '페이지 관리',
-    end: false,
-    icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
-  },
-  {
-    to: '/admin/media',
-    label: '미디어 라이브러리',
-    end: false,
-    icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zm8-12h.01',
-  },
-  {
-    to: '/admin/components',
-    label: '컴포넌트 관리',
-    end: false,
-    adminOnly: true,
-    icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-  },
-  {
-    to: '/admin/templates',
-    label: '템플릿 관리',
-    end: false,
-    adminOnly: true,
-    icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
-  },
-  {
-    to: '/admin/menus',
-    label: '메뉴 관리',
-    end: false,
-    adminOnly: true,
-    icon: 'M4 6h16M4 12h10M4 18h7',
-  },
-  {
-    to: '/admin/redirects',
-    label: '리디렉션',
-    end: false,
-    adminOnly: true,
-    icon: 'M13 5l7 7-7 7M4 12h15',
-  },
-  {
-    to: '/admin/popups',
-    label: '팝업 관리',
-    end: false,
-    icon: 'M4 5a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V5z M9 10a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9z',
-  },
-  {
-    to: '/admin/faqs',
-    label: '자주 묻는 질문',
-    end: false,
-    icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-  },
-  {
-    to: '/admin/privacy-revisions',
-    label: '개인정보 이력',
-    end: false,
-    icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+    label: '콘텐츠 관리',
+    icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z',
+    children: [
+      {
+        to: '/admin/pages',
+        label: '페이지 관리',
+        end: false,
+        icon: 'M9 12h6m-6 4h4M8 4h8a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zm1 4h6',
+      },
+      {
+        to: '/admin/popups',
+        label: '팝업 관리',
+        end: false,
+        icon: 'M4 5a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V5z M9 10a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-9a2 2 0 01-2-2v-9z',
+      },
+      {
+        to: '/admin/faqs',
+        label: '자주 묻는 질문',
+        end: false,
+        icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+      },
+      {
+        to: '/admin/media',
+        label: '미디어 라이브러리',
+        end: false,
+        icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2zm8-12h.01',
+      },
+      {
+        to: '/admin/trash',
+        label: '휴지통',
+        end: false,
+        icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
+      },
+    ],
   },
   {
     to: '/admin/contacts',
@@ -163,17 +161,65 @@ const NAV: NavItem[] = [
     icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
   },
   {
-    to: '/admin/trash',
-    label: '휴지통',
-    end: false,
-    icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
+    label: '디자인',
+    icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
+    adminOnly: true,
+    children: [
+      {
+        to: '/admin/templates',
+        label: '템플릿 관리',
+        end: false,
+        adminOnly: true,
+        icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
+      },
+      {
+        to: '/admin/components',
+        label: '컴포넌트 관리',
+        end: false,
+        adminOnly: true,
+        icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+      },
+      {
+        to: '/admin/menus',
+        label: '메뉴 관리',
+        end: false,
+        adminOnly: true,
+        icon: 'M4 6h16M4 12h10M4 18h7',
+      },
+    ],
   },
   {
-    to: '/admin/activity-logs',
-    label: '활동 로그',
-    end: false,
-    adminOnly: true,
-    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+    label: '사이트 설정',
+    icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+    children: [
+      {
+        to: '/admin/settings',
+        label: '환경설정',
+        end: false,
+        adminOnly: true,
+        icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      },
+      {
+        to: '/admin/redirects',
+        label: '리디렉션',
+        end: false,
+        adminOnly: true,
+        icon: 'M13 5l7 7-7 7M4 12h15',
+      },
+      {
+        to: '/admin/privacy-revisions',
+        label: '개인정보 이력',
+        end: false,
+        icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+      },
+      {
+        to: '/admin/activity-logs',
+        label: '활동 로그',
+        end: false,
+        adminOnly: true,
+        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+      },
+    ],
   },
 ]
 
@@ -199,11 +245,21 @@ export default function AdminLayout() {
       '게시판 관리': 'nav.boardManage',
       '게시판 목록': 'nav.boardList',
       '게시판 신고현황': 'nav.boardReports',
+      '게시판 설정': 'nav.boardSettings',
       '제품 관리': 'nav.products',
+      '제품 목록': 'nav.productList',
       '제품 카테고리': 'nav.productCategories',
+      '콘텐츠 관리': 'nav.contentManage',
       '페이지 관리': 'nav.pages',
+      '미디어 라이브러리': 'nav.media',
+      '휴지통': 'nav.trash',
+      '디자인': 'nav.design',
+      '템플릿 관리': 'nav.templates',
       '컴포넌트 관리': 'nav.components',
       '메뉴 관리': 'nav.menus',
+      '사이트 설정': 'nav.siteSettings',
+      '리디렉션': 'nav.redirects',
+      '활동 로그': 'nav.activityLogs',
       '팝업 관리': 'nav.popups',
       '자주 묻는 질문': 'nav.faqs',
       '개인정보 이력': 'nav.privacyRevisions',
@@ -217,7 +273,11 @@ export default function AdminLayout() {
   // 편집자(EDITOR)에게는 사이트 전체 설정·구조 화면을 감춘다 — 서버도 403 으로 막는다.
   const isAdmin = user?.role === 'ADMIN'
 
-  const nav: NavItem[] = NAV.filter((item) => isAdmin || !item.adminOnly).map((item) => {
+  const nav: NavItem[] = NAV.filter((item) => isAdmin || !item.adminOnly)
+    // 그룹 안의 하위 메뉴도 권한으로 거르고, 하나도 안 남은 그룹은 감춘다.
+    .map((item) => (isGroup(item) ? { ...item, children: item.children.filter((c) => isAdmin || !c.adminOnly) } : item))
+    .filter((item) => !isGroup(item) || item.children.length > 0)
+    .map((item) => {
     if (!isGroup(item) || item.label !== '게시판 관리') return item
     const shortcuts: NavLeaf[] = boards
       .filter((b) => b.showInAdminMenu)
@@ -234,7 +294,7 @@ export default function AdminLayout() {
     .flatMap((item) => (isGroup(item) ? item.children : [item]))
     .map((leaf) => ({ ...leaf, label: navLabel(leaf.label) }))
   const navigate = useNavigate()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   // 넓은 화면에서 왼쪽 메뉴를 접어 두는 상태 — 다음 방문에도 유지되도록 브라우저에 기억한다.
   const [collapsed, setCollapsed] = useState(() => {
@@ -259,10 +319,12 @@ export default function AdminLayout() {
       setSidebarOpen(true)
     }
   }
-  // 지금 보고 있는 화면이 속한 그룹은 펼쳐 둔다.
-  const [openGroup, setOpenGroup] = useState<string | null>(
-    () => NAV.find((item) => isGroup(item) && pathname.startsWith(item.match))?.label ?? null,
-  )
+  // 지금 보고 있는 화면이 속한 그룹은 펼쳐 둔다. 상단 탭 등으로 다른 그룹의 화면에 가면 그 그룹을 연다.
+  const [openGroup, setOpenGroup] = useState<string | null>(() => activeGroupOf(NAV, pathname))
+  useEffect(() => {
+    const group = activeGroupOf(NAV, pathname)
+    if (group) setOpenGroup(group)
+  }, [pathname])
 
   useEffect(() => setSidebarOpen(false), [pathname])
 
@@ -288,7 +350,7 @@ export default function AdminLayout() {
                 onClick={() => setOpenGroup((prev) => (prev === item.label ? null : item.label))}
                 aria-expanded={openGroup === item.label}
                 className={`${NAV_ITEM} ${
-                  pathname.startsWith(item.match)
+                  item.children.some((c) => leafActive(c, pathname))
                     ? 'text-slate-900 dark:text-slate-100'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
                 }`}
@@ -317,11 +379,7 @@ export default function AdminLayout() {
                     className="absolute bottom-[1.875rem] left-0 top-0 border-l border-slate-300 dark:border-slate-600"
                   />
                   {item.children.map((child) => {
-                    const active = child.notWhen
-                      ? pathname.startsWith(child.to) && !child.notWhen.some((x) => pathname.startsWith(x))
-                      : child.end
-                        ? pathname === child.to
-                        : pathname.startsWith(child.to)
+                    const active = leafActive(child, pathname, search)
 
                     return (
                     <div key={child.to} className="relative pl-5">

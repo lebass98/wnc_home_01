@@ -1102,8 +1102,12 @@ export interface SiteTemplateInfo {
   header: string
   footer: string
   pageLayouts: SitePageLayoutMap
+  /** 템플릿 폴더 이름 — 저장소 templates/<slug>/ */
+  slug?: string
   /** 이 템플릿이 보관한 파일 수 (화면·레이아웃·부품) */
   files?: number
+  /** 함께 담긴 이미지·영상 등 파일 수 */
+  media?: number
   /** 함께 담긴 데모 데이터 — 메뉴·페이지 개수 (없으면 0) */
   dataMenus?: number
   dataPages?: number

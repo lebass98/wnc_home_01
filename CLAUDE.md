@@ -134,7 +134,14 @@ curl -s -o /dev/null -w "api:%{http_code}\n" http://localhost:4000/api/health
 apps/web/        프론트엔드 (Vite + React + Tailwind)
 apps/api/        백엔드 (Express + Prisma + SQLite)
 packages/shared/ 프론트·백엔드 공용 타입
+templates/       디자인 템플릿 — 폴더 하나가 템플릿 하나 (git 에 함께 올린다)
 ```
+
+- 템플릿 폴더 `templates/<slug>/` 에는 화면 코드(pages·layouts·components), 그 화면이 쓰는
+  이미지·영상(`public/`·`uploads/`, 사이트와 같은 경로), 메뉴·페이지(`data.json`),
+  컴포넌트 설정(`components.json`), 미리보기(`thumbs/`)가 함께 담긴다.
+  관리자에서 템플릿을 켜고 끄거나 [현재 사이트 담기]를 하면 이 폴더가 바뀌므로 **함께 커밋한다.**
+- 폴더만 있고 DB 에 없는 템플릿(다른 PC 에서 받은 것)은 API 서버가 뜰 때 자동으로 등록된다.
 
 - 공용 타입은 `packages/shared/src/index.ts` 한 곳에서 관리한다. API 응답 형태를 바꾸면 여기도 함께 고친다.
   **별도 파일로 쪼개 `export * from` 으로 재내보내지 않는다** — 이 패키지는 CJS 로

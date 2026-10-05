@@ -1,0 +1,14 @@
+{
+  "type": "wnc-template",
+  "slug": "interior",
+  "name": "인테리어",
+  "description": "워드앤코드 인테리어 템플릿 (피그마 시안)",
+  "version": "1.0.0",
+  "author": "wordncode",
+  "header": "interior",
+  "footer": "interior",
+  "pageLayouts": {
+    "/terms": "left",
+    "/privacy": "left"
+  }
+}

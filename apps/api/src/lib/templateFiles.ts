@@ -1,13 +1,14 @@
 import path from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
-import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import AdmZip from 'adm-zip'
 
 /**
  * 템플릿 파일 묶음.
  *
- * 템플릿 하나는 사이트 화면·레이아웃·부품 파일과 매니페스트(template.json)를 묶은 것이다.
- * 서버는 uploads/templates/<id> 아래에 풀어 두고, 내보낼 때 zip 으로 압축한다.
+ * 템플릿 하나는 저장소 맨 위 templates/<slug>/ 폴더 하나다. 화면 코드뿐 아니라
+ * 그 화면이 쓰는 이미지·영상·아이콘과 메뉴·페이지·컴포넌트 설정까지 한 폴더에 담는다.
+ * git 에 함께 올라가므로 다른 PC 에서도 같은 템플릿을 쓰고, 내보낼 때는 이 폴더를 zip 으로 묶는다.
  *
  *   template.json      이름·버전·헤더·푸터·화면별 레이아웃
  *   data.json          데모 데이터 — 메뉴 트리·페이지 샘플 (없어도 된다)
@@ -15,6 +16,9 @@ import AdmZip from 'adm-zip'
  *   pages/*.tsx        홈페이지 화면 (apps/web/src/pages/site)
  *   layouts/*          레이아웃과 등록부 (apps/web/src/layouts)
  *   components/*.tsx   화면·레이아웃이 가져다 쓰는 부품 (apps/web/src/components)
+ *   public/**          화면·설정이 쓰는 정적 파일 — 사이트 public 과 같은 경로 (public/images/interior/hero-main.png)
+ *   uploads/**         관리자가 올린 파일 중 화면·설정이 쓰는 것 — uploads 와 같은 경로
+ *   thumbs/            미리보기 — 메인·서브페이지를 찍은 그림
  */
 
 /** 실제 사이트 소스 — 서버는 apps/api 에서 도므로 형제 폴더를 가리킨다. */
@@ -25,8 +29,21 @@ const LIVE = {
   components: path.join(WEB_SRC, 'components'),
 }
 
-/** 템플릿 보관함 — git 에 올라가지 않는다. */
-const TEMPLATES_DIR = path.resolve(process.cwd(), 'uploads/templates')
+/** 템플릿 보관함 — 저장소 맨 위 templates/ (git 에 함께 올라간다). 서버는 apps/api 에서 돈다. */
+export const TEMPLATES_DIR = path.resolve(process.cwd(), '../../templates')
+/** 예전 보관함 — uploads/templates/<id>. 서버가 뜰 때 새 보관함으로 옮긴다. */
+export const LEGACY_TEMPLATES_DIR = path.resolve(process.cwd(), 'uploads/templates')
+/** 사이트의 정적 파일과 업로드 파일 — 템플릿의 public/·uploads/ 가 이 두 곳과 짝을 이룬다. */
+const WEB_PUBLIC = path.resolve(process.cwd(), '../web/public')
+const UPLOADS = path.resolve(process.cwd(), 'uploads')
+const MEDIA = { public: WEB_PUBLIC, uploads: UPLOADS } as const
+type MediaRoot = keyof typeof MEDIA
+const MEDIA_ROOTS = Object.keys(MEDIA) as MediaRoot[]
+/** 미리보기 폴더와 그 설명 파일 — templateThumbs 가 쓴다. */
+export const THUMBS_FOLDER = 'thumbs'
+export const THUMBS_META = 'thumbs.json'
+/** 템플릿에 담는 파일 — 그림·영상·소리·글꼴·문서 */
+const MEDIA_EXT = /\.(png|jpe?g|gif|webp|avif|svg|ico|bmp|mp4|webm|mov|m4v|ogv|mp3|wav|ogg|m4a|woff2?|ttf|otf|eot|pdf)$/i
 /** 템플릿을 적용하기 전 원본을 남겨 두는 곳 */
 const APPLY_BACKUP_DIR = path.resolve(process.cwd(), 'uploads/template-apply-backups')
 
@@ -48,10 +65,34 @@ export interface TemplateManifest {
   coreVersion?: string
   requires?: string[]
   changelog?: { version: string; date: string; notes: string }[]
+  /** 폴더 이름 — 가져올 때 이 이름을 먼저 써 본다. */
+  slug?: string
+}
+
+/**
+ * 템플릿 id → 폴더 이름. DB 에서 읽어 채운다(templates.ts 의 syncTemplateFolders).
+ * 파일 함수들은 id 만 받고, 어느 폴더인지는 여기서 찾는다.
+ */
+const slugs = new Map<number, string>()
+
+export function registerTemplateSlug(id: number, slug: string) {
+  slugs.set(id, slug)
+}
+
+/** 폴더 이름으로 쓸 수 있는지 — 영문 소문자·숫자·하이픈 */
+export function isSlug(value: string): boolean {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 60
+}
+
+export function slugDir(slug: string): string {
+  if (!isSlug(slug)) throw new Error(`잘못된 템플릿 폴더 이름입니다: ${slug}`)
+  return path.join(TEMPLATES_DIR, slug)
 }
 
 export function templateDir(id: number): string {
-  return path.join(TEMPLATES_DIR, String(id))
+  const slug = slugs.get(id)
+  if (!slug) throw new Error(`${id}번 템플릿의 폴더를 찾지 못했습니다. 서버를 다시 시작해 주세요.`)
+  return slugDir(slug)
 }
 
 /** 이 템플릿의 파일이 보관되어 있는지 */
@@ -147,8 +188,11 @@ async function collectComponents(seeds: string[]): Promise<Set<string>> {
  */
 export async function snapshotLive(id: number, manifest: TemplateManifest): Promise<number> {
   const dir = templateDir(id)
-  await rm(dir, { recursive: true, force: true })
-  for (const folder of FOLDERS) await mkdir(path.join(dir, folder), { recursive: true })
+  // 코드 폴더만 새로 담는다 — 데이터·설정·미리보기는 따로 갱신되고, 이미지·영상은 syncTemplateMedia 가 맞춘다.
+  for (const folder of FOLDERS) {
+    await rm(path.join(dir, folder), { recursive: true, force: true })
+    await mkdir(path.join(dir, folder), { recursive: true })
+  }
 
   const pageNames = await listSources(LIVE.pages)
   const layoutNames = await listSources(LIVE.layouts)
@@ -172,6 +216,118 @@ export async function snapshotLive(id: number, manifest: TemplateManifest): Prom
 
   await writeFile(path.join(dir, 'template.json'), JSON.stringify(manifest, null, 2), 'utf8')
   return count
+}
+
+/* ------------------------------------------------------------------
+ * 이미지·영상 — 화면 코드와 설정에 적힌 경로를 찾아 실제 파일을 함께 담는다
+ * ------------------------------------------------------------------ */
+
+/**
+ * 글에서 사이트 파일 경로를 찾는다. '/images/main/a.jpg' → 'public/images/main/a.jpg',
+ * '/uploads/2026/b.png' → 'uploads/2026/b.png'. 조립식 경로(`${name}.jpg`)는 알 수 없어 건너뛴다.
+ */
+export function findMediaRefs(text: string): Set<string> {
+  const found = new Set<string>()
+  for (const m of text.matchAll(/(?<![\w.:/])\/((?:uploads|images|videos|video|media|icons|fonts|files|assets)\/[^'"`\s)?#<>\\]+)/g)) {
+    const ref = m[1]
+    if (ref.includes('${') || ref.split('/').some((p) => p === '..' || p === '') || !MEDIA_EXT.test(ref)) continue
+    found.add(ref.startsWith('uploads/') ? ref : `public/${ref}`)
+  }
+  return found
+}
+
+/** 폴더 안의 파일을 하위 폴더까지 모은다 — 'a/b/c.png' 처럼 상대 경로로 */
+async function walk(dir: string, prefix = ''): Promise<string[]> {
+  if (!existsSync(dir)) return []
+  const out: string[] = []
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) out.push(...(await walk(path.join(dir, entry.name), rel)))
+    else out.push(rel)
+  }
+  return out
+}
+
+/** 'public/images/a.png' → 사이트의 실제 파일 위치 */
+function liveMediaPath(ref: string): string {
+  const [root, ...rest] = ref.split('/')
+  return path.join(MEDIA[root as MediaRoot], ...rest)
+}
+
+/**
+ * 템플릿이 쓰는 이미지·영상을 지금 사이트에서 찾아 템플릿 폴더에 담는다.
+ * 화면 코드(pages·layouts·components)와 메뉴·페이지(data.json)·컴포넌트 설정(components.json)을 훑는다.
+ * 담은 파일 수와, 경로는 적혀 있는데 사이트에 없어 못 담은 경로를 돌려준다.
+ */
+export async function syncTemplateMedia(id: number): Promise<{ media: number; missing: string[] }> {
+  const dir = templateDir(id)
+  const texts: string[] = []
+  for (const folder of FOLDERS) {
+    for (const name of await listSources(path.join(dir, folder))) texts.push(await readFile(path.join(dir, folder, name), 'utf8'))
+  }
+  for (const file of [DATA_FILE, COMPONENTS_FILE]) {
+    if (existsSync(path.join(dir, file))) texts.push(await readFile(path.join(dir, file), 'utf8'))
+  }
+  const refs = new Set<string>()
+  for (const text of texts) for (const ref of findMediaRefs(text)) refs.add(ref)
+
+  for (const root of MEDIA_ROOTS) await rm(path.join(dir, root), { recursive: true, force: true })
+  let media = 0
+  const missing: string[] = []
+  for (const ref of [...refs].sort()) {
+    const from = liveMediaPath(ref)
+    if (!existsSync(from)) {
+      missing.push(`/${ref.replace(/^public\//, '')}`)
+      continue
+    }
+    const to = path.join(dir, ...ref.split('/'))
+    await mkdir(path.dirname(to), { recursive: true })
+    await copyFile(from, to)
+    media += 1
+  }
+  return { media, missing }
+}
+
+/** 담긴 이미지·영상 수 */
+export async function countMedia(id: number): Promise<number> {
+  let count = 0
+  for (const root of MEDIA_ROOTS) count += (await walk(path.join(templateDir(id), root))).length
+  return count
+}
+
+/**
+ * 폴더의 public/·uploads/ 를 사이트에 덮어쓴다. 내용이 같은 파일은 건너뛰고,
+ * 바뀌는 파일은 원래 것을 backupRoot 에 같은 구조로 남긴다. 바꾼 파일 수를 돌려준다.
+ */
+async function overlayMedia(fromDir: string, backupRoot: string): Promise<number> {
+  let changed = 0
+  for (const root of MEDIA_ROOTS) {
+    for (const rel of await walk(path.join(fromDir, root))) {
+      if (!MEDIA_EXT.test(rel)) continue
+      const from = path.join(fromDir, root, ...rel.split('/'))
+      const target = path.join(MEDIA[root], ...rel.split('/'))
+      if (await sameFile(from, target)) continue
+      if (existsSync(target)) {
+        const keep = path.join(backupRoot, root, ...rel.split('/'))
+        await mkdir(path.dirname(keep), { recursive: true })
+        await copyFile(target, keep)
+      }
+      await mkdir(path.dirname(target), { recursive: true })
+      await copyFile(from, target)
+      changed += 1
+    }
+  }
+  return changed
+}
+
+/** 두 파일이 같은지 — 같으면 덮어쓰지도, 백업하지도 않는다. */
+async function sameFile(a: string, b: string): Promise<boolean> {
+  if (!existsSync(a) || !existsSync(b)) return false
+  const [sa, sb] = await Promise.all([stat(a), stat(b)])
+  if (sa.size !== sb.size) return false
+  const [ba, bb] = await Promise.all([readFile(a), readFile(b)])
+  return ba.equals(bb)
 }
 
 /** 보관된 파일 수 — 목록에 '파일 n개'로 보여 준다. */
@@ -221,6 +377,13 @@ export async function packZip(id: number): Promise<Buffer> {
       zip.addLocalFile(path.join(dir, folder, name), folder)
     }
   }
+  // 이미지·영상과 미리보기 — 폴더 구조 그대로 담는다.
+  for (const root of [...MEDIA_ROOTS, THUMBS_FOLDER]) {
+    for (const rel of await walk(path.join(dir, root))) {
+      const zipPath = path.posix.join(root, path.posix.dirname(rel))
+      zip.addLocalFile(path.join(dir, root, ...rel.split('/')), zipPath === root + '/.' ? root : zipPath)
+    }
+  }
   return zip.toBuffer()
 }
 
@@ -255,6 +418,19 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
   for (const entry of entries) {
     if (entry.isDirectory) continue
     const parts = entry.entryName.split('/').filter((p) => p && p !== '.')
+    // 이미지·영상·미리보기 — public/·uploads/·thumbs/ 아래를 폴더 구조 그대로 푼다(한 겹 감싸임까지 허용).
+    const mediaAt = parts.findIndex((p) => (MEDIA_ROOTS as string[]).includes(p) || p === THUMBS_FOLDER)
+    if (mediaAt >= 0 && mediaAt <= 1) {
+      const rel = parts.slice(mediaAt)
+      const file = rel[rel.length - 1]
+      // 묶음 밖으로 새는 경로와 다룰 수 없는 파일은 버린다.
+      if (rel.length < 2 || rel.some((p) => p === '..' || p.startsWith('.')) || !(MEDIA_EXT.test(file) || file === THUMBS_META)) continue
+      const to = path.join(dir, ...rel)
+      if (!to.startsWith(dir + path.sep)) continue
+      await mkdir(path.dirname(to), { recursive: true })
+      await writeFile(to, entry.getData())
+      continue
+    }
     // 압축을 풀면 폴더가 한 겹 더 있을 수 있어(templates/pages/..) 뒤에서부터 본다.
     const name = parts[parts.length - 1]
     const folder = parts[parts.length - 2] as Folder | undefined
@@ -300,7 +476,7 @@ export async function unpackZip(buffer: Buffer, id: number): Promise<{ manifest:
  * 템플릿 파일을 실제 사이트에 덮어쓴다 — 이 템플릿을 켤 때 부른다.
  * 덮어쓰기 전 원본은 시각별 폴더에 남겨, 잘못되면 되돌릴 수 있다.
  */
-export async function applyToLive(id: number): Promise<{ applied: number; backup: string }> {
+export async function applyToLive(id: number): Promise<{ applied: number; media: number; backup: string }> {
   const dir = templateDir(id)
   if (!hasFiles(id)) throw new Error('이 템플릿에는 보관된 파일이 없습니다.')
 
@@ -324,7 +500,9 @@ export async function applyToLive(id: number): Promise<{ applied: number; backup
       applied += 1
     }
   }
-  return { applied, backup: stamp }
+  // 템플릿이 담아 온 이미지·영상도 제자리(사이트 public·uploads)에 둔다.
+  const media = await overlayMedia(dir, backupRoot)
+  return { applied, media, backup: stamp }
 }
 
 /** 백업 폴더에 그 시점의 메뉴·페이지 데이터를 남긴다 — 되돌리기가 함께 되돌린다. */
@@ -425,6 +603,7 @@ export async function listApplyBackups(): Promise<ApplyBackup[]> {
       const dir = path.join(APPLY_BACKUP_DIR, stamp)
       let files = 0
       for (const folder of FOLDERS) files += (await listSources(path.join(dir, folder))).length
+      for (const root of MEDIA_ROOTS) files += (await walk(path.join(dir, root))).length
       // 폴더 이름이 곧 시각이다. '2026-09-03T09-52-46-792Z' → ISO 로 되돌린다.
       const iso = stamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z')
       const meta = await readBackupMeta(stamp)
@@ -471,6 +650,8 @@ export async function restoreApplyBackup(stamp: string): Promise<{ restored: num
       restored += 1
     }
   }
+  // 그때 덮어썼던 이미지·영상도 되돌린다.
+  restored += await overlayMedia(dir, newBackup)
   return { restored, backup: newStamp }
 }
 

@@ -2,7 +2,7 @@ import path from 'node:path'
 import { existsSync } from 'node:fs'
 import { copyFile, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { prisma } from './prisma.js'
-import { UPLOAD_DIR } from '../routes/uploads.js'
+import { templateDir, THUMBS_FOLDER, THUMBS_META } from './templateFiles.js'
 
 /**
  * 템플릿 미리보기(썸네일) — 템플릿을 실제로 적용한 사이트의 메인과 서브페이지 한 장씩.
@@ -11,10 +11,9 @@ import { UPLOAD_DIR } from '../routes/uploads.js'
  * 그래서 사이트에 적용된 템플릿(= 켜진 템플릿)만 찍을 수 있다 — 켤 때, 끌 때(그때까지의 모습),
  * [현재 사이트 담기]·[미리보기 새로 찍기] 때 찍어 둔다. 한 번도 켜 본 적 없는 템플릿은 미리보기가 없다.
  *
- * 찍은 그림은 공개 경로(/uploads/template-thumbs)에 둔다 — 홈페이지 화면이라 감출 내용이 없다.
+ * 찍은 그림은 템플릿 폴더의 thumbs/ 에 두어 템플릿과 함께 git·zip 으로 옮겨 다닌다.
+ * 화면에는 /api/templates/:id/thumbnail/:which 로 내준다 — 홈페이지 화면이라 감출 내용이 없다.
  */
-
-const THUMB_DIR = path.join(UPLOAD_DIR, 'template-thumbs')
 /** 찍을 홈페이지 주소 — 개발 서버(Vite) */
 const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://localhost:5173'
 /** 넓은 화면(데스크톱) 기준으로 찍는다. */
@@ -34,8 +33,10 @@ interface ThumbMeta {
   takenAt: string
 }
 
-const fileOf = (id: number, which: 'main' | 'sub') => path.join(THUMB_DIR, `${id}-${which}.jpg`)
-const metaOf = (id: number) => path.join(THUMB_DIR, `${id}.json`)
+const thumbDir = (id: number) => path.join(templateDir(id), THUMBS_FOLDER)
+export const thumbFile = (id: number, which: 'main' | 'sub') => path.join(thumbDir(id), `${which}.jpg`)
+const fileOf = thumbFile
+const metaOf = (id: number) => path.join(thumbDir(id), THUMBS_META)
 
 /** 이 템플릿의 미리보기 — 없으면 null. 주소에는 찍은 시각을 붙여 옛 그림이 캐시에 남지 않게 한다. */
 export async function readThumbs(id: number): Promise<TemplateThumbs | null> {
@@ -44,8 +45,8 @@ export async function readThumbs(id: number): Promise<TemplateThumbs | null> {
     const meta = JSON.parse(await readFile(metaOf(id), 'utf8')) as ThumbMeta
     const v = Math.round((await stat(fileOf(id, 'main'))).mtimeMs)
     return {
-      main: `/uploads/template-thumbs/${id}-main.jpg?v=${v}`,
-      sub: `/uploads/template-thumbs/${id}-sub.jpg?v=${v}`,
+      main: `/api/templates/${id}/thumbnail/main?v=${v}`,
+      sub: `/api/templates/${id}/thumbnail/sub?v=${v}`,
       subLabel: meta.subLabel,
       takenAt: meta.takenAt,
     }
@@ -81,7 +82,7 @@ export async function captureThumbs(id: number): Promise<{ ok: true } | { ok: fa
     })
     const page = await context.newPage()
     const sub = await pickSubPage()
-    await mkdir(THUMB_DIR, { recursive: true })
+    await mkdir(thumbDir(id), { recursive: true })
 
     for (const [which, target] of [
       ['main', '/'],
@@ -132,7 +133,7 @@ export async function captureThumbs(id: number): Promise<{ ok: true } | { ok: fa
 /** 복제·새 템플릿 — 원본의 미리보기를 그대로 물려준다(같은 화면에서 출발하므로). */
 export async function copyThumbs(fromId: number, toId: number): Promise<void> {
   if (!existsSync(metaOf(fromId))) return
-  await mkdir(THUMB_DIR, { recursive: true })
+  await mkdir(thumbDir(toId), { recursive: true })
   for (const which of ['main', 'sub'] as const) {
     if (existsSync(fileOf(fromId, which))) await copyFile(fileOf(fromId, which), fileOf(toId, which))
   }
@@ -140,5 +141,5 @@ export async function copyThumbs(fromId: number, toId: number): Promise<void> {
 }
 
 export async function removeThumbs(id: number): Promise<void> {
-  for (const file of [fileOf(id, 'main'), fileOf(id, 'sub'), metaOf(id)]) await rm(file, { force: true })
+  await rm(thumbDir(id), { recursive: true, force: true })
 }

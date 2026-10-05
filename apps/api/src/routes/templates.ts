@@ -4,7 +4,15 @@ import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { requireAuth, requireAdmin } from '../lib/auth.js'
 import multer from 'multer'
-import { ensureBuiltin, loadActiveTemplate, parseLayouts, toTemplateResponse } from '../lib/templates.js'
+import {
+  ensureBuiltin,
+  loadActiveTemplate,
+  parseLayouts,
+  slugify,
+  syncTemplateFolders,
+  toTemplateResponse,
+  uniqueSlug,
+} from '../lib/templates.js'
 import {
   applyToLive,
   collectAssets,
@@ -37,7 +45,9 @@ import {
   writeTemplateData,
 } from '../lib/templateFiles.js'
 import { templateDataSchema } from '@wnc/shared'
-import { captureThumbs, copyThumbs, readThumbs, removeThumbs } from '../lib/templateThumbs.js'
+import { captureThumbs, copyThumbs, readThumbs, removeThumbs, thumbFile } from '../lib/templateThumbs.js'
+import { countMedia, registerTemplateSlug, slugDir, syncTemplateMedia } from '../lib/templateFiles.js'
+import { rename } from 'node:fs/promises'
 import { applySiteComponents, parseComponents, readSiteComponents } from '../lib/templateComponents.js'
 import {
   readBackupComponents,
@@ -73,7 +83,18 @@ function authorOf(email?: string): string {
 async function findTemplate(id: string) {
   const num = Number(id)
   if (!Number.isInteger(num)) return null
-  return prisma.siteTemplate.findUnique({ where: { id: num } })
+  await syncTemplateFolders()
+  const row = await prisma.siteTemplate.findUnique({ where: { id: num } })
+  if (row?.slug) registerTemplateSlug(row.id, row.slug)
+  return row
+}
+
+/** 새로 만든 템플릿에 폴더 이름을 붙인다 — 이름에서 만들고, 한글 이름처럼 못 만들면 template-<id>. */
+async function assignSlug(id: number, wanted: string) {
+  const slug = await uniqueSlug(wanted, `template-${id}`)
+  const row = await prisma.siteTemplate.update({ where: { id }, data: { slug } })
+  registerTemplateSlug(id, slug)
+  return row
 }
 
 /** 담긴 데모 데이터의 메뉴·페이지 개수 — 목록·정보 창에 보여 준다. */
@@ -89,6 +110,7 @@ async function itemOf(row: Parameters<typeof toTemplateResponse>[0]) {
   return {
     ...toTemplateResponse(row),
     files: await countFiles(row.id),
+    media: await countMedia(row.id),
     ...(await countData(row.id)),
     thumbnails: await readThumbs(row.id),
   }
@@ -111,6 +133,7 @@ const thumbNote = (r: Awaited<ReturnType<typeof captureThumbs>>) => (r.ok ? {} :
 
 /** 이 템플릿의 매니페스트 — 파일 묶음에 함께 담긴다. */
 function manifestOf(row: {
+  slug?: string | null
   name: string
   description: string
   version: string
@@ -125,6 +148,7 @@ function manifestOf(row: {
 }): TemplateManifest {
   return {
     type: 'wnc-template',
+    ...(row.slug ? { slug: row.slug } : {}),
     name: row.name,
     description: row.description,
     version: row.version,
@@ -157,7 +181,7 @@ templatesRouter.post(
   asyncHandler(async (req, res) => {
     const { name, description } = z.object({ name: nameSchema, description: descriptionSchema.optional() }).parse(req.body)
     const base = await loadActiveTemplate()
-    const created = await prisma.siteTemplate.create({
+    let created = await prisma.siteTemplate.create({
       data: {
         name,
         description: description ?? `${base.name} 템플릿을 복제해 만든 템플릿`,
@@ -168,10 +192,13 @@ templatesRouter.post(
         pageLayouts: base.pageLayouts,
       },
     })
+    created = await assignSlug(created.id, slugify(name))
     // 지금 사이트 소스와 메뉴·페이지를 그대로 담아 둔다 — 이 시점의 모습이 이 템플릿의 출발점이다.
     await snapshotLive(created.id, manifestOf(created))
     await writeTemplateData(created.id, await dumpSiteData())
     await writeTemplateComponents(created.id, await readSiteComponents())
+    // 화면·메뉴·페이지·설정이 쓰는 이미지·영상을 템플릿 폴더에 함께 담는다.
+    await syncTemplateMedia(created.id)
     // 지금 사이트 모습에서 출발하므로 켜진 템플릿의 미리보기를 그대로 쓴다.
     await copyThumbs(base.id, created.id)
     res.status(201).json(await itemOf(created))
@@ -207,14 +234,15 @@ templatesRouter.post(
         pageLayouts: JSON.stringify(data.pageLayouts ?? {}),
       },
     })
-    res.status(201).json(toTemplateResponse(created))
+    res.status(201).json(toTemplateResponse(await assignSlug(created.id, slugify(data.name))))
   }),
 )
 
 /** zip 가져오기 — 화면·레이아웃·부품 파일과 매니페스트가 담긴 묶음을 통째로 들여온다. */
 const uploadZip = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  // 이미지·영상까지 담기므로 넉넉히 받는다.
+  limits: { fileSize: 300 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!/\.zip$/i.test(file.originalname)) return cb(new Error('zip 파일만 올릴 수 있습니다.'))
     cb(null, true)
@@ -228,7 +256,7 @@ templatesRouter.post('/import-zip', requireAuth,
       if (err) {
         const message =
           (err as { code?: string }).code === 'LIMIT_FILE_SIZE'
-            ? '템플릿 zip 은 20MB 를 넘을 수 없습니다.'
+            ? '템플릿 zip 은 300MB 를 넘을 수 없습니다. 큰 영상은 빼고 다시 묶어 주세요.'
             : (err as Error).message
         return res.status(400).json({ message })
       }
@@ -238,8 +266,16 @@ templatesRouter.post('/import-zip', requireAuth,
       const placeholder = await prisma.siteTemplate.create({
         data: { name: '가져오는 중', author: authorOf(req.user?.email) },
       })
+      // 임시 폴더에 풀고, 매니페스트를 읽은 뒤 제 이름의 폴더로 옮긴다.
+      const tempSlug = `import-${placeholder.id}`
+      await prisma.siteTemplate.update({ where: { id: placeholder.id }, data: { slug: tempSlug } })
+      registerTemplateSlug(placeholder.id, tempSlug)
       try {
         const { manifest, files } = await unpackZip(req.file.buffer, placeholder.id)
+        const finalSlug = await uniqueSlug(manifest.slug ?? slugify(manifest.name), `template-${placeholder.id}`)
+        await rename(slugDir(tempSlug), slugDir(finalSlug))
+        await prisma.siteTemplate.update({ where: { id: placeholder.id }, data: { slug: finalSlug } })
+        registerTemplateSlug(placeholder.id, finalSlug)
         const updated = await prisma.siteTemplate.update({
           where: { id: placeholder.id },
           data: {
@@ -259,7 +295,7 @@ templatesRouter.post('/import-zip', requireAuth,
       } catch (e) {
         // 압축이 잘못됐으면 만들어 둔 행과 폴더를 되돌린다.
         await prisma.siteTemplate.delete({ where: { id: placeholder.id } }).catch(() => {})
-        await rm(templateDir(placeholder.id), { recursive: true, force: true }).catch(() => {})
+        await rm(slugDir(tempSlug), { recursive: true, force: true }).catch(() => {})
         return res.status(400).json({ message: (e as Error).message })
       }
     } catch (e) {
@@ -342,6 +378,8 @@ templatesRouter.post(
         await snapshotLive(current.id, manifestOf(current))
         await writeTemplateData(current.id, currentData)
         await writeTemplateComponents(current.id, currentComponents)
+        // 화면·메뉴·페이지·설정이 쓰는 이미지·영상을 템플릿 폴더에 함께 담는다.
+        await syncTemplateMedia(current.id)
         await captureThumbs(current.id)
       }
       const result = await restoreApplyBackup(req.params.stamp)
@@ -423,8 +461,25 @@ templatesRouter.post(
     // 화면 파일과 함께 지금 메뉴·페이지도 담는다 — 이 템플릿을 다시 켤 때 되살릴 수 있다.
     await writeTemplateData(row.id, await dumpSiteData())
     await writeTemplateComponents(row.id, await readSiteComponents())
+    // 화면·메뉴·페이지·설정이 쓰는 이미지·영상을 템플릿 폴더에 함께 담는다.
+    await syncTemplateMedia(row.id)
     const shot = await captureThumbs(row.id)
     res.json({ ...(await itemOf(row)), files, ...thumbNote(shot) })
+  }),
+)
+
+/** 미리보기 그림 — 홈페이지를 찍은 것이라 공개로 내준다. (<img> 는 로그인 정보를 싣지 못한다) */
+templatesRouter.get(
+  '/:id/thumbnail/:which',
+  asyncHandler(async (req, res) => {
+    const row = await findTemplate(req.params.id)
+    const which = req.params.which === 'sub' ? 'sub' : req.params.which === 'main' ? 'main' : null
+    if (!row?.slug || !which) return res.status(404).end()
+    const file = thumbFile(row.id, which)
+    if (!existsSync(file)) return res.status(404).end()
+    // 주소에 찍은 시각(?v=)이 붙어 있어 오래 캐시해도 된다.
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    res.sendFile(file)
   }),
 )
 
@@ -548,6 +603,8 @@ templatesRouter.post(
       await snapshotLive(current.id, manifestOf(current))
       await writeTemplateData(current.id, currentData)
       await writeTemplateComponents(current.id, currentComponents)
+      // 화면·메뉴·페이지·설정이 쓰는 이미지·영상을 템플릿 폴더에 함께 담는다.
+      await syncTemplateMedia(current.id)
       // 끄기 전 마지막 모습을 미리보기로 남긴다.
       await captureThumbs(current.id)
     }
@@ -579,6 +636,7 @@ templatesRouter.post(
       ...thumbNote(shot),
       templates: await listAll(),
       applied: applied.applied,
+      media: applied.media,
       backup: applied.backup,
       dataApplied,
       componentsApplied: Boolean(nextComponents),
@@ -596,7 +654,7 @@ templatesRouter.post(
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
 
-    const created = await prisma.siteTemplate.create({
+    let created = await prisma.siteTemplate.create({
       data: {
         name: `${row.name} 복사본`,
         description: row.description,
@@ -607,7 +665,8 @@ templatesRouter.post(
         pageLayouts: row.pageLayouts,
       },
     })
-    // 파일 묶음(데모 데이터 포함)도 그대로 복사한다.
+    created = await assignSlug(created.id, `${row.slug || slugify(row.name)}-copy`)
+    // 파일 묶음(데모 데이터·이미지·영상·미리보기 포함)도 그대로 복사한다.
     if (hasFiles(row.id)) {
       await cp(templateDir(row.id), templateDir(created.id), { recursive: true })
       await writeManifest(created.id, manifestOf(created))

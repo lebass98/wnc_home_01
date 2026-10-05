@@ -1,0 +1,244 @@
+{
+  "menus": [
+    {
+      "label": "회사소개",
+      "url": "/about",
+      "newTab": false,
+      "autoChildren": "none",
+      "published": true,
+      "showInGnb": true,
+      "showInFooter": true,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "회사 소개",
+          "url": "/about",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        },
+        {
+          "label": "찾아오시는 길",
+          "url": "/about/directions",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        }
+      ]
+    },
+    {
+      "label": "사업분야",
+      "url": "/services",
+      "newTab": false,
+      "autoChildren": "none",
+      "published": true,
+      "showInGnb": true,
+      "showInFooter": true,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "사업분야",
+          "url": "/services",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        },
+        {
+          "label": "서비스",
+          "url": "/service",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        }
+      ]
+    },
+    {
+      "label": "소식",
+      "url": "/board",
+      "newTab": false,
+      "autoChildren": "boards",
+      "published": true,
+      "showInGnb": true,
+      "showInFooter": true,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "전체 소식",
+          "url": "/board",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        }
+      ]
+    },
+    {
+      "label": "제품소개",
+      "url": "/products",
+      "newTab": false,
+      "autoChildren": "categories",
+      "published": true,
+      "showInGnb": true,
+      "showInFooter": true,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "전체 제품",
+          "url": "/products",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        }
+      ]
+    },
+    {
+      "label": "문의하기",
+      "url": "/contact",
+      "newTab": false,
+      "autoChildren": "none",
+      "published": true,
+      "showInGnb": true,
+      "showInFooter": true,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "문의하기",
+          "url": "/contact",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        },
+        {
+          "label": "자주 묻는 질문",
+          "url": "/contact/faq",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": true,
+          "showInFooter": true,
+          "showInSitemap": true
+        }
+      ]
+    },
+    {
+      "label": "이용안내",
+      "url": "/terms",
+      "newTab": false,
+      "autoChildren": "none",
+      "published": true,
+      "showInGnb": false,
+      "showInFooter": false,
+      "showInSitemap": true,
+      "children": [
+        {
+          "label": "이용약관",
+          "url": "/terms",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": false,
+          "showInFooter": false,
+          "showInSitemap": true
+        },
+        {
+          "label": "개인정보처리방침",
+          "url": "/privacy",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": false,
+          "showInFooter": false,
+          "showInSitemap": true
+        },
+        {
+          "label": "취소·환불 정책",
+          "url": "/page/refund",
+          "newTab": false,
+          "autoChildren": "none",
+          "published": true,
+          "showInGnb": false,
+          "showInFooter": false,
+          "showInSitemap": true
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "terms",
+      "title": "이용약관",
+      "description": "서비스 이용에 관한 기본 약관입니다.",
+      "content": "<h2>제1조 (목적)</h2><p>본 약관은 회사가 제공하는 서비스의 이용 조건과 절차를 정함을 목적으로 합니다.</p><h2>제2조 (정의)</h2><p>본 약관에서 사용하는 용어의 정의는 다음과 같습니다.</p>",
+      "published": true,
+      "showInNav": false,
+      "sortOrder": 1,
+      "titleI18n": {},
+      "contentI18n": {},
+      "metaTitle": "",
+      "metaDescription": "",
+      "metaKeywords": ""
+    },
+    {
+      "slug": "privacy",
+      "title": "개인정보처리방침",
+      "description": "수집하는 개인정보 항목과 이용 목적을 안내합니다.",
+      "content": "<h2>1. 수집하는 개인정보 항목</h2><p>회사는 문의 접수를 위해 이름, 이메일, 연락처를 수집합니다.</p><h2>2. 보유 및 이용 기간</h2><p>수집한 정보는 문의 처리 완료 후 3년간 보관 뒤 파기합니다.</p>",
+      "published": true,
+      "showInNav": false,
+      "sortOrder": 2,
+      "titleI18n": {},
+      "contentI18n": {},
+      "metaTitle": "",
+      "metaDescription": "",
+      "metaKeywords": ""
+    },
+    {
+      "slug": "refund",
+      "title": "취소·환불 정책",
+      "description": "계약 해지와 환불 기준을 안내합니다.",
+      "content": "<h2>환불 기준</h2><p>착수 전 해지 시 전액 환불되며, 착수 후에는 진행 단계에 따라 정산합니다.</p>",
+      "published": true,
+      "showInNav": false,
+      "sortOrder": 3,
+      "titleI18n": {},
+      "contentI18n": {},
+      "metaTitle": "",
+      "metaDescription": "",
+      "metaKeywords": ""
+    },
+    {
+      "slug": "partners",
+      "title": "파트너 안내",
+      "description": "함께할 협력사를 찾습니다.",
+      "content": "<h2>파트너십 안내</h2><p>기술 제휴와 리셀러 파트너를 상시 모집하고 있습니다.</p>",
+      "published": false,
+      "showInNav": false,
+      "sortOrder": 5,
+      "titleI18n": {},
+      "contentI18n": {},
+      "metaTitle": "",
+      "metaDescription": "",
+      "metaKeywords": ""
+    }
+  ]
+}

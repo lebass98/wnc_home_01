@@ -457,6 +457,18 @@ export default function TemplatesPage() {
                       </span>
                       <span aria-hidden>·</span>
                       <span>파일 {row.files ?? 0}개</span>
+                      {(row.media ?? 0) > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>이미지·영상 {row.media}개</span>
+                        </>
+                      )}
+                      {row.slug && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span title="저장소의 템플릿 폴더">templates/{row.slug}</span>
+                        </>
+                      )}
                       {((row.dataMenus ?? 0) > 0 || (row.dataPages ?? 0) > 0) && (
                         <>
                           <span aria-hidden>·</span>

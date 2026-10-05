@@ -1,0 +1,14 @@
+{
+  "type": "wnc-template",
+  "slug": "basic",
+  "name": "Basic",
+  "description": "워드앤코드 관리자 기본 템플릿 샘플",
+  "version": "1.0.0",
+  "author": "wordncode",
+  "header": "basic",
+  "footer": "basic",
+  "pageLayouts": {
+    "/terms": "left",
+    "/privacy": "left"
+  }
+}

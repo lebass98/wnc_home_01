@@ -23,6 +23,7 @@ import { menusRouter } from './routes/menus.js'
 import { designRouter } from './routes/design.js'
 import { templatesRouter } from './routes/templates.js'
 import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
+import { syncTemplateFolders } from './lib/templates.js'
 import { activityLogsRouter } from './routes/activityLogs.js'
 import { activityLogger } from './lib/activityLog.js'
 
@@ -82,6 +83,9 @@ app.use('/api/activity-logs', activityLogsRouter)
 
 app.use((_req, res) => res.status(404).json({ message: '요청한 경로를 찾을 수 없습니다.' }))
 app.use(errorHandler)
+
+// 템플릿 폴더(templates/)와 DB 를 맞춘다 — 예전 보관함을 옮기고, git 으로 받은 템플릿을 등록한다.
+syncTemplateFolders().catch((e) => console.error('[templates] 템플릿 폴더를 맞추지 못했습니다:', e))
 
 app.listen(env.port, () => {
   console.log(`API 서버 실행 중 → http://localhost:${env.port}`)

@@ -51,7 +51,7 @@ import {
  */
 
 // 시드 구성이 크게 바뀔 때 버전을 올린다 — 옛 저장본을 버리고 새 시드를 받게 한다.
-const STORAGE_KEY = 'wnc_demo_db_v2'
+const STORAGE_KEY = 'wnc_demo_db_v3'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
@@ -75,13 +75,30 @@ function basicTemplate(): DemoTemplate {
   const now = new Date().toISOString()
   return {
     id: 1,
-    name: '인테리어',
-    description: '워드앤코드 인테리어 템플릿',
+    name: 'Basic',
+    description: '워드앤코드 기본 템플릿',
     author: 'wordncode',
     version: '1.0.0',
     builtin: true,
     active: true,
-    // 배포된 소스(인테리어 시안)와 같은 구성이어야 데모 화면이 어긋나지 않는다.
+    header: 'basic',
+    footer: 'basic',
+    pageLayouts: { '/terms': 'left', '/privacy': 'left' },
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function interiorTemplate(): DemoTemplate {
+  const now = new Date().toISOString()
+  return {
+    id: 2,
+    name: '인테리어',
+    description: '워드앤코드 인테리어 템플릿 (피그마 시안)',
+    author: 'wordncode',
+    version: '1.0.0',
+    builtin: false,
+    active: false,
     header: 'interior',
     footer: 'interior',
     pageLayouts: { '/terms': 'left', '/privacy': 'left' },
@@ -139,8 +156,8 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
-    templates: [basicTemplate()],
-    nextTemplateId: 2,
+    templates: [basicTemplate(), interiorTemplate()],
+    nextTemplateId: 3,
     posts,
     contacts,
     categories,

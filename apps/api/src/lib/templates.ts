@@ -70,6 +70,9 @@ export function toTemplateResponse(row: TemplateRow) {
  * 기본 제공 'Basic' 템플릿이 없으면 만든다.
  * 처음 상태는 이 프로젝트가 배포될 때의 모습 그대로 —
  * 기본 헤더·푸터에, 약관·개인정보 화면만 좌측 메뉴 서브를 쓴다.
+ *
+ * Basic 은 지워지지 않는 기본값이다. 다른 템플릿을 켜면 비활성으로 남고,
+ * 다시 켜면 마지막으로 쓰던 Basic 모습으로 돌아온다. 그래서 이름·헤더·푸터는 바꿀 수 없다.
  */
 export async function ensureBuiltin(): Promise<TemplateRow> {
   const found = await prisma.siteTemplate.findFirst({ where: { builtin: true }, orderBy: { id: 'asc' } })
@@ -89,7 +92,9 @@ export async function ensureBuiltin(): Promise<TemplateRow> {
     }))
 
   // 기본 템플릿은 지금 사이트 소스를 그대로 담은 샘플이다. 파일이 없으면 만들어 둔다.
-  if (!hasFiles(row.id)) {
+  // 단 다른 템플릿이 켜져 있으면 지금 사이트는 그 템플릿의 모습이라 담지 않는다 — Basic 이 남의 화면으로 덮인다.
+  const otherActive = row.active ? null : await prisma.siteTemplate.findFirst({ where: { active: true } })
+  if (!hasFiles(row.id) && !otherActive) {
     await snapshotLive(row.id, {
       type: 'wnc-template',
       name: row.name,

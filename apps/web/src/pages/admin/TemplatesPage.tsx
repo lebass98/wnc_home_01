@@ -25,6 +25,9 @@ interface ApplyBackupItem {
   files: number
   /** 메뉴·페이지 데이터도 담겨 있는지 */
   hasData: boolean
+  /** 이 모습을 쓰던 템플릿 — 예전 기록은 비어 있다. 되돌리면 이 템플릿이 다시 켜진다. */
+  templateId?: number | null
+  templateName?: string
 }
 
 /** 등록부에서 레이아웃 이름을 찾는다 — 등록이 지워진 키는 키 그대로 보여 준다. */
@@ -87,6 +90,12 @@ export default function TemplatesPage() {
     invalidateSiteMenu()
   }
 
+  /** 기본 제공 템플릿을 끄고 다른 템플릿을 켤 때 — 지워지지 않고 남는다는 것을 알려 준다. */
+  function builtinNote() {
+    const builtin = rows?.find((r) => r.active && r.builtin)
+    return builtin ? `\n\n'${builtin.name}' 템플릿은 지워지지 않고 비활성으로 남습니다. 언제든 다시 켜면 지금 모습으로 돌아옵니다.` : ''
+  }
+
   function activate(row: SiteTemplateInfo) {
     if (row.active) {
       alert('사용 중인 템플릿은 끌 수 없습니다.\n다른 템플릿을 켜면 이 템플릿은 자동으로 꺼집니다.')
@@ -101,7 +110,8 @@ export default function TemplatesPage() {
       !confirm(
         `'${row.name}' 템플릿을 사이트에 적용할까요?\n\n` +
           '이 템플릿의 화면·레이아웃·부품 파일이 사이트에 덮어써집니다.\n' +
-          '지금 사이트 모습은 사용 중이던 템플릿에 자동으로 담기고, 덮어쓰기 전 원본도 백업으로 남습니다.',
+          '지금 사이트 모습은 사용 중이던 템플릿에 자동으로 담기고, 덮어쓰기 전 원본도 백업으로 남습니다.' +
+          builtinNote(),
       )
     )
       return
@@ -301,7 +311,9 @@ export default function TemplatesPage() {
                         v{row.version}
                       </span>
                       {row.builtin && (
-                        <span className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:border-slate-600 dark:text-slate-400">
+                        <span
+                          title="지울 수 없습니다. 다른 템플릿을 켜도 비활성으로 남고, 다시 켜면 그대로 돌아옵니다."
+                          className="rounded-md border border-slate-200 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:border-slate-600 dark:text-slate-400">
                           기본 제공
                         </span>
                       )}
@@ -401,6 +413,10 @@ export default function TemplatesPage() {
             템플릿은 헤더·푸터·화면별 레이아웃 선택을 한 벌로 묶은 것입니다. 활성화하면 사이트 전면부에 바로 적용되고,
             화면별 서브 레이아웃은 [페이지 관리]에서 고르는 대로 활성 템플릿에 저장됩니다.
           </p>
+          <p className="mt-1">
+            기본 제공 템플릿(Basic)은 지울 수 없고 이름·헤더·푸터도 바뀌지 않습니다. 다른 템플릿을 켜면 비활성으로 남았다가,
+            다시 켜면 마지막으로 쓰던 Basic 모습으로 돌아옵니다.
+          </p>
         </div>
       </div>
 
@@ -433,11 +449,21 @@ export default function TemplatesPage() {
           }}
         />
       )}
-      {historyOpen && <ApplyHistoryModal onClose={() => setHistoryOpen(false)} />}
+      {historyOpen && (
+        <ApplyHistoryModal
+          activeId={rows?.find((r) => r.active)?.id ?? null}
+          onClose={() => setHistoryOpen(false)}
+          onRestored={(next) => {
+            setRows(next)
+            refreshSite()
+          }}
+        />
+      )}
       {applyTarget && (
         <ApplyModal
           row={applyTarget}
           working={working}
+          note={builtinNote()}
           onClose={() => setApplyTarget(null)}
           onApply={(withData) => runActivate(applyTarget, withData)}
         />
@@ -463,11 +489,14 @@ export default function TemplatesPage() {
 function ApplyModal({
   row,
   working,
+  note,
   onClose,
   onApply,
 }: {
   row: SiteTemplateInfo
   working: boolean
+  /** 기본 제공 템플릿을 끌 때 덧붙이는 안내 */
+  note: string
   onClose: () => void
   onApply: (withData: boolean) => void
 }) {
@@ -481,6 +510,7 @@ function ApplyModal({
           이 템플릿의 화면·레이아웃·부품 파일이 사이트에 덮어써집니다. 지금 사이트 모습은 사용 중이던 템플릿에
           자동으로 담기고, 덮어쓰기 전 원본도 백업으로 남습니다.
         </p>
+        {note && <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">{note.trim()}</p>}
 
         <div className="space-y-2.5" role="radiogroup" aria-label="적용 범위">
           <label
@@ -571,7 +601,17 @@ function LinkIssuesModal({ issues, onClose }: { issues: TemplateLinkIssue[]; onC
  * 적용 기록 — 템플릿을 켤 때 덮어쓰기 전 남겨 둔 사이트 원본 목록.
  * 되돌리면 그 시점의 화면·레이아웃·부품 파일로 사이트가 돌아간다.
  */
-function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
+function ApplyHistoryModal({
+  activeId,
+  onClose,
+  onRestored,
+}: {
+  /** 지금 켜진 템플릿 — 다른 템플릿의 기록을 되돌리면 그 템플릿이 다시 켜진다고 알린다. */
+  activeId: number | null
+  onClose: () => void
+  /** 되돌린 뒤 템플릿 목록(켜짐 표시)과 사이트 화면을 새로 읽게 한다. */
+  onRestored: (templates: SiteTemplateInfo[]) => void
+}) {
   const [items, setItems] = useState<ApplyBackupItem[] | null>(null)
   const [error, setError] = useState('')
   const [openStamp, setOpenStamp] = useState('')
@@ -601,10 +641,12 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
 
   async function restore(item: ApplyBackupItem) {
     const dataNote = item.hasData ? '\n그때의 메뉴·페이지 데이터도 함께 되돌아갑니다.' : ''
+    const switchNote =
+      item.templateId && item.templateId !== activeId ? `\n그때 쓰던 '${item.templateName}' 템플릿이 다시 켜집니다.` : ''
     if (
       !confirm(
         `${formatStamp(item.createdAt)} 시점으로 사이트를 되돌릴까요?\n\n` +
-          `파일 ${item.files}개가 그때 내용으로 덮어써집니다.${dataNote}\n지금 모습도 새 기록으로 남아 다시 되돌릴 수 있습니다.`,
+          `파일 ${item.files}개가 그때 내용으로 덮어써집니다.${dataNote}${switchNote}\n지금 모습도 새 기록으로 남아 다시 되돌릴 수 있습니다.`,
       )
     )
       return
@@ -614,14 +656,18 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
         restored: number
         dataRestored: { menus: number; pages: number } | null
         dataError?: string
+        activated: string | null
+        templates: SiteTemplateInfo[]
       }>(`/templates/apply-backups/${item.stamp}/restore`, { method: 'POST', auth: true })
       load()
+      onRestored(res.templates)
       const restoredNote = res.dataRestored
         ? ` 메뉴 ${res.dataRestored.menus}개·페이지 ${res.dataRestored.pages}개도 되돌렸습니다.`
         : res.dataError
           ? `\n${res.dataError}`
           : ''
-      alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote} 홈페이지를 새로고침하면 바로 보입니다.`)
+      const activatedNote = res.activated ? ` '${res.activated}' 템플릿을 다시 켰습니다.` : ''
+      alert(`파일 ${res.restored}개를 되돌렸습니다.${restoredNote}${activatedNote} 홈페이지를 새로고침하면 바로 보입니다.`)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -658,7 +704,8 @@ function ApplyHistoryModal({ onClose }: { onClose: () => void }) {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{formatStamp(item.createdAt)}</p>
                     <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                      파일 {item.files}개{item.hasData && ' · 메뉴·페이지 데이터 포함'}
+                      {item.templateName && `${item.templateName} 사용 중 · `}파일 {item.files}개
+                      {item.hasData && ' · 메뉴·페이지 데이터 포함'}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
@@ -1009,7 +1056,16 @@ function MetaEditModal({
             <label className="label" htmlFor="tpl-name">
               이름
             </label>
-            <input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} className="input" />
+            <input
+              id="tpl-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={template.builtin}
+            />
+            {template.builtin && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">기본 제공 템플릿은 이름을 바꿀 수 없습니다.</p>
+            )}
           </div>
           <div>
             <label className="label" htmlFor="tpl-ver">

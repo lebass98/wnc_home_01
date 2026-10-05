@@ -30,8 +30,10 @@ import { applySiteData, checkSiteLinks, dumpSiteData } from '../lib/templateData
 import {
   hasData,
   readBackupData,
+  readBackupMeta,
   readTemplateData,
   writeBackupData,
+  writeBackupMeta,
   writeTemplateData,
 } from '../lib/templateFiles.js'
 import { templateDataSchema } from '@wnc/shared'
@@ -275,7 +277,12 @@ templatesRouter.get(
   }),
 )
 
-/** 되돌리기 — 되돌리기 직전 모습도 새 기록으로 남는다. */
+/**
+ * 되돌리기 — 되돌리기 직전 모습도 새 기록으로 남는다.
+ * 그 기록이 다른 템플릿을 쓰던 때의 것이면 그 템플릿도 다시 켠다.
+ * 파일만 되돌리고 켜짐 표시를 그대로 두면, 다음에 템플릿을 바꿀 때
+ * 엉뚱한 템플릿에 지금 화면이 담겨 그 템플릿(Basic 포함)이 덮인다.
+ */
 templatesRouter.post(
   '/apply-backups/:stamp/restore',
   requireAuth,
@@ -291,12 +298,38 @@ templatesRouter.post(
         if (parsed.success) backupData = parsed.data
         else dataError = '백업의 메뉴·페이지 데이터가 규격에 맞지 않아 파일만 되돌렸습니다.'
       }
+
+      // 그 시점에 쓰던 템플릿 — 지금 켜진 것과 다르면 켜짐도 그쪽으로 옮긴다.
+      const meta = await readBackupMeta(req.params.stamp)
+      const owner = meta ? await prisma.siteTemplate.findUnique({ where: { id: meta.templateId } }) : null
+      const current = await prisma.siteTemplate.findFirst({ where: { active: true }, orderBy: { id: 'asc' } })
+      const switchTo = owner && owner.id !== current?.id ? owner : null
+
       // 되돌리기 직전의 메뉴·페이지를 먼저 담아 둔다 — 파일 백업과 같은 폴더에 남는다.
       const currentData = await dumpSiteData()
+      // 템플릿이 바뀌면 활성화처럼 지금 켜진 템플릿에 현재 모습을 갈무리해 둔다.
+      if (switchTo && current) {
+        await snapshotLive(current.id, manifestOf(current))
+        await writeTemplateData(current.id, currentData)
+      }
       const result = await restoreApplyBackup(req.params.stamp)
       await writeBackupData(result.backup, currentData)
+      if (current) await writeBackupMeta(result.backup, { templateId: current.id, templateName: current.name })
       const dataRestored = backupData ? await applySiteData(backupData) : null
-      res.json({ ...result, dataRestored, ...(dataError ? { dataError } : {}), linkIssues: await checkSiteLinks() })
+      if (switchTo) {
+        await prisma.$transaction([
+          prisma.siteTemplate.updateMany({ where: { active: true }, data: { active: false } }),
+          prisma.siteTemplate.update({ where: { id: switchTo.id }, data: { active: true } }),
+        ])
+      }
+      res.json({
+        ...result,
+        dataRestored,
+        ...(dataError ? { dataError } : {}),
+        activated: switchTo ? switchTo.name : null,
+        templates: await listAll(),
+        linkIssues: await checkSiteLinks(),
+      })
     } catch (e) {
       res.status(400).json({ message: (e as Error).message })
     }
@@ -344,6 +377,10 @@ templatesRouter.post(
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
+    // 지금 사이트는 켜진 템플릿의 모습이다 — 꺼진 템플릿에 담으면 그 템플릿이 남의 화면으로 덮인다.
+    if (!row.active) {
+      return res.status(400).json({ message: '현재 사이트는 켜져 있는 템플릿에만 담을 수 있습니다. 이 템플릿을 먼저 활성화하세요.' })
+    }
     const files = await snapshotLive(row.id, manifestOf(row))
     // 화면 파일과 함께 지금 메뉴·페이지도 담는다 — 이 템플릿을 다시 켤 때 되살릴 수 있다.
     await writeTemplateData(row.id, await dumpSiteData())
@@ -384,6 +421,18 @@ templatesRouter.put(
           .optional(),
       })
       .parse(req.body)
+
+    // Basic 은 언제든 다시 켜서 돌아올 기본값이다 — 이름·헤더·푸터를 바꿔 다른 디자인으로 쓰지 못하게 한다.
+    if (
+      row.builtin &&
+      ((data.name !== undefined && data.name !== row.name) ||
+        (data.header !== undefined && data.header !== row.header) ||
+        (data.footer !== undefined && data.footer !== row.footer))
+    ) {
+      return res.status(400).json({
+        message: '기본 제공 템플릿은 이름과 헤더·푸터 구성을 바꿀 수 없습니다. [복제]로 새 템플릿을 만들어 고쳐 쓰세요.',
+      })
+    }
 
     const updated = await prisma.siteTemplate.update({
       where: { id: row.id },
@@ -442,6 +491,8 @@ templatesRouter.post(
     // 2) 새 템플릿의 파일을 사이트에 적용하고, 백업에 지금 메뉴·페이지도 남긴다.
     const applied = await applyToLive(row.id)
     await writeBackupData(applied.backup, currentData)
+    // 이 백업이 어느 템플릿을 쓰던 때의 모습인지 남긴다 — 되돌리면 그 템플릿이 다시 켜진다.
+    if (current) await writeBackupMeta(applied.backup, { templateId: current.id, templateName: current.name })
 
     // 3) 함께 적용을 골랐으면 메뉴·페이지를 템플릿 데이터로 갈아 끼운다.
     let dataApplied: { menus: number; pages: number } | null = null

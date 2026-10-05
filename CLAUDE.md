@@ -121,6 +121,10 @@ curl -s -o /dev/null -w "api:%{http_code}\n" http://localhost:4000/api/health
 ## 커밋 전 확인 사항
 
 - `.env`, `*.db`, `node_modules/`, `dist/`, `apps/api/uploads/` 가 스테이징되지 않았는지 확인한다.
+- 활성 템플릿이 Basic 인지 확인한다 (`sqlite3 apps/api/prisma/dev.db "select name from SiteTemplate where active=1;"`).
+  다른 템플릿이 켜져 있으면 사이트 소스(`pages/site`·`layouts`·`components`)에 그 템플릿 파일이 덮여 있다.
+  그대로 커밋하면 저장소의 Basic 이 그 디자인으로 바뀌어 다른 PC·배포본에서 Basic 이 사라진다 —
+  해당 파일을 커밋하지 말고 사용자에게 알린다. (인테리어 작업 때 실제로 Basic 이 덮였던 사고가 있었다)
 - 프론트엔드를 수정했으면 `npm run typecheck --workspace=apps/web` 이 통과해야 한다.
 - 백엔드를 수정했으면 `npm run typecheck --workspace=apps/api` 가 통과해야 한다.
 
@@ -178,3 +182,5 @@ curl -s -o /dev/null -w "api:%{http_code}\n" http://localhost:4000/api/health
 - 기존 파일의 스타일(들여쓰기, 네이밍, 주석 밀도)을 따른다.
 - 사용자에게 보이는 오류 메시지는 무엇이 잘못됐고 어떻게 해야 하는지 알려준다.
 - 사이트 콘텐츠 폭은 `container-wnc` (최대 1440px) 를 사용한다.
+- 새 디자인은 Basic(기본 제공 템플릿)을 고쳐 만들지 않는다. 관리자 [템플릿 관리 → 새 템플릿]으로
+  만들어 켠 뒤 작업한다. Basic 의 이름·헤더·푸터, `ensureBuiltin`·데모 시드의 Basic 을 다른 디자인으로 바꾸지 않는다.

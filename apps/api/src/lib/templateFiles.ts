@@ -315,6 +315,36 @@ function isStamp(name: string): boolean {
   return /^\d{4}-\d{2}-\d{2}T[\d-]+Z$/.test(name)
 }
 
+const BACKUP_META_FILE = 'meta.json'
+
+/** 이 백업이 어느 템플릿을 쓰던 때의 모습인지 — 되돌릴 때 그 템플릿을 다시 켠다. */
+export interface ApplyBackupMeta {
+  templateId: number
+  templateName: string
+}
+
+export async function writeBackupMeta(stamp: string, meta: ApplyBackupMeta): Promise<void> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const dir = path.join(APPLY_BACKUP_DIR, stamp)
+  await mkdir(dir, { recursive: true })
+  await writeFile(path.join(dir, BACKUP_META_FILE), JSON.stringify(meta, null, 2), 'utf8')
+}
+
+/** 백업의 템플릿 기록 — 예전 백업(기록 없음)이거나 깨져 있으면 null. */
+export async function readBackupMeta(stamp: string): Promise<ApplyBackupMeta | null> {
+  if (!isStamp(stamp)) throw new Error('잘못된 백업 이름입니다.')
+  const file = path.join(APPLY_BACKUP_DIR, stamp, BACKUP_META_FILE)
+  if (!existsSync(file)) return null
+  try {
+    const meta = JSON.parse(await readFile(file, 'utf8')) as Partial<ApplyBackupMeta>
+    return Number.isInteger(meta.templateId)
+      ? { templateId: meta.templateId as number, templateName: String(meta.templateName ?? '') }
+      : null
+  } catch {
+    return null
+  }
+}
+
 export interface ApplyBackup {
   /** 폴더 이름이자 식별자 — 되돌릴 때 그대로 보낸다. */
   stamp: string
@@ -322,6 +352,9 @@ export interface ApplyBackup {
   files: number
   /** 메뉴·페이지 데이터도 담겨 있는지 */
   hasData: boolean
+  /** 이 모습을 쓰던 템플릿 — 예전 백업은 비어 있다. */
+  templateId: number | null
+  templateName: string
 }
 
 /**
@@ -338,7 +371,15 @@ export async function listApplyBackups(): Promise<ApplyBackup[]> {
       for (const folder of FOLDERS) files += (await listSources(path.join(dir, folder))).length
       // 폴더 이름이 곧 시각이다. '2026-09-03T09-52-46-792Z' → ISO 로 되돌린다.
       const iso = stamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z')
-      return { stamp, createdAt: iso, files, hasData: existsSync(path.join(dir, DATA_FILE)) }
+      const meta = await readBackupMeta(stamp)
+      return {
+        stamp,
+        createdAt: iso,
+        files,
+        hasData: existsSync(path.join(dir, DATA_FILE)),
+        templateId: meta?.templateId ?? null,
+        templateName: meta?.templateName ?? '',
+      }
     }),
   )
 }

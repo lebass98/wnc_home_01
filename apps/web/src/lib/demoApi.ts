@@ -915,6 +915,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   if (/^\/templates\/\d+\/snapshot$/.test(rawPath) && method === 'POST') {
     const t = db.templates.find((x) => x.id === Number(rawPath.split('/')[2]))
     if (!t) throw new DemoError('템플릿을 찾을 수 없습니다.', 404)
+    // 실제 API 처럼 켜진 템플릿에만 담는다 — 꺼진 템플릿이 남의 모습으로 덮이지 않게.
+    if (!t.active) throw new DemoError('현재 사이트는 켜져 있는 템플릿에만 담을 수 있습니다. 이 템플릿을 먼저 활성화하세요.', 400)
     // 데모에는 사이트 파일이 없어 메뉴·페이지만 담긴다.
     t.data = cloneSiteData()
     t.updatedAt = new Date().toISOString()
@@ -1019,6 +1021,15 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       }
     }
     if (!action && method === 'PUT') {
+      // 실제 API 처럼 Basic 은 이름·헤더·푸터를 바꿀 수 없다 — 언제든 다시 켜서 돌아올 기본값이다.
+      if (
+        t.builtin &&
+        ((typeof body.name === 'string' && body.name.trim() && body.name.trim() !== t.name) ||
+          (typeof body.header === 'string' && body.header !== t.header) ||
+          (typeof body.footer === 'string' && body.footer !== t.footer))
+      ) {
+        throw new DemoError('기본 제공 템플릿은 이름과 헤더·푸터 구성을 바꿀 수 없습니다. [복제]로 새 템플릿을 만들어 고쳐 쓰세요.', 400)
+      }
       if (typeof body.name === 'string' && body.name.trim()) t.name = body.name.trim()
       if (typeof body.description === 'string') t.description = body.description.trim()
       if (typeof body.version === 'string' && body.version.trim()) t.version = body.version.trim()

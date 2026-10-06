@@ -50,7 +50,7 @@ function extOf(m: MediaItem): string {
 const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
 
 /** 화면에 쓰는 아이콘 — 프로젝트 방식대로 인라인 SVG 로 그린다. */
-const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external', string> = {
+const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external' | 'prev' | 'next', string> = {
   grid: 'M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 13h6v6H4v-6zm10 0h6v6h-6v-6z',
   list: 'M4 6h16M4 12h16M4 18h16',
   trash: 'M6 7h12M9 7V5h6v2m-7 0 .6 12a1 1 0 001 1h4.8a1 1 0 001-1L16 7',
@@ -63,6 +63,8 @@ const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'p
   zoom: 'M10 4a6 6 0 104.5 10.5L20 20M8 10h4M10 8v4',
   close: 'M6 18L18 6M6 6l12 12',
   external: 'M14 4h6v6m0-6-8 8M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4',
+  prev: 'M15 19l-7-7 7-7',
+  next: 'M9 5l7 7-7 7',
 }
 
 function Icon({ name, className = 'h-4 w-4' }: { name: keyof typeof ICON; className?: string }) {
@@ -84,6 +86,24 @@ function Thumb({ item, className = '' }: { item: MediaItem; className?: string }
   )
 }
 
+/** 미리보기 좌우 끝의 이동 화살표 — 그림 세로 가운데에 걸린다. */
+function NavArrow({ dir, disabled, onClick }: { dir: 'prev' | 'next'; disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === 'prev' ? '이전 파일' : '다음 파일'}
+      title={dir === 'prev' ? '이전 파일 (←)' : '다음 파일 (→)'}
+      className={`absolute top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-slate-900/70 text-white ring-1 ring-white/25 transition hover:bg-slate-900 disabled:pointer-events-none disabled:opacity-0 ${
+        dir === 'prev' ? 'left-2' : 'right-2'
+      }`}
+    >
+      <Icon name={dir} className="h-5 w-5" />
+    </button>
+  )
+}
+
 /**
  * 파일 창 — 목록에서 고른 파일을 큰 모달로 띄운다.
  * 왼쪽은 미리보기(화면에 맞춤 / 원본 크기 1:1), 오른쪽은 파일 정보·대체 텍스트·쓰인 곳·삭제.
@@ -94,11 +114,19 @@ function MediaModal({
   onClose,
   onSaved,
   onDeleted,
+  onMove,
+  position,
+  total,
 }: {
   item: MediaItem
   onClose: () => void
   onSaved: (alt: string, title: string) => void
   onDeleted: () => void
+  /** 목록에서 앞·뒤 파일로 옮긴다. 끝에 닿으면 아무 일도 하지 않는다. */
+  onMove: (step: -1 | 1) => void
+  /** 지금 보고 있는 순서(1부터)와 전체 개수 — 목록에서 걸러 낸 것만 센다. */
+  position: number
+  total: number
 }) {
   /** fit = 화면에 맞춤, real = 원본 픽셀 크기 */
   const [zoom, setZoom] = useState<'fit' | 'real'>('fit')
@@ -106,10 +134,15 @@ function MediaModal({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      // 입력칸에 글을 쓰는 중이면 화살표는 글자 이동에 쓰도록 둔다.
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'ArrowLeft') onMove(-1)
+      if (e.key === 'ArrowRight') onMove(1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, onMove])
 
   return (
     <div
@@ -126,6 +159,7 @@ function MediaModal({
             {item.originalName || item.name}
           </p>
           <p className="text-xs text-white/70">
+            {total > 1 && `${position} / ${total} · `}
             {KIND_LABEL[item.kind]}
             {extOf(item) && ` · ${extLabel(extOf(item))}`}
             {item.kind === 'image' && ` · ${formatDimension(item)}`} · {formatSize(item.size)}
@@ -161,11 +195,18 @@ function MediaModal({
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
           {/* 미리보기 — 원본 크기에서는 그림이 상자보다 커질 수 있어 가로·세로로 스크롤한다. */}
-          <div
-            className={`min-h-0 flex-1 rounded-xl bg-slate-900/60 ${
-              item.kind === 'image' && zoom === 'real' ? 'overflow-auto' : 'grid place-items-center overflow-hidden'
-            }`}
-          >
+          <div className="relative min-h-0 flex-1">
+            {total > 1 && (
+              <>
+                <NavArrow dir="prev" disabled={position <= 1} onClick={() => onMove(-1)} />
+                <NavArrow dir="next" disabled={position >= total} onClick={() => onMove(1)} />
+              </>
+            )}
+            <div
+              className={`h-full rounded-xl bg-slate-900/60 ${
+                item.kind === 'image' && zoom === 'real' ? 'overflow-auto' : 'grid place-items-center overflow-hidden'
+              }`}
+            >
             {item.kind === 'image' ? (
               <img
                 src={item.url}
@@ -183,12 +224,13 @@ function MediaModal({
                 <Icon name={item.kind} className="h-12 w-12" />
                 {KIND_LABEL[item.kind]} 파일 열기 ↗
               </a>
-            )}
+              )}
+            </div>
           </div>
 
           {/* 정보 패널 — 평상시에는 숨어 있고 이 창에서만 보인다. */}
           <aside className="card min-h-0 w-full shrink-0 overflow-y-auto p-4 lg:w-[22rem]">
-            <MediaDetail item={item} onSaved={onSaved} onDeleted={onDeleted} />
+            <MediaDetail key={item.name} item={item} onSaved={onSaved} onDeleted={onDeleted} />
           </aside>
         </div>
       </div>
@@ -262,6 +304,8 @@ export default function MediaLibraryPage() {
   const toggleExt = (ext: string) => setExts((prev) => (prev.includes(ext) ? prev.filter((e) => e !== ext) : [...prev, ext]))
 
   const current = items?.find((m) => m.name === selected) ?? null
+  /** 창에서 앞·뒤로 옮길 때 쓰는 자리 — 지금 걸러 보고 있는 목록 기준이다. */
+  const shownIndex = shown.findIndex((m) => m.name === selected)
   /** 화면에 보이는 것 중 체크된 것만 센다 — 조건을 바꿔 숨은 파일이 몰래 지워지지 않게. */
   const pickedShown = shown.filter((m) => picked.includes(m.name))
   const allPicked = shown.length > 0 && pickedShown.length === shown.length
@@ -584,8 +628,13 @@ export default function MediaLibraryPage() {
 
       {current && (
         <MediaModal
-          key={current.name}
           item={current}
+          position={shownIndex + 1}
+          total={shownIndex < 0 ? 1 : shown.length}
+          onMove={(step) => {
+            const next = shown[shownIndex + step]
+            if (next) setSelected(next.name)
+          }}
           onClose={() => setSelected(null)}
           onSaved={(alt, title) => setItems((prev) => prev?.map((m) => (m.name === current.name ? { ...m, alt, title } : m)) ?? null)}
           onDeleted={() => {

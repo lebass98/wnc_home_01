@@ -46,6 +46,8 @@ export default {
       fontFamily: {
         sans: ['Pretendard GOV Variable', 'Pretendard GOV', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['Pretendard GOV Variable', 'Pretendard GOV', 'system-ui', 'sans-serif'],
+        // 로고 전용 — 글꼴 파일이 없으면 사이트 기본 글꼴로 되돌아간다.
+        logo: ['Bitcoa', 'Pretendard GOV Variable', 'Pretendard GOV', 'system-ui', 'sans-serif'],
       },
     },
   },

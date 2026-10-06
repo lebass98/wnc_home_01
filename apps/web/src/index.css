@@ -1,6 +1,19 @@
 /* 인테리어 템플릿의 세리프 제목 글꼴 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600&display=swap');
 
+/*
+ * 로고 글꼴 — Bitcoa. 파일은 public/fonts/ 에 넣는다 (그 폴더의 README 참고).
+ * 파일이 없으면 아래 font-logo 는 사이트 기본 글꼴로 조용히 되돌아간다.
+ */
+@font-face {
+  font-family: 'Bitcoa';
+  src: url('/fonts/Bitcoa.woff2') format('woff2'), url('/fonts/Bitcoa.otf') format('opentype'),
+    url('/fonts/Bitcoa.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

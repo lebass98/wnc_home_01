@@ -54,9 +54,10 @@ export default function BasicHeader({ menu, logo, logoImage, overlay, transparen
         <Link to="/" className="flex items-center gap-2" aria-label={logo}>
           {/* [환경설정]에서 타이틀 이미지를 올렸으면 그림을, 없으면 글자 로고를 건다. */}
           {logoImage ? (
-            <img src={logoImage} alt={logo} className="h-8 w-auto max-w-[13rem] object-contain" />
+            <img src={logoImage} alt={logo} className="h-[2.625rem] w-auto max-w-[17rem] object-contain" />
           ) : (
-            <span className={`text-xl font-bold tracking-[0.25em] ${transparent ? 'text-white' : 'text-slate-900'}`}>
+            /* 로고 글꼴(Bitcoa) — 파일이 없으면 기본 글꼴로 보인다. 크기는 기존보다 30% 크게. */
+            <span className={`font-logo text-[1.625rem] font-bold leading-none tracking-[0.25em] ${transparent ? 'text-white' : 'text-slate-900'}`}>
               {logo}
             </span>
           )}

@@ -50,7 +50,7 @@ function extOf(m: MediaItem): string {
 const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
 
 /** 화면에 쓰는 아이콘 — 프로젝트 방식대로 인라인 SVG 로 그린다. */
-const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file', string> = {
+const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external', string> = {
   grid: 'M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 13h6v6H4v-6zm10 0h6v6h-6v-6z',
   list: 'M4 6h16M4 12h16M4 18h16',
   trash: 'M6 7h12M9 7V5h6v2m-7 0 .6 12a1 1 0 001 1h4.8a1 1 0 001-1L16 7',
@@ -60,6 +60,9 @@ const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'p
   pdf: 'M7 3h7l5 5v13H7V3zm7 0v5h5M9 13h6M9 17h4',
   zip: 'M7 3h10v18H7V3zm5 0v4m0 2v2m0 2v2',
   file: 'M7 3h7l5 5v13H7V3zm7 0v5h5',
+  zoom: 'M10 4a6 6 0 104.5 10.5L20 20M8 10h4M10 8v4',
+  close: 'M6 18L18 6M6 6l12 12',
+  external: 'M14 4h6v6m0-6-8 8M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4',
 }
 
 function Icon({ name, className = 'h-4 w-4' }: { name: keyof typeof ICON; className?: string }) {
@@ -78,6 +81,118 @@ function Thumb({ item, className = '' }: { item: MediaItem; className?: string }
     <span className={`grid place-items-center gap-0.5 bg-slate-100 text-[10px] font-bold text-slate-400 dark:bg-slate-900 ${className}`}>
       <Icon name={item.kind} className="h-1/3 max-h-8 min-h-4 w-auto" />
     </span>
+  )
+}
+
+/**
+ * 파일 창 — 목록에서 고른 파일을 큰 모달로 띄운다.
+ * 왼쪽은 미리보기(화면에 맞춤 / 원본 크기 1:1), 오른쪽은 파일 정보·대체 텍스트·쓰인 곳·삭제.
+ * 정보는 평상시에는 보이지 않고 이 창에서만 본다. ESC·바깥 클릭으로 닫는다.
+ */
+function MediaModal({
+  item,
+  onClose,
+  onSaved,
+  onDeleted,
+}: {
+  item: MediaItem
+  onClose: () => void
+  onSaved: (alt: string, title: string) => void
+  onDeleted: () => void
+}) {
+  /** fit = 화면에 맞춤, real = 원본 픽셀 크기 */
+  const [zoom, setZoom] = useState<'fit' | 'real'>('fit')
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex flex-col p-3 sm:p-6"
+      role="dialog"
+      aria-modal
+      aria-label={`${item.originalName || item.name} 자세히 보기`}
+    >
+      <div className="fixed inset-0 bg-slate-950/80" onClick={onClose} aria-hidden />
+
+      <div className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-white">
+          <p className="min-w-0 flex-1 truncate text-sm font-semibold" title={item.originalName || item.name}>
+            {item.originalName || item.name}
+          </p>
+          <p className="text-xs text-white/70">
+            {KIND_LABEL[item.kind]}
+            {extOf(item) && ` · ${extLabel(extOf(item))}`}
+            {item.kind === 'image' && ` · ${formatDimension(item)}`} · {formatSize(item.size)}
+          </p>
+          {item.kind === 'image' && (
+            <button
+              type="button"
+              onClick={() => setZoom(zoom === 'fit' ? 'real' : 'fit')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
+            >
+              <Icon name="zoom" />
+              {zoom === 'fit' ? '원본 크기로' : '화면에 맞추기'}
+            </button>
+          )}
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/10"
+          >
+            <Icon name="external" />
+            새 탭에서 열기
+          </a>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="rounded-lg border border-white/30 p-1.5 text-white transition hover:bg-white/10"
+          >
+            <Icon name="close" className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
+          {/* 미리보기 — 원본 크기에서는 그림이 상자보다 커질 수 있어 가로·세로로 스크롤한다. */}
+          <div
+            className={`min-h-0 flex-1 rounded-xl bg-slate-900/60 ${
+              item.kind === 'image' && zoom === 'real' ? 'overflow-auto' : 'grid place-items-center overflow-hidden'
+            }`}
+          >
+            {item.kind === 'image' ? (
+              <img
+                src={item.url}
+                alt={item.alt}
+                className={zoom === 'real' ? 'max-w-none' : 'max-h-full max-w-full object-contain'}
+                {...(zoom === 'real' && item.width ? { width: item.width, height: item.height } : {})}
+              />
+            ) : (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="grid place-items-center gap-2 p-10 text-sm font-medium text-white/80 transition hover:text-white"
+              >
+                <Icon name={item.kind} className="h-12 w-12" />
+                {KIND_LABEL[item.kind]} 파일 열기 ↗
+              </a>
+            )}
+          </div>
+
+          {/* 정보 패널 — 평상시에는 숨어 있고 이 창에서만 보인다. */}
+          <aside className="card min-h-0 w-full shrink-0 overflow-y-auto p-4 lg:w-[22rem]">
+            <MediaDetail item={item} onSaved={onSaved} onDeleted={onDeleted} />
+          </aside>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -331,7 +446,7 @@ export default function MediaLibraryPage() {
 
       {error && <ErrorMessage message={error} />}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div>
         <div
           onDragOver={onDragOver}
           onDragEnter={onDragOver}
@@ -355,7 +470,7 @@ export default function MediaLibraryPage() {
           ) : view === 'grid' ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {shown.map((m) => (
-                <li key={m.name} className="relative">
+                <li key={m.name} className="group relative">
                   <button
                     type="button"
                     onClick={() => setSelected(m.name)}
@@ -425,15 +540,27 @@ export default function MediaLibraryPage() {
                         />
                       </td>
                       <td className="py-2">
-                        <button type="button" onClick={() => setSelected(m.name)} className="flex items-center gap-2.5 text-left">
-                          <Thumb item={m} className="h-10 w-10 shrink-0 rounded border border-slate-200 dark:border-slate-700" />
-                          <span className="min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          {m.kind === 'image' ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelected(m.name)}
+                              title="자세히 보기"
+                              className="shrink-0 rounded border border-slate-200 transition hover:ring-2 hover:ring-brand-400 dark:border-slate-700"
+                            >
+                              <Thumb item={m} className="h-10 w-10 rounded" />
+                              <span className="sr-only">{m.originalName || m.name} 자세히 보기</span>
+                            </button>
+                          ) : (
+                            <Thumb item={m} className="h-10 w-10 shrink-0 rounded border border-slate-200 dark:border-slate-700" />
+                          )}
+                          <button type="button" onClick={() => setSelected(m.name)} className="min-w-0 text-left">
                             <span className="block max-w-[18rem] truncate font-medium text-slate-700 dark:text-slate-200">
                               {m.originalName || m.name}
                             </span>
                             <span className="block max-w-[18rem] truncate text-[11px] text-slate-400">{m.alt || m.title || m.url}</span>
-                          </span>
-                        </button>
+                          </button>
+                        </div>
                       </td>
                       <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-400">
                         {KIND_LABEL[m.kind]}
@@ -453,29 +580,35 @@ export default function MediaLibraryPage() {
           )}
         </div>
 
-        <aside className="card h-fit p-4 lg:sticky lg:top-[8.75rem]">
-          {current ? (
-            <MediaDetail
-              key={current.name}
-              item={current}
-              onSaved={(alt, title) => setItems((prev) => prev?.map((m) => (m.name === current.name ? { ...m, alt, title } : m)) ?? null)}
-              onDeleted={() => {
-                setSelected(null)
-                setPicked((prev) => prev.filter((n) => n !== current.name))
-                load()
-              }}
-            />
-          ) : (
-            <p className="py-10 text-center text-sm text-slate-400">파일을 고르면 자세한 정보가 여기 나옵니다.</p>
-          )}
-        </aside>
       </div>
+
+      {current && (
+        <MediaModal
+          key={current.name}
+          item={current}
+          onClose={() => setSelected(null)}
+          onSaved={(alt, title) => setItems((prev) => prev?.map((m) => (m.name === current.name ? { ...m, alt, title } : m)) ?? null)}
+          onDeleted={() => {
+            setSelected(null)
+            setPicked((prev) => prev.filter((n) => n !== current.name))
+            load()
+          }}
+        />
+      )}
     </>
   )
 }
 
-/** 고른 파일 — 미리보기·주소 복사·대체 텍스트·쓰인 곳·삭제 */
-function MediaDetail({ item, onSaved, onDeleted }: { item: MediaItem; onSaved: (alt: string, title: string) => void; onDeleted: () => void }) {
+/** 파일 창의 정보 패널 — 주소 복사·대체 텍스트·쓰인 곳·삭제 (미리보기는 창 왼쪽에 있다) */
+function MediaDetail({
+  item,
+  onSaved,
+  onDeleted,
+}: {
+  item: MediaItem
+  onSaved: (alt: string, title: string) => void
+  onDeleted: () => void
+}) {
   const [alt, setAlt] = useState(item.alt)
   const [title, setTitle] = useState(item.title)
   const [saving, setSaving] = useState(false)
@@ -522,16 +655,6 @@ function MediaDetail({ item, onSaved, onDeleted }: { item: MediaItem; onSaved: (
 
   return (
     <div className="space-y-4">
-      {item.kind === 'image' ? (
-        <a href={item.url} target="_blank" rel="noopener noreferrer" title="원본 보기">
-          <img src={item.url} alt={item.alt} className="max-h-64 w-full rounded-lg bg-slate-100 object-contain dark:bg-slate-900" />
-        </a>
-      ) : (
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="grid h-32 place-items-center rounded-lg bg-slate-100 text-sm font-medium text-brand-600 dark:bg-slate-900">
-          {KIND_LABEL[item.kind]} 파일 열기 ↗
-        </a>
-      )}
-
       <dl className="grid grid-cols-[4.5rem_1fr] gap-y-1.5 text-xs">
         <dt className="text-slate-400">원래 이름</dt>
         <dd className="break-all text-slate-700 dark:text-slate-200">{item.originalName || '—'}</dd>

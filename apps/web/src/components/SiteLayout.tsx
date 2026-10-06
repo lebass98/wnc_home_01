@@ -36,6 +36,8 @@ export default function SiteLayout() {
   const logo = components.header.logoText || company.companyNameEn || company.companyName
   // [환경설정]의 '사이트 타이틀 이미지' 를 올렸으면 헤더 로고로 그 그림을 쓴다.
   const logoImage = componentImageUrl(components.header.logoImage) || setting?.titleImage || null
+  // 로고 이미지도, [컴포넌트 관리]의 로고 글자도 정하지 않았으면 브랜드 로고(SVG)를 건다.
+  const brandLogo = !logoImage && !components.header.logoText?.trim()
 
   // 페이지 이동 시 모바일 메뉴를 닫고 상단으로 스크롤한다.
   useEffect(() => {
@@ -81,6 +83,7 @@ export default function SiteLayout() {
         menu={menu}
         logo={logo}
         logoImage={logoImage}
+        brandLogo={brandLogo}
         onClose={() => setOpen(false)}
         onOpenSitemap={() => setSitemapOpen(true)}
       />
@@ -88,6 +91,7 @@ export default function SiteLayout() {
         menu={menu}
         logo={logo}
         logoImage={logoImage}
+        brandLogo={brandLogo}
         overlay={overHero}
         transparent={transparent}
         onOpenMobile={() => setOpen(true)}

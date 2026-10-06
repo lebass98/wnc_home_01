@@ -72,6 +72,11 @@ export interface SiteHeaderProps {
   /** [환경설정]에서 올린 사이트 타이틀 이미지. 있으면 글자 대신 이 그림을 건다. */
   logoImage?: string | null
   /**
+   * 브랜드 로고(SVG)를 쓸지 — 관리자가 로고 이미지도 로고 글자도 따로 정하지 않은 기본 상태다.
+   * 켜져 있으면 글자 대신 BrandLogo 를 건다.
+   */
+  brandLogo?: boolean
+  /**
    * 어두운 히어로가 있는 화면 — 헤더가 자리를 차지하지 않고 그 위에 떠 있어야 한다(fixed).
    * 스크롤과 무관하게 화면 종류로 정해진다. 스크롤 중에 fixed↔sticky 를 오가면 본문이 헤더 높이만큼 튀므로,
    * 위치 방식은 이 값으로 고정하고 색만 transparent 로 바꾼다.

@@ -5,6 +5,7 @@ import { changeLanguage, currentLanguage, LANGUAGES, LANGUAGE_LABEL, type Langua
 import { isExternalUrl, type SiteMenuLink } from '../lib/menus'
 import { requestOpenPopups, usePopupCount } from '../lib/popupLayer'
 import { Flag, LANGUAGE_CODE } from './LanguageFlag'
+import BrandLogo from './BrandLogo'
 
 /** 여닫는 데 걸리는 시간(ms) — 아래 CSS duration 과 맞춘다. */
 const DURATION = 400
@@ -53,6 +54,7 @@ export default function MobileNavDrawer({
   menu,
   logo,
   logoImage,
+  brandLogo = false,
   onClose,
   onOpenSitemap,
 }: {
@@ -63,6 +65,8 @@ export default function MobileNavDrawer({
   logo: string
   /** [환경설정]에서 올린 사이트 타이틀 이미지 */
   logoImage?: string | null
+  /** 브랜드 로고(SVG)를 쓸지 — 로고 이미지·글자를 따로 정하지 않은 기본 상태 */
+  brandLogo?: boolean
   onClose: () => void
   onOpenSitemap: () => void
 }) {
@@ -102,6 +106,8 @@ export default function MobileNavDrawer({
           <Link to="/" onClick={onClose} aria-label={logo}>
             {logoImage ? (
               <img src={logoImage} alt={logo} className="h-7 w-auto max-w-[11rem] object-contain" />
+            ) : brandLogo ? (
+              <BrandLogo className="h-6 text-white" />
             ) : (
               <span className="text-lg font-bold tracking-[0.25em] text-white">{logo}</span>
             )}

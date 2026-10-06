@@ -102,8 +102,9 @@
       opacity: 0;
     }
   }
+  /* 입력폼(.input/.select) 과 나란히 놓여도 높이가 같게 — 테두리 두께(1px)까지 맞춘다. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-transparent px-4 py-2.5 text-sm font-semibold transition
            focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {

@@ -277,9 +277,10 @@ export default function MediaLibraryPage() {
         </p>
       </div>
 
-      {extGroups.length > 1 && (
+      {extGroups.length > 0 && (
         <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
           <span className="text-sm font-medium text-slate-600 dark:text-slate-300">확장자</span>
+          <span className="text-xs text-slate-400">{exts.length === 0 ? '전체 보는 중 — 체크하면 그 확장자만 보입니다' : `${exts.length}종 선택`}</span>
           {extGroups.map(([ext, count]) => {
             const on = exts.includes(ext)
             return (

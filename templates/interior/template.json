@@ -2,7 +2,7 @@
   "type": "wnc-template",
   "slug": "interior",
   "name": "인테리어",
-  "description": "워드앤코드 인테리어 템플릿 (피그마 시안)",
+  "description": "인테리어 템플릿 [최지영과장]",
   "version": "1.0.0",
   "author": "wordncode",
   "header": "interior",
@@ -10,5 +10,9 @@
   "pageLayouts": {
     "/terms": "left",
     "/privacy": "left"
-  }
+  },
+  "requires": [
+    "menu",
+    "page"
+  ]
 }

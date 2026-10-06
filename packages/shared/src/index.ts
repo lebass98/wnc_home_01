@@ -1646,5 +1646,8 @@ export interface MediaItem {
   alt: string
   title: string
   originalName: string
+  /** 그림의 가로·세로 (픽셀) — 알 수 없는 형식이면 없다 */
+  width?: number
+  height?: number
   usages: MediaUsage[]
 }

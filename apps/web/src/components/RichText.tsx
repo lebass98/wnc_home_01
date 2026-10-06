@@ -1,5 +1,3 @@
-import { uploadPathOf, useMediaAlts } from '../lib/media'
-
 /**
  * 관리자가 작성한 상세 본문 HTML 을 렌더링한다.
  * 저장 시 편집기에서 허용 태그만 만들어지지만, 표시 직전에도 한 번 더 정리한다.
@@ -19,11 +17,8 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   TD: new Set(['colspan', 'rowspan']),
 }
 
-/**
- * script/onclick/javascript: 등 실행 가능한 요소를 제거한다.
- * 대체 텍스트가 비어 있는 그림은 [미디어 라이브러리]에 적어 둔 값으로 채운다.
- */
-function sanitize(html: string, alts: Record<string, string> = {}): string {
+/** script/onclick/javascript: 등 실행 가능한 요소를 제거한다. */
+function sanitize(html: string): string {
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html')
   const root = doc.body.firstElementChild
   if (!root) return ''
@@ -46,10 +41,6 @@ function sanitize(html: string, alts: Record<string, string> = {}): string {
           child.removeAttribute(attr.name)
         }
       }
-      if (child.tagName === 'IMG' && !child.getAttribute('alt')?.trim()) {
-        const path = uploadPathOf(child.getAttribute('src') ?? '')
-        if (path && alts[path]) child.setAttribute('alt', alts[path])
-      }
       // 외부 링크는 새 탭 + noopener 로 연다.
       if (child.tagName === 'A' && child.getAttribute('href')?.startsWith('http')) {
         child.setAttribute('target', '_blank')
@@ -63,14 +54,13 @@ function sanitize(html: string, alts: Record<string, string> = {}): string {
 }
 
 export default function RichText({ html, className = '' }: { html: string; className?: string }) {
-  const alts = useMediaAlts()
   if (!html?.trim()) {
     return <p className="text-sm text-slate-500">등록된 상세 내용이 없습니다.</p>
   }
   return (
     <div
       className={`prose-wnc ${className}`}
-      dangerouslySetInnerHTML={{ __html: sanitize(html, alts) }}
+      dangerouslySetInnerHTML={{ __html: sanitize(html) }}
     />
   )
 }

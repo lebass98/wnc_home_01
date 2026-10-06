@@ -14,22 +14,69 @@ import { Badge, EmptyState, ErrorMessage, Loading, PageHeader } from '../../comp
 
 type KindFilter = 'all' | 'image' | 'doc'
 type UseFilter = 'all' | 'used' | 'unused'
+/** 정렬 기준 — 올린 날짜·이름·용량 */
+type SortKey = 'new' | 'old' | 'name' | 'name-desc' | 'big' | 'small'
+/** 보기 방식 — 썸네일 카드 / 썸네일이 붙은 목록 */
+type ViewMode = 'grid' | 'list'
+
+const SORT_LABEL: Record<SortKey, string> = {
+  new: '최근에 올린 순',
+  old: '먼저 올린 순',
+  name: '이름 (ㄱ-ㅎ, A-Z)',
+  'name-desc': '이름 (역순)',
+  big: '용량 큰 순',
+  small: '용량 작은 순',
+}
 
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`
   return `${Math.max(1, Math.round(bytes / 1024))}KB`
 }
 
+/** 그림의 가로×세로 — 알 수 없는 형식(AVIF 등)이면 '—' */
+function formatDimension(m: MediaItem) {
+  return m.width && m.height ? `${m.width} × ${m.height}` : '—'
+}
+
 const KIND_LABEL: Record<MediaItem['kind'], string> = { image: '그림', video: '영상', pdf: 'PDF', zip: 'ZIP', file: '파일' }
+
+/** 파일 확장자 — 올릴 때 이름이 바뀌어도 확장자는 그대로라 저장 이름에서 읽는다. 없으면 빈 문자열. */
+function extOf(m: MediaItem): string {
+  const name = m.originalName || m.name
+  const i = name.lastIndexOf('.')
+  return i > 0 ? name.slice(i + 1).toLowerCase() : ''
+}
+
+const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
+
+/** 목록·카드에 쓰는 작은 미리보기 — 그림이 아니면 종류 글자를 보여 준다. */
+function Thumb({ item, className = '' }: { item: MediaItem; className?: string }) {
+  if (item.kind === 'image')
+    return <img src={item.url} alt={item.alt} loading="lazy" className={`bg-slate-100 object-cover dark:bg-slate-900 ${className}`} />
+  return (
+    <span className={`grid place-items-center bg-slate-100 text-[10px] font-bold text-slate-400 dark:bg-slate-900 ${className}`}>
+      {KIND_LABEL[item.kind]}
+    </span>
+  )
+}
 
 export default function MediaLibraryPage() {
   const [items, setItems] = useState<MediaItem[] | null>(null)
   const [error, setError] = useState('')
   const [kind, setKind] = useState<KindFilter>('all')
   const [use, setUse] = useState<UseFilter>('all')
+  const [sort, setSort] = useState<SortKey>('new')
+  /** 체크한 확장자만 보여 준다. 빈 배열이면 모든 확장자. */
+  const [exts, setExts] = useState<string[]>([])
+  const [view, setView] = useState<ViewMode>('grid')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
+  /** 체크해 둔 파일 이름 — 선택 삭제가 쓴다. */
+  const [picked, setPicked] = useState<string[]>([])
   const [uploading, setUploading] = useState('')
+  const [removing, setRemoving] = useState('')
+  /** 파일을 끌어다 올리는 중인지 — 목록 테두리를 밝혀 둘 곳을 알려 준다. */
+  const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   function load() {
@@ -45,17 +92,47 @@ export default function MediaLibraryPage() {
   const shown = useMemo(() => {
     if (!items) return []
     const q = query.trim().toLowerCase()
-    return items.filter((m) => {
+    const filtered = items.filter((m) => {
       if (kind === 'image' && m.kind !== 'image') return false
       if (kind === 'doc' && m.kind === 'image') return false
       if (use === 'used' && m.usages.length === 0) return false
       if (use === 'unused' && m.usages.length > 0) return false
+      if (exts.length > 0 && !exts.includes(extOf(m))) return false
       return !q || [m.name, m.originalName, m.alt, m.title].some((v) => v.toLowerCase().includes(q))
     })
-  }, [items, kind, use, query])
+    const nameOf = (m: MediaItem) => (m.originalName || m.name).toLowerCase()
+    const byName = (a: MediaItem, b: MediaItem) => nameOf(a).localeCompare(nameOf(b), 'ko')
+    const sorters: Record<SortKey, (a: MediaItem, b: MediaItem) => number> = {
+      new: (a, b) => b.createdAt.localeCompare(a.createdAt),
+      old: (a, b) => a.createdAt.localeCompare(b.createdAt),
+      name: byName,
+      'name-desc': (a, b) => byName(b, a),
+      big: (a, b) => b.size - a.size,
+      small: (a, b) => a.size - b.size,
+    }
+    return [...filtered].sort(sorters[sort])
+  }, [items, kind, use, query, sort, exts])
 
-  const unused = items?.filter((m) => m.usages.length === 0) ?? []
+  /** 올라와 있는 확장자와 개수 — 많은 것부터 보여 준다. */
+  const extGroups = useMemo(() => {
+    const count = new Map<string, number>()
+    for (const m of items ?? []) {
+      const e = extOf(m)
+      count.set(e, (count.get(e) ?? 0) + 1)
+    }
+    return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  }, [items])
+
+  const toggleExt = (ext: string) => setExts((prev) => (prev.includes(ext) ? prev.filter((e) => e !== ext) : [...prev, ext]))
+
   const current = items?.find((m) => m.name === selected) ?? null
+  /** 화면에 보이는 것 중 체크된 것만 센다 — 조건을 바꿔 숨은 파일이 몰래 지워지지 않게. */
+  const pickedShown = shown.filter((m) => picked.includes(m.name))
+  const allPicked = shown.length > 0 && pickedShown.length === shown.length
+
+  const toggle = (name: string) =>
+    setPicked((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
+  const toggleAll = () => setPicked(allPicked ? [] : shown.map((m) => m.name))
 
   async function upload(files: FileList) {
     const list = [...files]
@@ -73,18 +150,43 @@ export default function MediaLibraryPage() {
     if (failed.length) alert(`올리지 못한 파일이 있습니다.\n\n${failed.join('\n')}`)
   }
 
-  async function cleanUnused() {
-    if (unused.length === 0) return
-    const total = unused.reduce((sum, m) => sum + m.size, 0)
-    if (!confirm(`아무 데도 쓰이지 않는 파일 ${unused.length}개(${formatSize(total)})를 지울까요?\n되돌릴 수 없습니다.`)) return
+  /** 끌어다 놓기 — 창 밖에서 들어온 파일만 받는다(목록 안 요소를 끄는 것과 구분). */
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragging(false)
+    if (IS_DEMO || uploading) return
+    const files = e.dataTransfer?.files
+    if (files?.length) upload(files)
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return
+    e.preventDefault()
+    if (!IS_DEMO && !uploading) setDragging(true)
+  }
+
+  /** 체크한 파일을 지운다 — 쓰이는 곳이 있는 파일은 몇 개인지 알려 주고 한 번 더 묻는다. */
+  async function removePicked() {
+    const targets = pickedShown
+    if (targets.length === 0) return
+    const used = targets.filter((m) => m.usages.length > 0)
+    const total = targets.reduce((sum, m) => sum + m.size, 0)
+    const warn = used.length
+      ? `\n\n이 중 ${used.length}개는 홈페이지에서 쓰이고 있습니다. 지우면 그곳의 그림·첨부가 깨집니다.`
+      : ''
+    if (!confirm(`고른 파일 ${targets.length}개(${formatSize(total)})를 지울까요?${warn}\n되돌릴 수 없습니다.`)) return
+
     const failed: string[] = []
-    for (const m of unused) {
+    for (const [i, m] of targets.entries()) {
+      setRemoving(`지우는 중 ${i + 1}/${targets.length}`)
       try {
-        await api(`/media/${m.name}`, { method: 'DELETE', auth: true })
+        await api(`/media/${m.name}${m.usages.length ? '?force=1' : ''}`, { method: 'DELETE', auth: true })
       } catch (e) {
         failed.push(`${m.originalName || m.name}: ${(e as Error).message}`)
       }
     }
+    setRemoving('')
+    setPicked([])
     setSelected(null)
     load()
     if (failed.length) alert(`지우지 못한 파일이 있습니다.\n\n${failed.join('\n')}`)
@@ -94,11 +196,16 @@ export default function MediaLibraryPage() {
     <>
       <PageHeader
         title="미디어 라이브러리"
-        description="올린 그림·문서를 한곳에서 보고, 대체 텍스트를 적고, 쓰지 않는 파일을 정리합니다."
+        description="파일을 목록으로 끌어다 놓아 올리고, 대체 텍스트를 적고, 고른 파일을 한꺼번에 지웁니다."
         action={
           <div className="flex gap-2">
-            <button type="button" onClick={cleanUnused} disabled={IS_DEMO || unused.length === 0} className="btn-secondary disabled:opacity-50">
-              미사용 정리{unused.length > 0 && ` (${unused.length})`}
+            <button
+              type="button"
+              onClick={removePicked}
+              disabled={IS_DEMO || pickedShown.length === 0 || !!removing}
+              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:hover:bg-red-950/40"
+            >
+              {removing || `선택 삭제${pickedShown.length > 0 ? ` (${pickedShown.length})` : ''}`}
             </button>
             <input
               ref={fileRef}
@@ -124,7 +231,7 @@ export default function MediaLibraryPage() {
         </p>
       )}
 
-      <div className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+      <div className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="파일 이름·대체 텍스트로 찾기" className="input sm:max-w-xs" />
         <select value={kind} onChange={(e) => setKind(e.target.value as KindFilter)} className="select sm:w-36" aria-label="종류">
           <option value="all">모든 종류</option>
@@ -136,23 +243,93 @@ export default function MediaLibraryPage() {
           <option value="used">쓰이는 파일</option>
           <option value="unused">미사용 파일</option>
         </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="select sm:w-44" aria-label="정렬">
+          {Object.entries(SORT_LABEL).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <div className="flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700" role="group" aria-label="보기 방식">
+          {([
+            ['grid', '썸네일형'],
+            ['list', '목록형'],
+          ] as [ViewMode, string][]).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setView(mode)}
+              aria-pressed={view === mode}
+              className={`px-3 py-2 text-sm font-medium transition ${
+                view === mode ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input type="checkbox" checked={allPicked} onChange={toggleAll} disabled={shown.length === 0} className="h-4 w-4 rounded border-slate-300" />
+          전체 선택
+        </label>
         <p className="text-sm text-slate-500 sm:ml-auto dark:text-slate-400">
-          {items ? `${shown.length}개 · 전체 ${items.length}개` : ''}
+          {items ? `${shown.length}개 · 전체 ${items.length}개${pickedShown.length ? ` · ${pickedShown.length}개 선택` : ''}` : ''}
         </p>
       </div>
+
+      {extGroups.length > 1 && (
+        <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">확장자</span>
+          {extGroups.map(([ext, count]) => {
+            const on = exts.includes(ext)
+            return (
+              <label
+                key={ext || 'none'}
+                className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  on
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <input type="checkbox" checked={on} onChange={() => toggleExt(ext)} className="h-3.5 w-3.5 rounded border-slate-300" />
+                {extLabel(ext)} ({count})
+              </label>
+            )
+          })}
+          {exts.length > 0 && (
+            <button type="button" onClick={() => setExts([])} className="text-xs font-medium text-slate-500 underline hover:text-slate-700 dark:text-slate-400">
+              확장자 선택 해제
+            </button>
+          )}
+        </div>
+      )}
 
       {error && <ErrorMessage message={error} />}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="card p-4">
+        <div
+          onDragOver={onDragOver}
+          onDragEnter={onDragOver}
+          onDragLeave={(e) => {
+            // 안쪽 요소를 지날 때도 leave 가 오므로, 영역을 정말 벗어났을 때만 끈다.
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false)
+          }}
+          onDrop={onDrop}
+          className={`card relative p-4 transition ${dragging ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
+        >
+          {dragging && (
+            <p className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl bg-brand-50/90 text-sm font-semibold text-brand-700 dark:bg-brand-950/80 dark:text-brand-200">
+              여기에 놓으면 파일이 올라갑니다
+            </p>
+          )}
           {!items ? (
             <Loading />
           ) : shown.length === 0 ? (
-            <EmptyState label={items.length === 0 ? '올린 파일이 없습니다.' : '조건에 맞는 파일이 없습니다.'} />
-          ) : (
+            <EmptyState label={items.length === 0 ? '올린 파일이 없습니다. 파일을 이곳으로 끌어다 놓아 보세요.' : '조건에 맞는 파일이 없습니다.'} />
+          ) : view === 'grid' ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {shown.map((m) => (
-                <li key={m.name}>
+                <li key={m.name} className="relative">
                   <button
                     type="button"
                     onClick={() => setSelected(m.name)}
@@ -161,22 +338,92 @@ export default function MediaLibraryPage() {
                       selected === m.name ? 'border-brand-500 ring-2 ring-brand-500/40' : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
                     }`}
                   >
-                    <div className="relative aspect-square bg-slate-100 dark:bg-slate-900">
-                      {m.kind === 'image' ? (
-                        <img src={m.url} alt={m.alt} loading="lazy" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="grid h-full w-full place-items-center text-lg font-bold text-slate-400">{KIND_LABEL[m.kind]}</span>
-                      )}
+                    <div className="relative aspect-square">
+                      <Thumb item={m} className="h-full w-full" />
                       {m.usages.length === 0 && (
                         <span className="absolute left-1.5 top-1.5 rounded bg-slate-900/70 px-1.5 py-0.5 text-[10px] font-medium text-white">미사용</span>
                       )}
                     </div>
                     <p className="truncate px-2 pt-1.5 text-xs font-medium text-slate-700 dark:text-slate-200">{m.originalName || m.name}</p>
-                    <p className="px-2 pb-1.5 text-[11px] text-slate-400">{formatSize(m.size)}</p>
+                    <p className="px-2 text-[11px] text-slate-400">
+                      {extLabel(extOf(m))} · {formatSize(m.size)}
+                      {m.kind === 'image' && m.width ? ` · ${formatDimension(m)}` : ''}
+                    </p>
+                    <p className="px-2 pb-1.5 text-[11px] tabular-nums text-slate-400">{formatStamp(m.createdAt).slice(0, 10)}</p>
                   </button>
+                  <label
+                    className="absolute right-1.5 top-1.5 cursor-pointer rounded bg-white/90 p-1 shadow-sm dark:bg-slate-900/90"
+                    title="선택"
+                  >
+                    <input type="checkbox" checked={picked.includes(m.name)} onChange={() => toggle(m.name)} className="h-4 w-4 rounded border-slate-300" />
+                    <span className="sr-only">{m.originalName || m.name} 선택</span>
+                  </label>
                 </li>
               ))}
             </ul>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  <tr>
+                    <th className="w-9 py-2">
+                      <input
+                        type="checkbox"
+                        checked={allPicked}
+                        onChange={toggleAll}
+                        className="h-4 w-4 rounded border-slate-300"
+                        aria-label="목록 전체 선택"
+                      />
+                    </th>
+                    <th className="py-2 font-medium">파일</th>
+                    <th className="py-2 font-medium">종류</th>
+                    <th className="py-2 font-medium">이미지 크기</th>
+                    <th className="py-2 font-medium">용량</th>
+                    <th className="py-2 font-medium">올린 날</th>
+                    <th className="py-2 font-medium">쓰임</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {shown.map((m) => (
+                    <tr
+                      key={m.name}
+                      className={`align-middle ${selected === m.name ? 'bg-brand-50 dark:bg-brand-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                    >
+                      <td className="py-2">
+                        <input
+                          type="checkbox"
+                          checked={picked.includes(m.name)}
+                          onChange={() => toggle(m.name)}
+                          className="h-4 w-4 rounded border-slate-300"
+                          aria-label={`${m.originalName || m.name} 선택`}
+                        />
+                      </td>
+                      <td className="py-2">
+                        <button type="button" onClick={() => setSelected(m.name)} className="flex items-center gap-2.5 text-left">
+                          <Thumb item={m} className="h-10 w-10 shrink-0 rounded border border-slate-200 dark:border-slate-700" />
+                          <span className="min-w-0">
+                            <span className="block max-w-[18rem] truncate font-medium text-slate-700 dark:text-slate-200">
+                              {m.originalName || m.name}
+                            </span>
+                            <span className="block max-w-[18rem] truncate text-[11px] text-slate-400">{m.alt || m.title || m.url}</span>
+                          </span>
+                        </button>
+                      </td>
+                      <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-400">
+                        {KIND_LABEL[m.kind]}
+                        {extOf(m) && <span className="ml-1 text-[11px] text-slate-400">{extLabel(extOf(m))}</span>}
+                      </td>
+                      <td className="py-2 tabular-nums text-slate-500 dark:text-slate-400">{m.kind === 'image' ? formatDimension(m) : '—'}</td>
+                      <td className="py-2 tabular-nums text-slate-500 dark:text-slate-400">{formatSize(m.size)}</td>
+                      <td className="py-2 whitespace-nowrap tabular-nums text-slate-500 dark:text-slate-400">{formatStamp(m.createdAt)}</td>
+                      <td className="py-2 text-slate-500 dark:text-slate-400">
+                        {m.usages.length === 0 ? <span className="text-slate-400">미사용</span> : `${m.usages.length}곳`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -188,6 +435,7 @@ export default function MediaLibraryPage() {
               onSaved={(alt, title) => setItems((prev) => prev?.map((m) => (m.name === current.name ? { ...m, alt, title } : m)) ?? null)}
               onDeleted={() => {
                 setSelected(null)
+                setPicked((prev) => prev.filter((n) => n !== current.name))
                 load()
               }}
             />
@@ -263,8 +511,19 @@ function MediaDetail({ item, onSaved, onDeleted }: { item: MediaItem; onSaved: (
         <dd className="break-all text-slate-700 dark:text-slate-200">{item.originalName || '—'}</dd>
         <dt className="text-slate-400">파일</dt>
         <dd className="break-all font-mono text-[11px] text-slate-600 dark:text-slate-300">{item.url}</dd>
-        <dt className="text-slate-400">크기</dt>
+        <dt className="text-slate-400">용량</dt>
         <dd className="text-slate-700 dark:text-slate-200">{formatSize(item.size)}</dd>
+        <dt className="text-slate-400">종류</dt>
+        <dd className="text-slate-700 dark:text-slate-200">
+          {KIND_LABEL[item.kind]}
+          {extOf(item) && ` · ${extLabel(extOf(item))}`}
+        </dd>
+        {item.kind === 'image' && (
+          <>
+            <dt className="text-slate-400">이미지 크기</dt>
+            <dd className="tabular-nums text-slate-700 dark:text-slate-200">{formatDimension(item)}</dd>
+          </>
+        )}
         <dt className="text-slate-400">올린 날</dt>
         <dd className="tabular-nums text-slate-700 dark:text-slate-200">{formatStamp(item.createdAt)}</dd>
       </dl>

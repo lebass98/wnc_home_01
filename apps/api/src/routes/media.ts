@@ -8,6 +8,7 @@ import { asyncHandler } from '../lib/handler.js'
 import { requireAuth } from '../lib/auth.js'
 import { UPLOAD_DIR } from './uploads.js'
 import { TEMPLATES_DIR } from '../lib/templateFiles.js'
+import { imageSize } from '../lib/imageSize.js'
 
 /**
  * 미디어 라이브러리 — 관리자가 올린 파일(uploads 폴더 맨 위)을 한곳에서 본다.
@@ -113,18 +114,23 @@ mediaRouter.get(
     const info = new Map(assets.map((a) => [a.path, a]))
     const items = await Promise.all(
       names.map(async (name) => {
-        const st = await stat(path.join(UPLOAD_DIR, name))
+        const file = path.join(UPLOAD_DIR, name)
+        const st = await stat(file)
         const url = `/uploads/${name}`
         const a = info.get(url)
+        const kind = kindOf(name)
+        // 그림은 가로·세로를 함께 알려 준다 — 목록에서 크기를 보고 고를 수 있게.
+        const dim = kind === 'image' ? await imageSize(file, st.mtimeMs) : null
         return {
           name,
           url,
-          kind: kindOf(name),
+          kind,
           size: st.size,
           createdAt: st.mtime.toISOString(),
           alt: a?.alt ?? '',
           title: a?.title ?? '',
           originalName: a?.originalName ?? '',
+          ...(dim ? { width: dim.width, height: dim.height } : {}),
           usages: usages.get(name) ?? [],
         }
       }),

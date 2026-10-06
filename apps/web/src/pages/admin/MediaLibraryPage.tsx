@@ -49,13 +49,34 @@ function extOf(m: MediaItem): string {
 
 const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
 
+/** 화면에 쓰는 아이콘 — 프로젝트 방식대로 인라인 SVG 로 그린다. */
+const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file', string> = {
+  grid: 'M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 13h6v6H4v-6zm10 0h6v6h-6v-6z',
+  list: 'M4 6h16M4 12h16M4 18h16',
+  trash: 'M6 7h12M9 7V5h6v2m-7 0 .6 12a1 1 0 001 1h4.8a1 1 0 001-1L16 7',
+  upload: 'M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2',
+  image: 'M4 5h16v14H4V5zm0 10 4-4 4 4 3-3 5 5M9 9.5a1 1 0 11-2 0 1 1 0 012 0z',
+  video: 'M4 6h11v12H4V6zm11 4 5-3v10l-5-3',
+  pdf: 'M7 3h7l5 5v13H7V3zm7 0v5h5M9 13h6M9 17h4',
+  zip: 'M7 3h10v18H7V3zm5 0v4m0 2v2m0 2v2',
+  file: 'M7 3h7l5 5v13H7V3zm7 0v5h5',
+}
+
+function Icon({ name, className = 'h-4 w-4' }: { name: keyof typeof ICON; className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d={ICON[name]} />
+    </svg>
+  )
+}
+
 /** 목록·카드에 쓰는 작은 미리보기 — 그림이 아니면 종류 글자를 보여 준다. */
 function Thumb({ item, className = '' }: { item: MediaItem; className?: string }) {
   if (item.kind === 'image')
     return <img src={item.url} alt={item.alt} loading="lazy" className={`bg-slate-100 object-cover dark:bg-slate-900 ${className}`} />
   return (
-    <span className={`grid place-items-center bg-slate-100 text-[10px] font-bold text-slate-400 dark:bg-slate-900 ${className}`}>
-      {KIND_LABEL[item.kind]}
+    <span className={`grid place-items-center gap-0.5 bg-slate-100 text-[10px] font-bold text-slate-400 dark:bg-slate-900 ${className}`}>
+      <Icon name={item.kind} className="h-1/3 max-h-8 min-h-4 w-auto" />
     </span>
   )
 }
@@ -203,8 +224,9 @@ export default function MediaLibraryPage() {
               type="button"
               onClick={removePicked}
               disabled={IS_DEMO || pickedShown.length === 0 || !!removing}
-              className="rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:hover:bg-red-950/40"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:hover:bg-red-950/40"
             >
+              <Icon name="trash" />
               {removing || `선택 삭제${pickedShown.length > 0 ? ` (${pickedShown.length})` : ''}`}
             </button>
             <input
@@ -219,6 +241,7 @@ export default function MediaLibraryPage() {
               }}
             />
             <button type="button" onClick={() => fileRef.current?.click()} disabled={IS_DEMO || !!uploading} className="btn-primary disabled:opacity-50">
+              <Icon name="upload" />
               {uploading || '파일 올리기'}
             </button>
           </div>
@@ -260,10 +283,11 @@ export default function MediaLibraryPage() {
               type="button"
               onClick={() => setView(mode)}
               aria-pressed={view === mode}
-              className={`px-3.5 py-2.5 text-sm font-medium transition ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium transition ${
                 view === mode ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
               }`}
             >
+              <Icon name={mode} />
               {label}
             </button>
           ))}
@@ -319,7 +343,8 @@ export default function MediaLibraryPage() {
           className={`card relative p-4 transition ${dragging ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
         >
           {dragging && (
-            <p className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl bg-brand-50/90 text-sm font-semibold text-brand-700 dark:bg-brand-950/80 dark:text-brand-200">
+            <p className="pointer-events-none absolute inset-0 z-10 grid place-content-center justify-items-center gap-2 rounded-xl bg-brand-50/90 text-sm font-semibold text-brand-700 dark:bg-brand-950/80 dark:text-brand-200">
+              <Icon name="upload" className="h-7 w-7" />
               여기에 놓으면 파일이 올라갑니다
             </p>
           )}

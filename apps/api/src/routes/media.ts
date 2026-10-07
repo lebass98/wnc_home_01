@@ -170,7 +170,11 @@ const folderName = z
   .max(50, '폴더 이름은 50자까지 쓸 수 있습니다.')
   .refine((v) => !v.includes('/'), '폴더 이름에 / 는 쓸 수 없습니다.')
 
-/** 폴더 목록 — 담긴 파일 수를 함께 센다(디스크에 남아 있는 파일만). */
+/**
+ * 폴더 목록 — 트리 순서(상위 바로 아래에 그 하위가 오도록)로 늘어놓고,
+ * 깊이·이름 경로·파일 수(바로 담긴 것 / 하위까지 합친 것)를 함께 보낸다.
+ * 화면은 이 순서를 그대로 그리면 되므로 트리를 다시 짤 필요가 없다.
+ */
 mediaRouter.get(
   '/folders',
   requireAuth,
@@ -186,7 +190,34 @@ mediaRouter.get(
       if (a.folderId == null || !alive.has(a.path)) continue
       count.set(a.folderId, (count.get(a.folderId) ?? 0) + 1)
     }
-    res.json(folders.map((f) => ({ id: f.id, name: f.name, count: count.get(f.id) ?? 0 })))
+
+    const childrenOf = (parentId: number | null) => folders.filter((f) => f.parentId === parentId)
+    const out: {
+      id: number
+      name: string
+      parentId: number | null
+      count: number
+      totalCount: number
+      path: string
+      depth: number
+    }[] = []
+
+    /** 하위까지 합친 파일 수 — 트리를 따라 내려가며 더한다. */
+    const walkTree = (parentId: number | null, depth: number, prefix: string): number => {
+      let sum = 0
+      for (const f of childrenOf(parentId)) {
+        const own = count.get(f.id) ?? 0
+        const path = prefix ? `${prefix} / ${f.name}` : f.name
+        const row = { id: f.id, name: f.name, parentId: f.parentId, count: own, totalCount: own, path, depth }
+        out.push(row)
+        const sub = walkTree(f.id, depth + 1, path)
+        row.totalCount = own + sub
+        sum += row.totalCount
+      }
+      return sum
+    }
+    walkTree(null, 0, '')
+    res.json(out)
   }),
 )
 
@@ -194,11 +225,15 @@ mediaRouter.post(
   '/folders',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { name } = z.object({ name: folderName }).parse(req.body)
-    if (await prisma.mediaFolder.findUnique({ where: { name } }))
-      return res.status(409).json({ message: `'${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
-    const row = await prisma.mediaFolder.create({ data: { name } })
-    res.status(201).json({ id: row.id, name: row.name, count: 0 })
+    const { name, parentId } = z
+      .object({ name: folderName, parentId: z.number().int().nullable().default(null) })
+      .parse(req.body)
+    if (parentId !== null && !(await prisma.mediaFolder.findUnique({ where: { id: parentId } })))
+      return res.status(404).json({ message: '상위 폴더를 찾을 수 없습니다. 목록을 새로 불러 주세요.' })
+    if (await prisma.mediaFolder.findFirst({ where: { parentId, name } }))
+      return res.status(409).json({ message: `같은 자리에 '${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
+    const row = await prisma.mediaFolder.create({ data: { name, parentId } })
+    res.status(201).json({ id: row.id, name: row.name, parentId: row.parentId })
   }),
 )
 
@@ -208,16 +243,16 @@ mediaRouter.put(
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id)
     const { name } = z.object({ name: folderName }).parse(req.body)
-    if (!(await prisma.mediaFolder.findUnique({ where: { id } })))
-      return res.status(404).json({ message: '폴더를 찾을 수 없습니다.' })
-    const taken = await prisma.mediaFolder.findUnique({ where: { name } })
-    if (taken && taken.id !== id) return res.status(409).json({ message: `'${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
+    const found = await prisma.mediaFolder.findUnique({ where: { id } })
+    if (!found) return res.status(404).json({ message: '폴더를 찾을 수 없습니다.' })
+    const taken = await prisma.mediaFolder.findFirst({ where: { parentId: found.parentId, name } })
+    if (taken && taken.id !== id) return res.status(409).json({ message: `같은 자리에 '${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
     const row = await prisma.mediaFolder.update({ where: { id }, data: { name } })
     res.json({ id: row.id, name: row.name })
   }),
 )
 
-/** 폴더 삭제 — 담긴 파일은 지우지 않고 '미분류' 로 돌려보낸다. */
+/** 폴더 삭제 — 하위 폴더까지 함께 지운다. 담긴 파일은 지우지 않고 '미분류' 로 돌려보낸다. */
 mediaRouter.delete(
   '/folders/:id',
   requireAuth,
@@ -225,9 +260,16 @@ mediaRouter.delete(
     const id = Number(req.params.id)
     if (!(await prisma.mediaFolder.findUnique({ where: { id } })))
       return res.status(404).json({ message: '폴더를 찾을 수 없습니다.' })
-    const moved = await prisma.mediaAsset.updateMany({ where: { folderId: id }, data: { folderId: null } })
-    await prisma.mediaFolder.delete({ where: { id } })
-    res.json({ ok: true, moved: moved.count })
+
+    const all = await prisma.mediaFolder.findMany()
+    // 지울 폴더와 그 아래 모든 폴더를 모은다.
+    const ids = [id]
+    for (let i = 0; i < ids.length; i++) {
+      for (const f of all) if (f.parentId === ids[i]) ids.push(f.id)
+    }
+    const moved = await prisma.mediaAsset.updateMany({ where: { folderId: { in: ids } }, data: { folderId: null } })
+    await prisma.mediaFolder.deleteMany({ where: { id: { in: ids } } })
+    res.json({ ok: true, moved: moved.count, folders: ids.length })
   }),
 )
 

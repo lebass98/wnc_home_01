@@ -1655,10 +1655,18 @@ export interface MediaItem {
   usages: MediaUsage[]
 }
 
-/** 미디어 라이브러리의 분류 폴더 — 디스크 폴더가 아니라 이름표다. */
+/** 미디어 라이브러리의 분류 폴더 — 디스크 폴더가 아니라 이름표다. 상위-하위로 트리를 이룬다. */
 export interface MediaFolder {
   id: number
   name: string
-  /** 이 폴더에 담긴 파일 수 */
+  /** 상위 폴더 — 가장 위 폴더면 null */
+  parentId: number | null
+  /** 이 폴더에 바로 담긴 파일 수 */
   count: number
+  /** 하위 폴더까지 합친 파일 수 */
+  totalCount: number
+  /** 가장 위부터의 이름 경로 — '로고 / 서브' */
+  path: string
+  /** 트리 깊이 — 가장 위가 0 */
+  depth: number
 }

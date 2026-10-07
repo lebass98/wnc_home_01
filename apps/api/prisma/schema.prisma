@@ -638,7 +638,12 @@ model MediaAsset {
 /// 파일은 uploads/ 맨 위에 그대로 두므로 폴더를 옮겨도 주소(/uploads/...)가 바뀌지 않는다.
 model MediaFolder {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  name      String
+  /// 상위 폴더(MediaFolder.id). 비어 있으면 가장 위 폴더다.
+  parentId  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// 같은 상위 안에서는 이름이 겹치지 않는다.
+  @@unique([parentId, name])
 }

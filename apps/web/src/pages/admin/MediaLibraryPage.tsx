@@ -52,7 +52,7 @@ function extOf(m: MediaItem): string {
 const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
 
 /** 화면에 쓰는 아이콘 — 프로젝트 방식대로 인라인 SVG 로 그린다. */
-const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external' | 'prev' | 'next' | 'folder' | 'folderPlus' | 'move' | 'pencil', string> = {
+const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external' | 'prev' | 'next' | 'folder' | 'folderPlus' | 'move' | 'pencil' | 'caret' | 'folderOpen', string> = {
   grid: 'M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 13h6v6H4v-6zm10 0h6v6h-6v-6z',
   list: 'M4 6h16M4 12h16M4 18h16',
   trash: 'M6 7h12M9 7V5h6v2m-7 0 .6 12a1 1 0 001 1h4.8a1 1 0 001-1L16 7',
@@ -71,6 +71,8 @@ const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'p
   folderPlus: 'M3 7a2 2 0 012-2h3.6l2 2.5H19a2 2 0 012 2V17a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm9 4v5m-2.5-2.5h5',
   move: 'M4 7h7m0 0L8.5 4.5M11 7 8.5 9.5M20 17h-7m0 0 2.5-2.5M13 17l2.5 2.5',
   pencil: 'M4 20h4l10-10a2.1 2.1 0 00-3-3L5 17v3z',
+  caret: 'M9 6l6 6-6 6',
+  folderOpen: 'M3 8a2 2 0 012-2h3.6l2 2.5H18a2 2 0 012 2v.5M3 8v9a2 2 0 002 2h12.2a2 2 0 001.9-1.4L21 12H7.8a2 2 0 00-1.9 1.4L3 20',
 }
 
 function Icon({ name, className = 'h-4 w-4' }: { name: keyof typeof ICON; className?: string }) {
@@ -89,6 +91,95 @@ function Thumb({ item, className = '' }: { item: MediaItem; className?: string }
     <span className={`grid place-items-center gap-0.5 bg-slate-100 text-[10px] font-bold text-slate-400 dark:bg-slate-900 ${className}`}>
       <Icon name={item.kind} className="h-1/3 max-h-8 min-h-4 w-auto" />
     </span>
+  )
+}
+
+/**
+ * 좌측 폴더 창의 한 줄 — 깊이만큼 들여쓰고, 하위가 있으면 펼침 삼각형을 단다.
+ * 고른 폴더에서만 [+ 하위 폴더]·[이름 바꾸기]·[지우기] 를 보여 줘 줄이 복잡해지지 않게 한다.
+ */
+function FolderRow({
+  label,
+  count,
+  totalCount,
+  depth,
+  active,
+  onSelect,
+  hasChildren = false,
+  collapsed = false,
+  onToggle,
+  onCreateChild,
+  onRename,
+  onRemove,
+}: {
+  label: string
+  count: number
+  /** 하위까지 합친 수 — 바로 담긴 수와 다를 때만 함께 보여 준다. */
+  totalCount?: number
+  depth: number
+  active: boolean
+  onSelect: () => void
+  hasChildren?: boolean
+  collapsed?: boolean
+  onToggle?: () => void
+  onCreateChild?: () => void
+  onRename?: () => void
+  onRemove?: () => void
+}) {
+  const tools = onCreateChild || onRename || onRemove
+  return (
+    <div
+      className={`group flex items-center gap-0.5 rounded-lg pr-1 transition ${
+        active ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+      }`}
+      style={{ paddingLeft: `${depth * 0.875}rem` }}
+    >
+      {hasChildren ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? `${label} 펼치기` : `${label} 접기`}
+          aria-expanded={!collapsed}
+          className="shrink-0 rounded p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        >
+          <Icon name="caret" className={`h-3.5 w-3.5 transition-transform ${collapsed ? '' : 'rotate-90'}`} />
+        </button>
+      ) : (
+        <span className="w-[1.375rem] shrink-0" aria-hidden />
+      )}
+
+      <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left">
+        <Icon name={active ? 'folderOpen' : 'folder'} className="h-4 w-4 shrink-0 text-slate-400" />
+        <span className={`min-w-0 truncate ${active ? 'font-semibold' : ''}`}>{label}</span>
+        <span className="shrink-0 text-xs text-slate-400">
+          {count}
+          {totalCount !== undefined && totalCount !== count && ` (${totalCount})`}
+        </span>
+      </button>
+
+      {tools && (
+        <span className={`flex shrink-0 items-center ${active ? '' : 'opacity-0 transition group-hover:opacity-100'}`}>
+          {onCreateChild && (
+            <button type="button" onClick={onCreateChild} title="하위 폴더 만들기" className="rounded p-1 text-slate-500 hover:text-brand-600">
+              <Icon name="folderPlus" className="h-3.5 w-3.5" />
+              <span className="sr-only">{label} 안에 폴더 만들기</span>
+            </button>
+          )}
+          {onRename && (
+            <button type="button" onClick={onRename} title="이름 바꾸기" className="rounded p-1 text-slate-500 hover:text-brand-600">
+              <Icon name="pencil" className="h-3.5 w-3.5" />
+              <span className="sr-only">{label} 이름 바꾸기</span>
+            </button>
+          )}
+          {onRemove && (
+            <button type="button" onClick={onRemove} title="폴더 지우기" className="rounded p-1 text-slate-500 hover:text-red-600">
+              <Icon name="trash" className="h-3.5 w-3.5" />
+              <span className="sr-only">{label} 지우기</span>
+            </button>
+          )}
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -267,6 +358,8 @@ export default function MediaLibraryPage() {
   const [folders, setFolders] = useState<MediaFolder[]>([])
   /** 보고 있는 폴더 — 전체·미분류·특정 폴더 */
   const [folder, setFolder] = useState<FolderFilter>('all')
+  /** 접어 둔 폴더 — 여기 담긴 폴더의 하위는 트리에서 감춘다. */
+  const [collapsed, setCollapsed] = useState<number[]>([])
   const [view, setView] = useState<ViewMode>('grid')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
@@ -291,6 +384,14 @@ export default function MediaLibraryPage() {
   }
   useEffect(load, [])
 
+  /** 고른 폴더와 그 하위 폴더의 id — 목록을 걸러 낼 때 쓴다. */
+  const folderScope = useMemo(() => {
+    if (typeof folder !== 'number') return []
+    const picked = folders.find((f) => f.id === folder)
+    if (!picked) return [folder]
+    return [folder, ...folders.filter((f) => f.path.startsWith(`${picked.path} / `)).map((f) => f.id)]
+  }, [folder, folders])
+
   const shown = useMemo(() => {
     if (!items) return []
     const q = query.trim().toLowerCase()
@@ -301,7 +402,8 @@ export default function MediaLibraryPage() {
       if (use === 'unused' && m.usages.length > 0) return false
       if (exts.length > 0 && !exts.includes(extOf(m))) return false
       if (folder === 'none' && m.folderId !== null) return false
-      if (typeof folder === 'number' && m.folderId !== folder) return false
+      // 폴더를 고르면 그 폴더와 하위 폴더에 담긴 파일을 함께 보여 준다(탐색기처럼 내려가지 않아도 보이게).
+      if (typeof folder === 'number' && !folderScope.includes(m.folderId ?? -1)) return false
       return !q || [m.name, m.originalName, m.alt, m.title].some((v) => v.toLowerCase().includes(q))
     })
     const nameOf = (m: MediaItem) => (m.originalName || m.name).toLowerCase()
@@ -315,7 +417,20 @@ export default function MediaLibraryPage() {
       small: (a, b) => a.size - b.size,
     }
     return [...filtered].sort(sorters[sort])
-  }, [items, kind, use, query, sort, exts, folder])
+  }, [items, kind, use, query, sort, exts, folder, folderScope])
+
+  /** 트리에 그릴 폴더 — 접어 둔 폴더의 하위는 감춘다. (API 가 트리 순서로 보내 준다) */
+  const shownFolders = useMemo(() => {
+    const hidden = new Set<number>()
+    return folders.filter((f) => {
+      if (f.parentId !== null && hidden.has(f.parentId)) {
+        hidden.add(f.id)
+        return false
+      }
+      if (collapsed.includes(f.id)) hidden.add(f.id)
+      return true
+    })
+  }, [folders, collapsed])
 
   /** 올라와 있는 확장자와 개수 — 많은 것부터 보여 준다. */
   const extGroups = useMemo(() => {
@@ -340,14 +455,17 @@ export default function MediaLibraryPage() {
     setPicked((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
   const toggleAll = () => setPicked(allPicked ? [] : shown.map((m) => m.name))
 
-  /** 폴더 만들기 — 이름만 받는다. */
-  async function createFolder() {
-    const name = prompt('새 폴더 이름을 입력하세요.')?.trim()
+  /** 폴더 만들기 — parentId 를 주면 그 폴더 안에 만든다. */
+  async function createFolder(parentId: number | null) {
+    const where = parentId === null ? '' : ` ('${folders.find((f) => f.id === parentId)?.path ?? ''}' 안에)`
+    const name = prompt(`새 폴더 이름을 입력하세요.${where}`)?.trim()
     if (!name) return
     try {
-      const created = await api<MediaFolder>('/media/folders', { method: 'POST', body: { name }, auth: true })
-      setFolders((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'ko')))
+      const created = await api<{ id: number }>('/media/folders', { method: 'POST', body: { name, parentId }, auth: true })
+      // 상위 폴더가 접혀 있으면 펴서 새 폴더가 보이게 한다.
+      if (parentId !== null) setCollapsed((prev) => prev.filter((id) => id !== parentId))
       setFolder(created.id)
+      load()
     } catch (e) {
       alert((e as Error).message)
     }
@@ -366,7 +484,9 @@ export default function MediaLibraryPage() {
 
   /** 폴더 삭제 — 담긴 파일은 지우지 않고 미분류로 돌아간다. */
   async function removeFolder(target: MediaFolder) {
-    if (!confirm(`'${target.name}' 폴더를 지울까요?\n\n담긴 파일 ${target.count}개는 지워지지 않고 '미분류' 로 돌아갑니다.`)) return
+    const subs = folders.filter((f) => f.path.startsWith(`${target.path} / `)).length
+    const note = subs > 0 ? `하위 폴더 ${subs}개도 함께 지워집니다.\n` : ''
+    if (!confirm(`'${target.path}' 폴더를 지울까요?\n\n${note}담긴 파일 ${target.totalCount}개는 지워지지 않고 '미분류' 로 돌아갑니다.`)) return
     try {
       await api(`/media/folders/${target.id}`, { method: 'DELETE', auth: true })
       if (folder === target.id) setFolder('all')
@@ -535,94 +655,6 @@ export default function MediaLibraryPage() {
         </p>
       </div>
 
-      <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <Icon name="folder" />
-          폴더
-        </span>
-        {([
-          ['all', `전체 (${items?.length ?? 0})`],
-          ['none', `미분류 (${items?.filter((m) => m.folderId === null).length ?? 0})`],
-        ] as [FolderFilter, string][]).map(([key, label]) => (
-          <button
-            key={String(key)}
-            type="button"
-            onClick={() => setFolder(key)}
-            aria-pressed={folder === key}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-              folder === key
-                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200'
-                : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-        {folders.map((f) => (
-          <span
-            key={f.id}
-            className={`inline-flex items-center gap-1 rounded-full border pl-3 pr-1.5 text-xs font-medium transition ${
-              folder === f.id
-                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200'
-                : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
-            }`}
-          >
-            <button type="button" onClick={() => setFolder(f.id)} aria-pressed={folder === f.id} className="py-1">
-              {f.name} ({f.count})
-            </button>
-            {/* 고른 폴더에서만 이름 바꾸기·지우기를 보여 줘 줄이 복잡해지지 않게 한다. */}
-            {folder === f.id && !IS_DEMO && (
-              <>
-                <button type="button" onClick={() => renameFolder(f)} title="폴더 이름 바꾸기" className="rounded p-1 hover:bg-white/60 dark:hover:bg-slate-800">
-                  <Icon name="pencil" className="h-3.5 w-3.5" />
-                  <span className="sr-only">{f.name} 이름 바꾸기</span>
-                </button>
-                <button type="button" onClick={() => removeFolder(f)} title="폴더 지우기" className="rounded p-1 text-red-600 hover:bg-white/60 dark:hover:bg-slate-800">
-                  <Icon name="trash" className="h-3.5 w-3.5" />
-                  <span className="sr-only">{f.name} 지우기</span>
-                </button>
-              </>
-            )}
-          </span>
-        ))}
-        <button
-          type="button"
-          onClick={createFolder}
-          disabled={IS_DEMO}
-          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-brand-400 hover:text-brand-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300"
-        >
-          <Icon name="folderPlus" className="h-3.5 w-3.5" />
-          폴더 만들기
-        </button>
-
-        {/* 고른 파일을 폴더로 옮긴다 — 파일 주소는 그대로다. */}
-        {pickedShown.length > 0 && (
-          <label className="ml-auto inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
-            <Icon name="move" className="h-4 w-4" />
-            고른 {pickedShown.length}개를
-            <select
-              value=""
-              onChange={(e) => {
-                if (e.target.value === '') return
-                movePicked(e.target.value === 'none' ? null : Number(e.target.value))
-                e.target.value = ''
-              }}
-              disabled={IS_DEMO}
-              className="select w-40 py-1.5 text-xs"
-              aria-label="고른 파일을 옮길 폴더"
-            >
-              <option value="">옮길 폴더 고르기…</option>
-              <option value="none">미분류로 빼기</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
-
       {extGroups.length > 0 && (
         <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
           <span className="text-sm font-medium text-slate-600 dark:text-slate-300">확장자</span>
@@ -653,7 +685,104 @@ export default function MediaLibraryPage() {
 
       {error && <ErrorMessage message={error} />}
 
-      <div>
+      <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        {/* 좌측 폴더 창 — 트리로 늘어놓는다. */}
+        <aside className="card h-fit p-3 lg:sticky lg:top-[8.75rem]">
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <Icon name="folder" />
+              폴더
+            </span>
+            <button
+              type="button"
+              onClick={() => createFolder(null)}
+              disabled={IS_DEMO}
+              title="맨 위에 폴더 만들기"
+              className="rounded p-1 text-slate-500 transition hover:bg-slate-100 hover:text-brand-600 disabled:opacity-50 dark:hover:bg-slate-800"
+            >
+              <Icon name="folderPlus" />
+              <span className="sr-only">맨 위에 폴더 만들기</span>
+            </button>
+          </div>
+
+          <ul className="space-y-0.5 text-sm">
+            <li>
+              <FolderRow
+                label="전체"
+                count={items?.length ?? 0}
+                depth={0}
+                active={folder === 'all'}
+                onSelect={() => setFolder('all')}
+              />
+            </li>
+            <li>
+              <FolderRow
+                label="미분류"
+                count={items?.filter((m) => m.folderId === null).length ?? 0}
+                depth={0}
+                active={folder === 'none'}
+                onSelect={() => setFolder('none')}
+              />
+            </li>
+            {shownFolders.map((f) => (
+              <li key={f.id}>
+                <FolderRow
+                  label={f.name}
+                  count={f.count}
+                  totalCount={f.totalCount}
+                  depth={f.depth}
+                  active={folder === f.id}
+                  onSelect={() => setFolder(f.id)}
+                  hasChildren={folders.some((c) => c.parentId === f.id)}
+                  collapsed={collapsed.includes(f.id)}
+                  onToggle={() =>
+                    setCollapsed((prev) => (prev.includes(f.id) ? prev.filter((id) => id !== f.id) : [...prev, f.id]))
+                  }
+                  onCreateChild={IS_DEMO ? undefined : () => createFolder(f.id)}
+                  onRename={IS_DEMO ? undefined : () => renameFolder(f)}
+                  onRemove={IS_DEMO ? undefined : () => removeFolder(f)}
+                />
+              </li>
+            ))}
+          </ul>
+
+          {folders.length === 0 && (
+            <p className="px-1 py-3 text-xs text-slate-400">
+              폴더가 없습니다. 위 <Icon name="folderPlus" className="inline h-3.5 w-3.5" /> 로 만들어 보세요.
+            </p>
+          )}
+
+          {/* 고른 파일을 폴더로 옮긴다 — 파일 주소는 그대로다. */}
+          {pickedShown.length > 0 && (
+            <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+              <label className="label flex items-center gap-1.5">
+                <Icon name="move" className="h-4 w-4" />
+                고른 {pickedShown.length}개 옮기기
+              </label>
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value === '') return
+                  movePicked(e.target.value === 'none' ? null : Number(e.target.value))
+                  e.target.value = ''
+                }}
+                disabled={IS_DEMO}
+                className="select text-xs"
+                aria-label="고른 파일을 옮길 폴더"
+              >
+                <option value="">옮길 폴더 고르기…</option>
+                <option value="none">미분류로 빼기</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.path}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </aside>
+
+        <div>
         <div
           onDragOver={onDragOver}
           onDragEnter={onDragOver}
@@ -806,6 +935,7 @@ export default function MediaLibraryPage() {
           )}
         </div>
 
+        </div>
       </div>
 
       {current && (
@@ -947,7 +1077,7 @@ function MediaDetail({
           <option value="">미분류</option>
           {folders.map((f) => (
             <option key={f.id} value={f.id}>
-              {f.name}
+              {f.path}
             </option>
           ))}
         </select>

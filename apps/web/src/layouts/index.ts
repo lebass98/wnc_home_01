@@ -11,6 +11,8 @@ import InteriorFooter from './InteriorFooter'
 import CenterHeader from './CenterHeader'
 import BasicFooter from './BasicFooter'
 import SimpleFooter from './SimpleFooter'
+import DentalHeader from './DentalHeader'
+import DentalFooter from './DentalFooter'
 
 /**
  * 레이아웃 등록부 — 레이아웃 하나가 파일 하나다.
@@ -100,6 +102,7 @@ export const HEADERS: HeaderDef[] = [
   { key: 'basic', label: '기본 헤더', description: '로고 왼쪽, 메뉴 오른쪽 한 줄. 메뉴에 올리면 2차 메뉴 판이 아래로 펼쳐진다.', component: BasicHeader },
   { key: 'center', label: '센터 헤더', description: '로고 가운데, 그 아래 가운데 정렬 메뉴 두 줄. 2차 메뉴는 드롭다운 카드.', component: CenterHeader },
   { key: 'interior', label: '인테리어 헤더', description: '상단 가운데에 떠 있는 유리 알약. 햄버거(사이트맵)·1차 메뉴·문의 단추.', component: InteriorHeader },
+  { key: 'dental', label: '치과 헤더', description: '흰 바탕 한 줄. 로고·1차 메뉴, 오른쪽에 [상담예약하기]와 사이트맵 단추.', component: DentalHeader },
 ]
 
 /** key 로 헤더를 찾는다 — 모르는 값이면 기본 헤더를 쓴다. */
@@ -129,6 +132,7 @@ export const FOOTERS: FooterDef[] = [
   { key: 'basic', label: '기본 푸터', description: '베이지 바탕 가운데 정렬. 메뉴 다섯 열과 SNS·회사 정보를 모두 보여 준다.', component: BasicFooter },
   { key: 'simple', label: '심플 푸터', description: '어두운 바탕 한 단. 로고·회사 정보와 1차 메뉴만 간결하게 담는다.', component: SimpleFooter },
   { key: 'interior', label: '인테리어 푸터', description: '고객센터 줄 + 갈색 본단 세 단 구성. 메뉴·회사 정보·SNS·로고를 담는다.', component: InteriorFooter },
+  { key: 'dental', label: '치과 푸터', description: '짙은 회청색 한 단. 로고·바로가기·주소·저작권과 SNS 동그라미.', component: DentalFooter },
 ]
 
 /** key 로 푸터를 찾는다 — 모르는 값이면 기본 푸터를 쓴다. */

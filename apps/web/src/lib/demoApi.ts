@@ -59,7 +59,7 @@ import {
  */
 
 // 시드 구성이 크게 바뀔 때 버전을 올린다 — 옛 저장본을 버리고 새 시드를 받게 한다.
-const STORAGE_KEY = 'wnc_demo_db_v4'
+const STORAGE_KEY = 'wnc_demo_db_v5'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
@@ -107,10 +107,27 @@ function interiorComponents(): ComponentSettings {
   return settings
 }
 
+/** 치과 시안의 컴포넌트 설정 — 로컬 관리자 [메인 비주얼]에 넣은 세 장과 같다. */
+function dentalComponents(): ComponentSettings {
+  const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
+  const image = '/images/dental/hero-01.png'
+  settings.mainVisual = {
+    autoplay: true,
+    interval: 5000,
+    slides: [
+      { title: '편안함을\n먼저 생각하는 진료', description: '치료의 순간까지 세심하게 살피며,\n환자 한 분 한 분의 편안함을 생각합니다.', image },
+      { title: '정확한 진단에서\n시작하는 치료', description: '충분한 검사와 설명으로\n꼭 필요한 치료만 권해 드립니다.', image },
+      { title: '오래 건강한\n치아를 위한 약속', description: '치료가 끝난 뒤에도\n정기 관리로 꾸준히 함께합니다.', image },
+    ],
+  }
+  return settings
+}
+
 /** 템플릿의 컴포넌트 설정 — 예전 저장본(설정 없음)은 구성으로 미루어 채운다. */
 function templateComponents(t: DemoTemplate): ComponentSettings | undefined {
   if (t.components) return t.components
   if (t.header === 'interior') return interiorComponents()
+  if (t.header === 'dental') return dentalComponents()
   return t.builtin ? structuredClone(DEFAULT_COMPONENT_SETTINGS) : undefined
 }
 
@@ -127,6 +144,25 @@ function basicTemplate(): DemoTemplate {
     header: 'basic',
     footer: 'basic',
     pageLayouts: { '/terms': 'left', '/privacy': 'left' },
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function dentalTemplate(): DemoTemplate {
+  const now = new Date().toISOString()
+  return {
+    id: 3,
+    name: '워드앤코드 치과',
+    description: '워드앤코드 치과 템플릿 (피그마 시안)',
+    author: 'wordncode',
+    version: '1.0.0',
+    builtin: false,
+    active: false,
+    header: 'dental',
+    footer: 'dental',
+    pageLayouts: { '/terms': 'left', '/privacy': 'left' },
+    components: dentalComponents(),
     createdAt: now,
     updatedAt: now,
   }
@@ -207,10 +243,11 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
-    // 사이트 소스의 메인이 인테리어 시안이라 데모도 인테리어를 켠 상태로 시작한다 — 로컬과 같은 모습.
-    templates: [{ ...basicTemplate(), active: false }, { ...interiorTemplate(), active: true }],
-    nextTemplateId: 3,
-    componentSettings: { ...defaultComponentResponse(), settings: interiorComponents() },
+    // 사이트 소스의 메인이 치과 시안이라 데모도 치과를 켠 상태로 시작한다 — 로컬과 같은 모습.
+    // 인테리어·Basic 은 꺼진 채로 두고 [템플릿 관리]의 프리뷰로 볼 수 있다.
+    templates: [{ ...basicTemplate(), active: false }, interiorTemplate(), { ...dentalTemplate(), active: true }],
+    nextTemplateId: 4,
+    componentSettings: { ...defaultComponentResponse(), settings: dentalComponents() },
     posts,
     contacts,
     categories,
@@ -989,7 +1026,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   if (rawPath === '/design' && method === 'GET') {
     const t = templateForPreview()
-    return { slug: t.builtin ? 'basic' : t.header === 'interior' ? 'template-9' : undefined, header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
+    return { slug: t.builtin ? 'basic' : t.header === 'interior' ? 'template-9' : t.header === 'dental' ? 'template-11' : undefined, header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
   }
 
   // --- 화면별 레이아웃 — 활성 템플릿의 값이다 (?preview=<id> 면 그 템플릿의 값) ---

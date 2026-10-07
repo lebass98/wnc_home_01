@@ -1,8 +1,8 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { api } from '../../lib/api'
-import Reveal from '../../components/Reveal'
+import { DEFAULT_COMPANY } from '@wnc/shared'
+import { useSiteSetting } from '../../lib/seo'
 
 const asset = (path: string) => {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -10,826 +10,663 @@ const asset = (path: string) => {
 }
 
 /** 메인 비주얼을 관리자에서 비워 두었을 때 쓰는 기본 모습 */
-const DEFAULT_HERO = { title: 'DEPLATE\n디플릿 인테리어 스튜디오', image: '/images/interior/hero-main.png' }
+const DEFAULT_SLIDE = {
+  title: '편안함을\n먼저 생각하는 진료',
+  description: '치료의 순간까지 세심하게 살피며,\n환자 한 분 한 분의 편안함을 생각합니다.',
+  image: '/images/dental/hero-01.png',
+}
 
-/** 숫자로 보는 워드앤코드 */
-const STATS = [
-  { title: '다양한 분야의 프로젝트 수행 경험', value: '178' },
-  { title: '축적된 설계 및 시공 노하우', value: '26' },
-  { title: '고객 만족 중심의 프로젝트 관리', value: '93' },
-]
-
-/** 진행 과정 — 제목이 사진 위에 오는 칸과 아래에 오는 칸이 번갈아 선다. */
-const PROCESS = [
-  {
-    title: '상담·실측',
-    titleFirst: true,
-    image: asset('/images/interior/main/process-01.png'),
-    desc: ['좋은 공간은 취향을 묻는 대화에서 시작됩니다. 워드앤코드는 눈에 보이는 치수뿐 아니라', '가족의 생활 방식과 공간 속 불편까지 세심하게 읽어냅니다.'],
-  },
-  {
-    title: '설계·견적',
-    titleFirst: false,
-    image: asset('/images/interior/main/process-02.png'),
-    video: asset('/videos/interior/process-design.mp4'),
-    desc: ['보기 좋은 공간이 실제 생활에도 편안하도록 동선과 디자인, 자재와 예산을 균형 있게 조율합니다.', '막연했던 바람을 오래 머물고 싶은 공간의 설계로 구체화합니다.'],
-  },
-  {
-    title: '시공·품질관리',
-    titleFirst: true,
-    image: asset('/images/interior/main/process-03.png'),
-    desc: ['좋은 디자인의 완성은 보이지 않는 디테일에서 결정됩니다.', '도면의 의도가 현장에서 흐트러지지 않도록 공정마다 꼼꼼히 확인하며 완성도를 높입니다.'],
-  },
-  {
-    title: '준공·사후관리',
-    titleFirst: false,
-    image: asset('/images/interior/main/process-04.png'),
-    rounded: 'rounded-[40px]',
-    desc: ['공사가 끝나는 순간은 새로운 일상이 시작되는 순간입니다. 완성된 공간을 함께 살피고,', '오래 편안하게 사용할 수 있도록 그 이후까지 세심하게 이어갑니다.'],
-  },
-]
-
-/** 인테리어 스타일 — 넓은 화면에서는 칸마다 높이를 어긋나게 둔다. */
-const STYLES = [
-  { label: 'Warm Comfort', image: asset('/images/interior/main/style-01.png'), offset: 'xl:mt-[90px]' },
-  { label: 'modern', image: asset('/images/interior/main/style-02.png'), offset: '', dim: true },
-  { label: 'minimalist wood', image: asset('/images/interior/main/style-03.png'), offset: 'xl:mt-[279px]' },
-  { label: 'smart practical', image: asset('/images/interior/main/style-04.png'), offset: '' },
+/** 진료 프로그램 — 탭과 가운데 카드가 함께 움직인다. */
+const PROGRAMS = [
+  { name: '임플란트', image: '/images/dental/program-implant.png', desc: ['치아를 상실한 부위에 인공치아를 식립하여', '자연스러운 기능과 편안한 사용감을 회복할 수 있도록 돕습니다.'] },
+  { name: '치아교정', image: '/images/dental/program-ortho.png', desc: ['고르지 못한 치열과 맞물림을 바로잡아', '보기 좋고 건강한 미소를 되찾을 수 있도록 돕습니다.'] },
+  { name: '심미치료', image: '/images/dental/program-aesthetic.png', desc: ['치아의 색과 모양을 자연스럽게 다듬어', '웃는 얼굴에 자신감을 더할 수 있도록 돕습니다.'] },
+  { name: '일반진료', image: '/images/dental/program-general.png', desc: ['충치·신경치료·잇몸치료까지 꼼꼼히 진단하여', '치아를 오래 건강하게 지킬 수 있도록 돕습니다.'] },
+  { name: '예방·관리', image: '/images/dental/program-prevent.png', desc: ['정기 검진과 스케일링, 올바른 관리 습관으로', '치아 질환을 미리 막을 수 있도록 돕습니다.'] },
 ]
 
 /**
- * 포트폴리오 — 사진은 시안의 잘라 낸 영역을 그대로 따른다.
- * base 는 사진 뒤에 깔리는 바탕 사진(사진이 칸을 다 채우지 못할 때 드러나는 부분)이다.
+ * 치료 사례 — 분류별 다섯 건. 시안의 전후 사진은 한 쌍이라 모든 사례가 같은 사진을 쓰고,
+ * 목록의 작은 사진과 제목·설명만 사례마다 다르다.
  */
-const PORTFOLIO = [
-  {
-    title: '도시의 풍경, 집 안의 여유',
-    year: '2026',
-    desc: '창 너머 도시의 풍경은 열어두고, 집 안에는 차분한 온기를 더한 모던 주거공간입니다. 아이보리 패브릭과 우드 마감, 부드러운 곡선의 가구가 어우러져 세련되면서도 편안한 분위기를 만듭니다. 바쁜 하루를 지나 돌아왔을 때, 자연스럽게 긴장이 풀리는 거실을 제안합니다.',
-    location: '서울특별시 영등포구',
-    size: '45py',
-    keyword: 'Warm modern',
-    image: asset('/images/interior/main/portfolio-01.png'),
-    imageClass: 'h-[86.29%] left-[-16.86%] top-0 w-[118.77%]',
-    base: false,
-  },
-  {
-    title: '한강을 바라보는 느긋한 일상',
-    year: '2026',
-    desc: '한강의 풍경과 오후의 햇살이 일상의 배경이 되는 공간입니다. 낮은 가구와 절제된 소품으로 시야를 열고, 우드와 자연석의 풍부한 질감으로 편안함을 더했습니다. 풍경을 감상하는 순간부터 가족이 함께 머무는 시간까지, 집에서 보내는 하루에 여유를 담았습니다.',
-    location: '서울특별시 용산구',
-    size: '33py',
-    keyword: 'Natural comfort',
-    image: asset('/images/interior/main/portfolio-02.png'),
-    imageClass: 'h-[152.93%] left-0 top-[-47.89%] w-full',
-    base: true,
-  },
-  {
-    title: '아이의 오늘과 내일을 함께 만들어 갈 곳',
-    year: '2025',
-    desc: '편안히 쉬고, 호기심을 펼치며, 스스로 정리하는 일상까지 생각한 아이방입니다. 침대와 책상, 수납을 각자의 쓰임에 맞게 배치하고 차분한 우드와 은은한 색감으로 안정감을 더했습니다. 과한 장식 대신 생활에 필요한 요소를 담아, 아이가 자라면서도 편안하게 사용할 수 있는 공간을 제안합니다.',
-    location: '경기도 광명시',
-    size: '24py',
-    keyword: 'Kids minimal',
-    image: asset('/images/interior/main/portfolio-03.png'),
-    imageClass: 'h-[81.67%] left-[-6.21%] top-[-2.71%] w-[112.42%]',
-    base: true,
-  },
+const CASE_THUMBS = ['/images/dental/case-thumb-01.png', '/images/dental/case-thumb-02.png', '/images/dental/case-thumb-03.png', '/images/dental/case-thumb-04.png', '/images/dental/case-thumb-01.png']
+const CASES: Record<string, { title: string; desc: string }[]> = {
+  치아교정: [
+    { title: '덧니·총생\n교정 치료 사례', desc: '겹쳐 난 치아를 가지런히 정돈해 씹는 기능과 미소의 균형을 함께 개선한 사례입니다.' },
+    { title: '치아 사이 공간\n교정 치료 사례', desc: '벌어진 치아 사이를 자연스럽게 모아 깔끔한 치열을 만든 사례입니다.' },
+    { title: '앞니 배열\n교정 치료 사례', desc: '고르지 못한 앞니의 위치와 배열을 정돈해 전체적인 치열의 균형을 개선한 사례입니다.' },
+    { title: '돌출입\n교정 치료 사례', desc: '앞으로 나온 입매를 안쪽으로 정돈해 옆모습까지 편안해진 사례입니다.' },
+    { title: '과개교합\n교정 치료 사례', desc: '깊게 덮이던 윗니의 맞물림을 바로잡아 턱 관절 부담을 줄인 사례입니다.' },
+  ],
+  임플란트: [
+    { title: '앞니 단일\n임플란트 사례', desc: '빠진 앞니 한 개를 자연치아와 어울리는 임플란트로 회복한 사례입니다.' },
+    { title: '어금니\n임플란트 사례', desc: '씹는 힘이 큰 어금니 자리를 단단한 임플란트로 채운 사례입니다.' },
+    { title: '다수 치아\n임플란트 사례', desc: '여러 개의 빈자리를 계획적으로 회복해 씹는 기능을 되찾은 사례입니다.' },
+    { title: '뼈이식 동반\n임플란트 사례', desc: '부족한 잇몸뼈를 보강한 뒤 안정적으로 식립한 사례입니다.' },
+    { title: '틀니 대체\n임플란트 사례', desc: '불편한 틀니 대신 고정된 임플란트로 일상을 편하게 바꾼 사례입니다.' },
+  ],
+  심미치료: [
+    { title: '라미네이트\n치료 사례', desc: '얇은 세라믹으로 치아의 모양과 색을 자연스럽게 다듬은 사례입니다.' },
+    { title: '치아미백\n치료 사례', desc: '누렇게 변한 치아를 밝고 자연스러운 색으로 되돌린 사례입니다.' },
+    { title: '앞니 레진\n치료 사례', desc: '깨지고 벌어진 앞니를 레진으로 간단히 보완한 사례입니다.' },
+    { title: '잇몸 성형\n치료 사례', desc: '드러나는 잇몸 라인을 정돈해 웃는 모습을 개선한 사례입니다.' },
+    { title: '올세라믹\n치료 사례', desc: '금속 없는 크라운으로 자연스러운 앞니를 만든 사례입니다.' },
+  ],
+}
+const CASE_TABS = Object.keys(CASES)
+
+/** 의료진 — 가운데 칸이 대표 자리다. 좌우 단추로 돌린다. */
+const DOCTORS: { name: string; role?: string; image: string }[] = [
+  { name: '최지원', role: '대표원장', image: '/images/dental/doctor-choi.png' },
+  { name: '공예린', image: '/images/dental/doctor-gong.png' },
+  { name: '도예준', image: '/images/dental/doctor-do.png' },
+  { name: '김정원', image: '/images/dental/doctor-kim.png' },
+  { name: '이백도', image: '/images/dental/doctor-lee.png' },
 ]
 
-const SERVICE_TYPES = ['주거 공간', '상업 공간']
+/** 병원 공간 — 가운데 큰 칸에 이름표가 붙는다. base 는 사진 아래에 깔리는 바탕 사진이다. */
+const SPACES: { name: string; image: string; base?: string }[] = [
+  { name: '병원내부', image: '/images/dental/space-reception.png' },
+  { name: '대기실', image: '/images/dental/space-waiting.png', base: '/images/dental/space-consultation.png' },
+  { name: '복도', image: '/images/dental/space-corridor.png' },
+  { name: '진료실', image: '/images/dental/space-treatment.png' },
+  { name: '개별 진료실', image: '/images/dental/space-treatment-2.png', base: '/images/dental/space-treatment-2-base.png' },
+]
 
-/** 줄바꿈 — 넓은 화면에서만 시안대로 끊고, 좁은 화면에서는 자연스럽게 흐르게 둔다. */
-function Lines({ lines }: { lines: string[] }) {
+const mod = (n: number, m: number) => ((n % m) + m) % m
+
+/** 영문 소제목 */
+function Eyebrow({ children, className = '' }: { children: string; className?: string }) {
+  return <p className={`font-['Roboto',sans-serif] text-[15px] leading-[1.6] tracking-[1.2px] text-[#111] ${className}`}>{children}</p>
+}
+
+/** 섹션 제목 — 굵은 한글 제목과 영문 소제목 */
+function SectionTitle({ title, eyebrow, align = 'center' }: { title: string; eyebrow: string; align?: 'center' | 'left' }) {
   return (
-    <>
-      {lines.map((line) => (
-        <span key={line} className="xl:block">
-          {line}{' '}
-        </span>
-      ))}
-    </>
+    <div className={`flex flex-col gap-4 ${align === 'center' ? 'items-center text-center' : 'items-start'}`}>
+      <h2 className="text-[28px] font-bold leading-[1.5] tracking-[-0.9px] text-[#111] sm:text-[36px]">{title}</h2>
+      <Eyebrow>{eyebrow}</Eyebrow>
+    </div>
+  )
+}
+
+/** 밑줄이 미끄러지는 탭 */
+function Tabs({ items, active, onChange, itemWidth }: { items: string[]; active: number; onChange: (i: number) => void; itemWidth?: number }) {
+  return (
+    <div className="relative w-full" role="tablist">
+      <div className="flex">
+        {items.map((t, i) => (
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={i === active}
+            onClick={() => onChange(i)}
+            style={itemWidth ? { width: itemWidth } : undefined}
+            className={`pb-4 text-base font-semibold leading-[1.5] tracking-[-0.5px] transition sm:text-[20px] ${itemWidth ? 'shrink-0' : 'flex-1'} ${
+              i === active ? 'text-[#111]' : 'text-[#999] hover:text-[#545456]'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      <div className="h-[3px] rounded-full bg-[#d9d9d9]" />
+      <div
+        className="absolute bottom-0 left-0 h-[3px] rounded-full bg-[#1e3342] transition-transform duration-300"
+        style={
+          itemWidth
+            ? { width: itemWidth, transform: `translateX(${active * itemWidth}px)` }
+            : { width: `${100 / items.length}%`, transform: `translateX(${active * 100}%)` }
+        }
+      />
+    </div>
+  )
+}
+
+/** 원 안의 꺾쇠 단추 — 회청색 바탕 */
+function RoundButton({ dir, onClick, size = 48 }: { dir: 'prev' | 'next'; onClick: () => void; size?: number }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={dir === 'prev' ? '이전' : '다음'}
+      style={{ width: size, height: size }}
+      className="grid shrink-0 place-items-center rounded-full bg-[#627381] transition hover:bg-[#4f5f6c]"
+    >
+      <img src={dir === 'prev' ? asset('/images/dental/svg/chevron-left-white.svg') : asset('/images/dental/svg/chevron-right-white.svg')} alt="" width={24} height={24} />
+    </button>
   )
 }
 
 /* ---------- 메인 비주얼 ---------- */
 
-/** 스크롤 구간 안에서 스케치 비주얼이 컬러 공간으로 이어진다. */
+/** 관리자 [메인 비주얼]의 슬라이드를 읽는다. 제목 첫 줄은 보통 굵기, 둘째 줄부터 굵게. */
 function Hero() {
-  const { mainVisual, header } = useComponentSettings()
-  const section = useRef<HTMLElement>(null)
-  const progress = useRef(0)
-  const slides = mainVisual.slides.length
-    ? mainVisual.slides.map((s) => ({ title: s.title === '워드앤코드 인테리어' ? DEFAULT_HERO.title : s.title, image: componentImageUrl(s.image || DEFAULT_HERO.image) }))
-    : [{ title: DEFAULT_HERO.title, image: asset(DEFAULT_HERO.image) }]
+  const { mainVisual } = useComponentSettings()
+  const slides = mainVisual.slides.length ? mainVisual.slides : [DEFAULT_SLIDE]
   const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    const element = section.current
-    if (!element) return
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let frame = 0
-    let previousTime = 0
-    let rendered = 0
-    let target = 0
-    let sectionTop = 0
-    let distance = 1
-    let width = 0
-    let height = 0
-    const clamp = (value: number) => Math.max(0, Math.min(1, value))
-    const render = (raw: number) => {
-      const eased = raw * raw * (3 - 2 * raw)
-      const padding = width < 640 ? 12 : width < 1280 ? 24 : 40
-      const targetWidth = Math.min(852, width * (width < 768 ? 0.9 : 0.59))
-      const targetHeight = Math.min(407, targetWidth * 407 / 852, height * 0.65)
-      element.style.setProperty('--visual-width', `${width - 2 * padding + (targetWidth - width + 2 * padding) * eased}px`)
-      element.style.setProperty('--visual-height', `${height - 2 * padding + (targetHeight - height + 2 * padding) * eased}px`)
-      element.style.setProperty('--visual-radius', `${28 - 12 * eased}px`)
-      // 오른쪽부터 컬러가 드러나고, 부드러운 경계가 왼쪽으로 이동한다.
-      const colorProgress = clamp((raw - 0.08) / 0.7)
-      const colorEdge = 100 - colorProgress * 124
-      element.style.setProperty('--color-edge-start', `${colorEdge}%`)
-      element.style.setProperty('--color-edge-end', `${colorEdge + 24}%`)
-      element.style.setProperty('--hero-opacity', String(1 - clamp(raw / 0.35)))
-      element.style.setProperty('--slogan-opacity', String(clamp((raw - 0.5) / 0.35)))
-      const gathering = clamp((raw - 0.45) / 0.55)
-      const gathered = gathering * gathering * (3 - 2 * gathering)
-      element.style.setProperty('--slogan-shift', `${(1 - gathered) * (width < 768 ? 32 : 60)}px`)
-      element.style.setProperty('--slogan-image-width', `${targetWidth}px`)
-      element.style.setProperty('--slogan-image-height', `${targetHeight}px`)
-    }
-    const animate = (time: number) => {
-      frame = 0
-      // 시간 기준 보간: 60/120Hz 모두 같은 속도로 부드럽게 따라간다.
-      const elapsed = previousTime ? Math.min(time - previousTime, 64) : 1000 / 60
-      previousTime = time
-      rendered += (target - rendered) * (1 - Math.exp(-elapsed / 110))
-      const settled = Math.abs(target - rendered) < 0.0001
-      if (settled) rendered = target
-      render(rendered)
-      if (!settled) frame = window.requestAnimationFrame(animate)
-      else previousTime = 0
-    }
-    const schedule = () => {
-      // 마지막 20%는 완성된 컬러 화면을 유지한다.
-      target = motion.matches ? 1 : clamp((window.scrollY - sectionTop) / distance)
-      progress.current = target
-      if (motion.matches) {
-        window.cancelAnimationFrame(frame)
-        frame = 0
-        previousTime = 0
-        rendered = target
-        render(rendered)
-      } else if (!frame) frame = window.requestAnimationFrame(animate)
-    }
-    const measure = () => {
-      // 레이아웃 측정은 크기가 변할 때만 하고 애니메이션 프레임에서는 쓰기만 한다.
-      const rect = element.getBoundingClientRect()
-      height = (element.firstElementChild as HTMLElement).clientHeight
-      width = element.clientWidth
-      sectionTop = rect.top + window.scrollY
-      distance = Math.max(1, (rect.height - height) / 1.2)
-      schedule()
-      render(rendered)
-    }
-    measure()
-    rendered = target
-    render(rendered)
-    window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', measure)
-    motion.addEventListener('change', measure)
-    const observer = new ResizeObserver(measure)
-    observer.observe(element)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', measure)
-      motion.removeEventListener('change', measure)
-      observer.disconnect()
-    }
-  }, [])
+  const current = mod(index, slides.length)
+  const go = (step: number) => setIndex((i) => mod(i + step, slides.length))
 
   useEffect(() => {
     if (!mainVisual.autoplay || slides.length < 2) return
-    const timer = window.setInterval(() => {
-      if (progress.current < 0.01 && !document.hidden) setIndex((i) => (i + 1) % slides.length)
-    }, Math.max(mainVisual.interval, 2000))
+    const timer = window.setInterval(() => setIndex((i) => i + 1), Math.max(mainVisual.interval, 3000))
     return () => window.clearInterval(timer)
-  }, [mainVisual.autoplay, mainVisual.interval, slides.length])
-
-  const current = index % slides.length
-  const logo = header.logoImage ? componentImageUrl(header.logoImage) : asset('/images/interior/main/logo.png')
+  }, [mainVisual.autoplay, mainVisual.interval, slides.length, index])
 
   return (
-    <section ref={section} className="interior-scroll-hero" aria-label="상상 속 공간을 실제로 구현하는 워드앤코드">
-      <div className="interior-scroll-stage">
-        <div className="interior-scroll-visual">
-          {slides.map((slide, i) => (
-            <img
-              key={`${slide.image}-${i}`}
-              src={slide.image}
-              alt=""
-              fetchPriority={i === 0 ? 'high' : 'auto'}
-              className={`absolute inset-0 h-full w-full object-cover object-[36%_50%] transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
-            />
-          ))}
-          <img src={asset('/images/interior/main/slogan.png')} alt="햇살과 우드 톤이 어우러진 완성된 거실" className="interior-scroll-color" />
-          <div className="interior-scroll-heading">
-            <img src={logo} alt="워드앤코드" className="absolute bottom-3 left-0 h-auto w-40 object-cover gnb:bottom-auto gnb:top-0 gnb:h-[110px] gnb:w-[328px]" />
-            <div className="absolute inset-0 flex items-center justify-center pb-[50px]">
-              {slides.map((slide, i) => (
-                <h1 key={`${slide.title}-${i}`} aria-hidden={i !== current} className={`font-serif-kr absolute whitespace-pre-line px-6 text-center text-[26px] text-[#171614] transition-opacity duration-1000 sm:text-[36px] ${i === current ? 'opacity-100' : 'opacity-0'}`}>
-                  {slide.title === DEFAULT_HERO.title ? (
-                    <>
-                      <span className="block font-serif text-[36px] leading-[1.2] tracking-[0.04em] sm:text-[44px]">DEPLATE</span>
-                      <span className="mt-2 block text-[22px] leading-[1.4] sm:text-[30px]">디플릿 인테리어 스튜디오</span>
-                    </>
-                  ) : slide.title}
-                </h1>
+    <section className="mx-auto w-full max-w-[1600px] px-5 sm:px-10 2xl:px-0">
+      <div className="relative h-[520px] overflow-hidden rounded-[24px] bg-[#d9d9d9] sm:h-[600px]">
+        {slides.map((s, i) => (
+          <img
+            key={`${s.image}-${i}`}
+            src={componentImageUrl(s.image || DEFAULT_SLIDE.image)}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-700 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+          />
+        ))}
+        {/* 글이 읽히도록 왼쪽을 하얗게 덮는다 */}
+        <div className="absolute inset-y-[-4px] left-0 w-full bg-gradient-to-r from-white from-[62%] to-transparent to-[100%] lg:w-[1024px] lg:from-[37.6%] lg:to-[75.5%]" aria-hidden />
+
+        <div className="relative flex h-full max-w-[436px] flex-col justify-between gap-10 p-8 sm:box-content sm:p-20 sm:pr-0 lg:justify-start lg:gap-[74px]">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4">
+              <Eyebrow>A MORE COMFORTABLE DENTAL EXPERIENCE</Eyebrow>
+              <span className="h-0.5 w-[50px] bg-[#111]" aria-hidden />
+            </div>
+            <div className="relative">
+              {slides.map((s, i) => {
+                const [first, ...rest] = s.title.split('\n')
+                return (
+                  <div
+                    key={`${s.title}-${i}`}
+                    aria-hidden={i !== current}
+                    className={`flex flex-col gap-4 transition-opacity duration-700 ${i === current ? 'relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
+                  >
+                    <h1 className="text-[34px] leading-[1.5] tracking-[-1.2px] text-[#111] sm:text-[48px]">
+                      <span className="font-medium">{first}</span>
+                      {rest.length > 0 && (
+                        <>
+                          <br />
+                          <span className="font-bold">{rest.join('\n')}</span>
+                        </>
+                      )}
+                    </h1>
+                    <p className="whitespace-pre-line text-[17px] leading-[1.6] tracking-[-0.425px] text-[#464648]">{s.description}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-[50px]">
+            <div className="flex items-center gap-5 text-base leading-[1.6] tracking-[-0.4px]">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIndex(i)}
+                  aria-label={`${i + 1}번째 슬라이드`}
+                  aria-current={i === current}
+                  className={i === current ? 'font-semibold text-[#111]' : 'text-[#999] hover:text-[#545456]'}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </button>
               ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => go(-1)} aria-label="이전 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#ddd] transition hover:border-[#111]">
+                <img src={asset('/images/dental/svg/hero-prev.svg')} alt="" width={30} height={30} />
+              </button>
+              <button type="button" onClick={() => go(1)} aria-label="다음 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#111]">
+                <img src={asset('/images/dental/svg/hero-next.svg')} alt="" width={30} height={30} />
+              </button>
             </div>
           </div>
         </div>
-        <h2 className="interior-scroll-slogan font-serif-kr">
-          <span className="interior-scroll-slogan-first">상상 속 공간을</span>
-          <span className="interior-scroll-slogan-last">실제로 구현하는</span>
-        </h2>
       </div>
     </section>
   )
 }
 
-/* ---------- 숫자 ---------- */
+/* ---------- 진료 프로그램 ---------- */
 
-/** 숫자 영역이 보일 때 한 번만 목표 값까지 증가한다. */
-function CountUp({ value, delay = 0 }: { value: number; delay?: number }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let frame = 0
-    let started = false
-    let observer: IntersectionObserver | undefined
-    const finish = () => {
-      window.cancelAnimationFrame(frame)
-      setCount(value)
-      observer?.disconnect()
-    }
-    const start = () => {
-      if (started) return
-      started = true
-      observer?.disconnect()
-      const startTime = performance.now() + delay
-      const tick = (time: number) => {
-        const progress = Math.max(0, Math.min(1, (time - startTime) / 1600))
-        const eased = 1 - Math.pow(1 - progress, 3)
-        setCount(Math.round(value * eased))
-        if (progress < 1) frame = window.requestAnimationFrame(tick)
-      }
-      frame = window.requestAnimationFrame(tick)
-    }
-    const onMotionChange = () => { if (motion.matches) finish() }
-    if (motion.matches || typeof IntersectionObserver === 'undefined') {
-      finish()
-    } else {
-      observer = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) start()
-      }, { threshold: 0.5, rootMargin: '0px 0px -8% 0px' })
-      observer.observe(element)
-    }
-    motion.addEventListener('change', onMotionChange)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      observer?.disconnect()
-      motion.removeEventListener('change', onMotionChange)
-    }
-  }, [value, delay])
-
+/** 카드 안 — 빛 번지는 배경 위에 진료 그림 */
+function ProgramCard({ image, active }: { image: string; active?: boolean }) {
   return (
-    <span ref={ref} className="text-[88px] tabular-nums xl:text-[120px]">
-      <span className="sr-only">{value}</span>
-      <span aria-hidden="true">{count}</span>
-    </span>
-  )
-}
-
-function Stats() {
-  return (
-    <section className="px-5 pb-24 sm:px-10 xl:px-20 xl:pb-40">
-      <ul className="mx-auto grid max-w-[1760px] gap-6 md:grid-cols-3 xl:gap-[60px]">
-        {STATS.map((s, i) => (
-          <Reveal as="li" key={s.title} index={i} className="flex flex-col rounded-2xl bg-white p-8 xl:h-[348px] xl:p-10">
-            <h3 className="flex items-center gap-[15px] text-lg font-bold leading-normal tracking-[-0.55px] text-[#534639] xl:text-[22px]">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#534639]" aria-hidden />
-              {s.title}
-            </h3>
-            <p className="flex items-center justify-center pb-[30px] pl-4 pt-10 font-normal leading-none text-[#7a6759]">
-              <CountUp value={Number(s.value)} delay={i * 110} />
-              <span className="text-[44px] xl:text-[60px]">+</span>
-            </p>
-            <p className="font-serif-kr text-[22px] font-extralight leading-normal text-[#7a6759]">{String(i + 1).padStart(2, '0')}</p>
-          </Reveal>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-/* ---------- 진행 과정 ---------- */
-
-/** 세로 스크롤을 가로 이동으로 연결하고 마지막 카드 뒤에서 고정을 해제한다. */
-function Process() {
-  const section = useRef<HTMLElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
-  const track = useRef<HTMLDivElement>(null)
-  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
-  const scrollOrigin = useRef(0)
-
-  useEffect(() => {
-    const element = section.current
-    const viewport = stage.current
-    const row = track.current
-    if (!element || !viewport || !row) return
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let frame = 0
-    let distance = 0
-    let origin = 0
-    const update = () => {
-      frame = 0
-      if (!motion.matches) row.scrollLeft = Math.max(0, Math.min(distance, window.scrollY - origin))
-    }
-    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
-    const measure = () => {
-      distance = Math.max(0, row.scrollWidth - row.clientWidth)
-      origin = element.getBoundingClientRect().top + window.scrollY
-      scrollOrigin.current = origin
-      element.style.height = motion.matches ? 'auto' : `${viewport.offsetHeight + distance + window.innerHeight * 0.15}px`
-      update()
-    }
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(viewport)
-    observer.observe(row)
-    window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', measure)
-    motion.addEventListener('change', measure)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      observer.disconnect()
-      window.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', measure)
-      motion.removeEventListener('change', measure)
-    }
-  }, [])
-
-  const onDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== 'mouse' || !track.current) return
-    drag.current = { x: e.clientX, left: track.current.scrollLeft, moved: false }
-  }
-  const onMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!drag.current || !track.current) return
-    const dx = e.clientX - drag.current.x
-    if (Math.abs(dx) > 3) drag.current.moved = true
-    const row = track.current
-    const left = Math.max(0, Math.min(row.scrollWidth - row.clientWidth, drag.current.left - dx))
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) row.scrollLeft = left
-    else window.scrollTo({ top: scrollOrigin.current + left, behavior: 'instant' })
-  }
-  const onUp = () => { drag.current = null }
-
-  return (
-    <section ref={section} className="interior-process-scroll bg-[#241d12]">
-      <div ref={stage} className="interior-process-stage">
-      <div
-        ref={track}
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerLeave={onUp}
-        className="interior-process-track flex cursor-grab select-none items-start gap-10 overflow-x-auto overflow-y-hidden px-5 [scrollbar-width:none] active:cursor-grabbing sm:px-10 xl:gap-[100px] xl:px-[168px] [&::-webkit-scrollbar]:hidden"
-      >
-        {PROCESS.map((p, i) => {
-          const title = (
-            <h3 className="font-serif-kr pt-5 text-2xl font-normal text-white xl:text-[32px]">{p.title}</h3>
-          )
-          return (
-            <div key={p.title} className="w-[80vw] min-w-[260px] max-w-[620px] shrink-0 xl:w-[614px]">
-              <Reveal gentle index={i} step={180} className="flex flex-col gap-6">
-                {p.titleFirst && title}
-                <div className={`interior-process-media aspect-[614/461] w-full overflow-hidden bg-[#d3d3d3] ${p.rounded ?? 'rounded-2xl'}`}>
-                  {p.video ? (
-                    <video
-                      src={p.video}
-                      poster={p.image}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      preload="metadata"
-                      disablePictureInPicture
-                      aria-label="설계 도면과 자재를 검토하는 영상"
-                      className="block h-full w-full object-cover object-center"
-                    />
-                  ) : (
-                    <img src={p.image} alt="" draggable={false} className="h-full w-full object-cover" loading="lazy" />
-                  )}
-                </div>
-                {!p.titleFirst && title}
-                <p className="pb-2.5 text-base leading-normal tracking-[-0.4px] text-white opacity-90 xl:whitespace-nowrap">
-                  <Lines lines={p.desc} />
-                </p>
-              </Reveal>
-            </div>
-          )
-        })}
-      </div>
-      </div>
-    </section>
-  )
-}
-
-/* ---------- 인테리어 스타일 ---------- */
-
-function Styles() {
-  const group = useRef<HTMLUListElement>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const element = group.current
-    if (!element) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof IntersectionObserver === 'undefined') {
-      setVisible(true)
-      return
-    }
-    // 높이가 다른 카드도 같은 시점부터 왼쪽 순서대로 등장한다.
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true)
-        observer.disconnect()
-      }
-    }, { threshold: 0, rootMargin: '0px 0px -15% 0px' })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-
-  const heading = (
-    <h2 className="font-serif-kr text-[26px] font-normal leading-normal text-[#241e12] xl:text-right xl:text-[32px]">
-      나의 취향이 오롯이
-      <br />
-      드러나는 공간
-    </h2>
-  )
-  const paragraph = (
-    <p className="text-base leading-normal tracking-[-0.4px] text-[#6a6a6a]">
-      워드앤코드 인테리어는
-      <br />
-      공간의 용도와 가족 구성원, 생활 니즈를 면밀히 파악하고,
-      <br />
-      고객의 취향이 세심하게 녹아든 공간을 디자인합니다.
-    </p>
-  )
-
-  return (
-    <section className="px-5 py-24 sm:px-10 xl:px-20 xl:py-32">
-      {/* 좁은 화면 — 글을 먼저 두고 사진을 두 칸으로 */}
-      <div className="mb-10 space-y-4 xl:hidden">
-        {heading}
-        {paragraph}
-      </div>
-
-      <ul ref={group} className="mx-auto grid max-w-[1760px] grid-cols-2 items-start gap-4 xl:min-h-[879px] xl:grid-cols-4">
-        {STYLES.map((s, i) => (
-          <li key={s.label} className={`relative ${s.offset}`}>
-            {/* 세 번째 칸 위에 걸치는 제목 */}
-            {i === 2 && <div className="absolute bottom-full right-3 mb-[67px] hidden xl:block">{heading}</div>}
-            <Reveal gentle visible={visible} index={i} step={240} className="relative aspect-[428/600] overflow-hidden rounded-2xl">
-              <img
-                src={s.image}
-                alt={`인테리어 스타일 — ${s.label}`}
-                className="absolute left-0 top-[-4.54%] h-[110%] w-full object-cover opacity-[0.84]"
-                loading="lazy"
-              />
-              <p
-                className={`font-serif-kr absolute inset-x-0 bottom-10 text-center text-base text-white ${s.dim ? 'opacity-[0.66]' : ''}`}
-              >
-                {s.label}
-              </p>
-            </Reveal>
-            {/* 두 번째 칸 아래의 설명 */}
-            {i === 1 && <div className="mt-[90px] hidden pl-2 xl:block">{paragraph}</div>}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-/* ---------- 포트폴리오 ---------- */
-
-function Portfolio() {
-  const section = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const element = section.current
-    if (!element) return
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const rows = Array.from(element.querySelectorAll<HTMLElement>('.portfolio-row'))
-    const positions = rows.map(() => ({ top: 0, height: 1, current: 0 }))
-    let frame = 0
-    let previousTime = 0
-    const clamp = (n: number) => Math.max(0, Math.min(1, n))
-    const update = (time: number) => {
-      frame = 0
-      const elapsed = previousTime ? Math.min(time - previousTime, 64) : 16.67
-      previousTime = time
-      let moving = false
-      rows.forEach((row, i) => {
-        const position = positions[i]
-        const target = motion.matches ? 1 : clamp((window.scrollY + window.innerHeight - position.top) / (position.height + window.innerHeight * 0.5))
-        position.current += (target - position.current) * (1 - Math.exp(-elapsed / 180))
-        if (Math.abs(target - position.current) < 0.0001) position.current = target
-        else moving = true
-        const imageProgress = 1 - Math.pow(1 - clamp(position.current / 0.75), 3)
-        row.style.setProperty('--portfolio-image-opacity', String(imageProgress))
-        row.style.setProperty('--portfolio-scale', String(1.3 - 0.3 * imageProgress))
-        row.style.setProperty('--portfolio-clip', `${(1 - imageProgress) * 100}%`)
-      })
-      if (moving) frame = window.requestAnimationFrame(update)
-      else previousTime = 0
-    }
-    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
-    const measure = () => {
-      rows.forEach((row, i) => {
-        const rect = row.getBoundingClientRect()
-        positions[i].top = rect.top + window.scrollY
-        positions[i].height = rect.height
-      })
-      if (motion.matches) positions.forEach((p) => { p.current = 1 })
-      schedule()
-    }
-    const observer = new ResizeObserver(measure)
-    rows.forEach((row) => observer.observe(row))
-    measure()
-    window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', measure)
-    motion.addEventListener('change', measure)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      observer.disconnect()
-      window.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', measure)
-      motion.removeEventListener('change', measure)
-    }
-  }, [])
-  return (
-    <section ref={section} className="px-5 py-20 sm:px-10 xl:p-20">
-      <div className="mx-auto max-w-[1760px]">
-        <Reveal className="pb-16 text-center xl:pb-32">
-          <h2 className="font-serif-kr text-[26px] font-normal text-[#241e12] xl:text-[32px]">일상을 읽고, 공간을 설계합니다.</h2>
-          <p className="pt-4 text-base leading-normal tracking-[-0.4px] text-[#6a6a6a]">
-            내 취향을 담은 나만의 공간을, 생활에 맞춰 편안하게.
-          </p>
-        </Reveal>
-
-        <ul className="overflow-hidden rounded-[24px] bg-white xl:rounded-[32px]">
-          {PORTFOLIO.map((p, i) => {
-            const reverse = i % 2 === 1
-            return (
-              <Reveal as="li" gentle index={i} step={180}
-                key={p.title}
-                className={`portfolio-row flex flex-col gap-10 border-[#ebebeb] px-6 py-12 [&:not(:last-child)]:border-b sm:px-10 xl:flex-row xl:items-start xl:justify-between xl:gap-8 xl:px-[88px] xl:py-[92px] ${
-                  reverse ? 'xl:flex-row-reverse' : ''
-                }`}
-              >
-                <div className="flex flex-col justify-between gap-8 pt-2 xl:h-[369px] xl:w-[625px] xl:shrink-0">
-                  <div>
-                    <p className="text-base text-[#8f784b]">Portfolio {i + 1}</p>
-                    <h3 className="font-serif-kr pt-5 text-[24px] font-medium text-[#1f1f1f] xl:text-[32px]">{p.title}</h3>
-                    <p className="pt-6 text-base font-medium text-[#1f1f1f]">{p.year}</p>
-                  </div>
-                  <p className="text-base leading-[1.6] tracking-[-0.4px] text-[#6a6a6a]">{p.desc}</p>
-                  <dl className="flex flex-wrap gap-x-20 gap-y-4">
-                    {[
-                      ['Location', p.location],
-                      ['Size', p.size],
-                      ['Keyword', p.keyword],
-                    ].map(([k, v]) => (
-                      <div key={k}>
-                        <dt className="text-base text-[#7a6759]">{k}</dt>
-                        <dd className="pt-2 text-base font-medium text-[#1f1f1f]">{v}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-
-                <div className="portfolio-image relative aspect-[872/369] w-full overflow-hidden rounded-2xl xl:aspect-auto xl:h-[369px] xl:w-[872px] xl:shrink-0">
-                  {/* 시안은 872×480 사진 칸의 위쪽 369px 만 보여 준다 */}
-                  <div className="absolute inset-x-0 top-0 aspect-[872/480] overflow-hidden rounded-[14px]">
-                    {p.base && (
-                      <img src={asset('/images/interior/main/portfolio-base.png')} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-                    )}
-                    <img src={p.image} alt={p.title} className={`absolute max-w-none ${p.imageClass}`} loading="lazy" />
-                  </div>
-                </div>
-              </Reveal>
-            )
-          })}
-        </ul>
-
-        <div className="flex justify-center py-10">
-          <Link
-            to="/products"
-            className="flex items-center gap-2 rounded-full bg-[#676057] px-[18px] py-3 text-[15px] font-light tracking-[-0.375px] text-white shadow-[3px_7px_10px_0px_rgba(48,41,34,0.15)] transition hover:bg-[#54493d]"
-          >
-            view more
-            <span className="h-[5px] w-[5px] rounded-full bg-white" aria-hidden />
-          </Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-/* ---------- 빠른 상담 ---------- */
-
-const EMPTY_FORM = { name: '', phone: ['', '', ''], address: '', type: '', agree: false }
-
-/** 사진 위 반투명 상자에 담긴 빠른 상담 폼 — 관리자 [문의 관리]로 접수된다. */
-function QuickContact() {
-  const [form, setForm] = useState(EMPTY_FORM)
-  const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
-
-  const setPhone = (idx: number, value: string) =>
-    setForm((f) => ({ ...f, phone: f.phone.map((p, i) => (i === idx ? value.replace(/\D/g, '').slice(0, 4) : p)) }))
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    const phone = form.phone.filter(Boolean).join('-')
-    const missing = [
-      !form.name.trim() && '성함 혹은 업체명',
-      form.phone.some((p) => !p) && '연락처',
-      !form.address.trim() && '시공 예정 주소',
-      !form.type && '서비스 유형',
-    ].filter(Boolean)
-    if (missing.length) return setMessage({ ok: false, text: `${missing.join(', ')}을(를) 입력해 주세요.` })
-    if (!form.agree) return setMessage({ ok: false, text: '개인정보 수집·이용에 동의해 주셔야 문의를 보낼 수 있습니다.' })
-
-    setSubmitting(true)
-    setMessage(null)
-    try {
-      await api('/contacts', {
-        method: 'POST',
-        body: {
-          name: form.name.trim(),
-          phone,
-          message: `[메인 빠른 상담]\n서비스 유형: ${form.type}\n시공 예정 주소: ${form.address.trim()}`,
-        },
-      })
-      setForm(EMPTY_FORM)
-      setMessage({ ok: true, text: '문의가 접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.' })
-    } catch (err) {
-      setMessage({ ok: false, text: (err as Error).message })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const label = 'text-base font-medium leading-[25.6px] tracking-[-0.4px] text-white'
-  const line = 'h-[30px] w-full border-0 border-b border-[#a99d93] bg-transparent px-0 text-white outline-none focus:border-white'
-
-  return (
-    <section
-      className="interior-contact-background relative flex flex-col justify-between gap-12 overflow-hidden px-5 py-20 sm:px-10 xl:h-[919px] xl:px-[168px] xl:py-[120px]"
-      style={{ backgroundImage: `url("${asset('/images/interior/contact-bg.png')}")` }}
-    >
-      <div
-        className="absolute inset-0"
-        style={{ backgroundImage: 'linear-gradient(25.58deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%)' }}
-        aria-hidden
+    <>
+      <img src={asset('/images/dental/program-bg.png')} alt="" className="absolute left-1/2 top-1/2 h-[108%] w-[135%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
+      <img
+        src={asset(image)}
+        alt=""
+        className={`absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-cover ${active ? 'mt-1 h-[88%] w-[73.5%]' : 'h-[95.6%] w-[79.9%]'}`}
       />
+    </>
+  )
+}
 
-      <Reveal gentle className="relative pl-2">
-        <h2 className="font-serif-kr text-[22px] font-normal text-white sm:text-[27.994px]">예산은 달라도, 완성도의 기준은 같습니다.</h2>
-        <p className="pt-6 text-base leading-6 text-[#f7f4ef]">
-          워드앤코드는 공간의 조건과 취향을 세심히 읽고,
-          <br />
-          주어진 예산 안에서 가장 좋은 설계의 답을 제안합니다.
-        </p>
-      </Reveal>
+function Programs() {
+  const [index, setIndex] = useState(0)
+  const n = PROGRAMS.length
+  const cur = PROGRAMS[mod(index, n)]
+  const prev = PROGRAMS[mod(index - 1, n)]
+  const next = PROGRAMS[mod(index + 1, n)]
 
-      <Reveal gentle index={1} className="relative w-full max-w-[409px]">
-      <form
-        onSubmit={onSubmit}
-        noValidate
-        className="relative w-full max-w-[409px] rounded-[30px] border border-white bg-white/15 px-8 py-8 sm:px-10"
+  return (
+    <section className="flex flex-col items-center gap-12 overflow-hidden">
+      <div className="flex w-full max-w-[758px] flex-col items-center gap-12 px-5 sm:gap-20">
+        <SectionTitle title="진료 프로그램" eyebrow="DENTAL CARE DESIGNED AROUND YOUR NEEDS" />
+        <Tabs items={PROGRAMS.map((p) => p.name)} active={mod(index, n)} onChange={setIndex} />
+      </div>
+
+      <div className="relative w-full">
+        {/* 좌우로 반쯤 걸친 앞뒤 카드 — 넓은 화면에서만 */}
+        <button
+          type="button"
+          onClick={() => setIndex((i) => i - 1)}
+          aria-label={`${prev.name} 보기`}
+          className="absolute right-[calc(50%+455px)] top-[43px] hidden h-[364px] w-[581px] overflow-hidden rounded-[20px] bg-[#f6f9fd] xl:block"
+        >
+          <ProgramCard image={prev.image} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setIndex((i) => i + 1)}
+          aria-label={`${next.name} 보기`}
+          className="absolute left-[calc(50%+555px)] top-[43px] hidden h-[364px] w-[581px] overflow-hidden rounded-[20px] bg-[#ebf4fd] xl:block"
+        >
+          <ProgramCard image={next.image} />
+        </button>
+
+        <div className="relative mx-auto flex w-full max-w-[950px] flex-col items-center gap-7 px-5">
+          <div className="flex w-full items-center gap-4 sm:gap-12">
+            <RoundButton dir="prev" onClick={() => setIndex((i) => i - 1)} />
+            <div key={cur.name} className="relative aspect-[718/450] flex-1 overflow-hidden rounded-[20px] bg-[#fcfdfc]">
+              <ProgramCard image={cur.image} active />
+            </div>
+            <RoundButton dir="next" onClick={() => setIndex((i) => i + 1)} />
+          </div>
+          <div className="flex w-full max-w-[718px] flex-col gap-3 px-4 text-[#111] sm:flex-row sm:items-center sm:gap-10">
+            <p className="whitespace-nowrap text-[24px] font-semibold leading-[1.5] tracking-[-0.7px] sm:text-[28px]">{cur.name}</p>
+            <p className="flex-1 text-[17px] leading-[1.6] tracking-[-0.425px]">
+              {cur.desc[0]}
+              <br className="hidden sm:block" /> {cur.desc[1]}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- 치료 전후 ---------- */
+
+/** 가운데 손잡이를 끌어 전후를 비교한다. */
+function Compare() {
+  const box = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState(50)
+  const dragging = useRef(false)
+
+  const move = (clientX: number) => {
+    const rect = box.current?.getBoundingClientRect()
+    if (!rect) return
+    setPos(Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)))
+  }
+  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    dragging.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+    move(e.clientX)
+  }
+
+  return (
+    <div
+      ref={box}
+      onPointerDown={onDown}
+      onPointerMove={(e) => dragging.current && move(e.clientX)}
+      onPointerUp={() => (dragging.current = false)}
+      onPointerCancel={() => (dragging.current = false)}
+      className="relative aspect-[1200/524] w-full cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-[24px]"
+    >
+      {/* 치료 후 — 전체에 깔고, 손잡이 오른쪽만 어둡게 덮는다 */}
+      <img src={asset('/images/dental/case-after.png')} alt="치료 후" draggable={false} className="absolute left-1/2 top-1/2 h-[120.8%] w-[120.8%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
+      <div className="absolute inset-y-0 right-0 bg-[rgba(13,13,13,0.4)]" style={{ left: `${pos}%` }} aria-hidden />
+      <span className="absolute right-6 top-6 rounded-lg bg-[#1e3342] px-4 py-2 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white">AFTER</span>
+
+      {/* 치료 전 — 손잡이 왼쪽만 보인다 */}
+      <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+        <img src={asset('/images/dental/case-before.png')} alt="치료 전" draggable={false} className="absolute left-1/2 top-1/2 h-[123.5%] w-[123.5%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
+        <span className="absolute left-6 top-6 flex h-10 items-center rounded-lg bg-white/[0.24] px-4 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px]">
+          Before
+        </span>
+      </div>
+
+      <div
+        role="slider"
+        tabIndex={0}
+        aria-label="치료 전후 비교"
+        aria-valuenow={Math.round(pos)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') setPos((p) => Math.max(0, p - 5))
+          if (e.key === 'ArrowRight') setPos((p) => Math.min(100, p + 5))
+        }}
+        style={{ left: `${pos}%` }}
+        className="absolute top-1/2 grid h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.18)] sm:h-[70px] sm:w-[70px]"
       >
-        <div className="flex flex-col gap-4">
-          <label className="block">
-            <span className={label}>
-              성함 혹은 업체명<span className="text-[#ab9f96]">*</span>
-            </span>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`${line} mt-1`} maxLength={50} />
-          </label>
+        <img src={asset('/images/dental/svg/compare-handle.svg')} alt="" width={22} height={14} />
+      </div>
+    </div>
+  )
+}
 
-          <fieldset className="pt-[15px]">
-            <legend className={label}>
-              연락처<span className="text-[#ab9f96]">*</span>
-            </legend>
-            <div className="mt-1 flex items-end gap-[5px]">
-              {form.phone.map((p, i) => (
-                <span key={i} className="contents">
-                  {i > 0 && <span className="leading-[25.6px] text-[#a99d93]">-</span>}
-                  <input
-                    value={p}
-                    onChange={(e) => setPhone(i, e.target.value)}
-                    inputMode="numeric"
-                    aria-label={`연락처 ${i + 1}번째 자리`}
-                    className={`${line} min-w-0 flex-1 text-center`}
-                  />
-                </span>
-              ))}
+function Cases() {
+  const [tab, setTab] = useState(0)
+  const [selected, setSelected] = useState(2)
+  const list = CASES[CASE_TABS[tab]]
+  const current = list[selected]
+
+  return (
+    <section className="mx-auto flex w-full max-w-[1600px] flex-col gap-12 px-5 sm:px-10 2xl:px-0">
+      <div className="flex w-full max-w-[462px] flex-col gap-12">
+        <SectionTitle title="치료의 변화, 결과로 보여드립니다" eyebrow="SEE THE DIFFERENCE" align="left" />
+        <div className="w-full max-w-[429px] overflow-hidden">
+          <Tabs
+            items={CASE_TABS}
+            active={tab}
+            onChange={(i) => {
+              setTab(i)
+              setSelected(0)
+            }}
+            itemWidth={143}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-10 xl:flex-row xl:items-start xl:gap-20">
+        <div className="flex w-full flex-col gap-7 xl:w-[1200px] xl:shrink-0">
+          <Compare />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-2">
+            <div className="flex flex-1 flex-col gap-2">
+              <h3 className="text-[24px] font-bold leading-[1.5] tracking-[-0.7px] text-[#111] sm:text-[28px]">{current.title.replace('\n', ' ')}</h3>
+              <p className="text-[17px] leading-[1.6] tracking-[-0.425px] text-[#545456]">{current.desc}</p>
             </div>
-          </fieldset>
-
-          <label className="block pt-[15px]">
-            <span className={label}>
-              시공 예정 주소<span className="text-[#ab9f96]">*</span>
-            </span>
-            <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${line} mt-1`} maxLength={200} />
-          </label>
-
-          <fieldset className="pt-5">
-            <legend className={label}>
-              서비스 유형<span className="text-[#ab9f96]">*</span>
-            </legend>
-            <div className="flex pt-1.5">
-              {SERVICE_TYPES.map((t) => (
-                <label key={t} className="flex w-[142px] cursor-pointer items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="service-type"
-                    checked={form.type === t}
-                    onChange={() => setForm({ ...form, type: t })}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className="h-4 w-4 rounded-full border-2 border-[#a99d93] peer-checked:border-[5px] peer-checked:border-white peer-focus-visible:ring-2 peer-focus-visible:ring-white/60"
-                    aria-hidden
-                  />
-                  <span className="text-base tracking-[-0.4px] text-white">{t}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+            <Link to="/board" className="flex items-center gap-2.5 whitespace-nowrap text-[20px] font-medium leading-[1.5] tracking-[-0.5px] text-[#111] transition hover:opacity-70">
+              더보기
+              <img src={asset('/images/dental/svg/arrow-long.svg')} alt="" width={24} height={24} />
+            </Link>
+          </div>
         </div>
 
-        <div className="pt-[22px]">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="h-[47px] w-full rounded-md bg-[#676057]/80 text-lg font-bold text-white transition hover:bg-[#676057] disabled:opacity-60"
+        {/* 사례 목록 — 넘치면 세로로 넘기고, 오른쪽 막대가 선택한 사례의 자리를 가리킨다 */}
+        <div className="flex min-w-0 gap-8 xl:h-[629px]">
+          <ul
+            className="flex flex-1 gap-5 overflow-auto [scrollbar-width:none] xl:w-[280px] xl:flex-col [&::-webkit-scrollbar]:hidden"
           >
-            {submitting ? '보내는 중...' : '문의하기'}
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between pt-3 text-sm tracking-[-0.35px] text-[#ccc5bb]">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={form.agree} onChange={(e) => setForm({ ...form, agree: e.target.checked })} className="peer sr-only" />
-            <span
-              className="grid h-4 w-4 place-items-center rounded-full border border-[#ccc5bb] bg-white/[0.17] peer-checked:bg-[#ccc5bb] peer-focus-visible:ring-2 peer-focus-visible:ring-white/60"
-              aria-hidden
+            {list.map((c, i) => (
+              <li key={c.title} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelected(i)}
+                  aria-current={i === selected}
+                  className={`flex items-center gap-5 text-left text-[#111] transition ${i === selected ? 'opacity-100' : 'opacity-30 hover:opacity-60'}`}
+                >
+                  <span className="relative h-[110px] w-[110px] shrink-0 overflow-hidden rounded-[10px] bg-[#d9d9d9]">
+                    <img src={asset(CASE_THUMBS[i])} alt="" className="absolute left-1/2 top-1/2 h-[116%] w-[116%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" loading="lazy" />
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    <span className="text-base font-bold leading-[1.6] tracking-[-0.4px]">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="whitespace-pre-line text-[17px] font-medium leading-[1.5] tracking-[-0.425px]">{c.title}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="relative hidden w-2 shrink-0 rounded-full bg-[#dde3e8] xl:block" aria-hidden>
+            {/* 선택한 사례의 자리를 가리킨다 — 사진 한 칸(110px) 높이 */}
+            <div
+              className="absolute inset-x-0 h-[110px] rounded-full bg-[#434a50] transition-[top] duration-300"
+              style={{ top: `calc((100% - 110px) * ${selected / Math.max(1, list.length - 1)})` }}
             />
-            개인정보 수집/이용 동의
-          </label>
-          <Link to="/privacy" target="_blank" className="transition hover:text-white">
-            [전문 보기]
-          </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- 의료진 ---------- */
+
+function DoctorCard({ doctor }: { doctor: (typeof DOCTORS)[number] }) {
+  return (
+    <div className="relative h-[424px] w-[362px] shrink-0 overflow-hidden rounded-[20px] border border-[#eee] bg-white">
+      <p className="absolute left-[39px] top-[23px] flex items-end gap-2.5 leading-[1.5] text-[#111]">
+        <span className="text-[28px] font-bold tracking-[-0.7px]">{doctor.name}</span>
+        <span className="text-base font-medium tracking-[-0.4px]">원장</span>
+      </p>
+      <img src={asset(doctor.image)} alt={`${doctor.name} 원장`} className="absolute left-1/2 top-[91px] h-[331px] w-[298px] -translate-x-1/2 object-cover object-top" loading="lazy" />
+    </div>
+  )
+}
+
+function Doctors() {
+  const [index, setIndex] = useState(0)
+  const n = DOCTORS.length
+  const at = (offset: number) => DOCTORS[mod(index + offset, n)]
+  const lead = at(0)
+
+  return (
+    <section className="flex flex-col items-center gap-7 overflow-hidden">
+      <div className="flex items-end justify-center gap-[64px]">
+        <div className="hidden items-center gap-[30px] xl:flex">
+          <DoctorCard doctor={at(-2)} />
+          <DoctorCard doctor={at(-1)} />
         </div>
 
-        {message && (
-          <p role="status" className={`mt-3 text-sm ${message.ok ? 'text-white' : 'text-[#ffd9c2]'}`}>
-            {message.text}
+        <div className="flex flex-col items-center gap-12">
+          <p className="flex items-end gap-5 text-[#111]">
+            {lead.role && <span className="text-[15px] leading-[1.6] tracking-[1.2px]">{lead.role}</span>}
+            <span className="flex items-end gap-2.5 leading-[1.5]">
+              <span className="text-[36px] font-bold leading-[47px] tracking-[-0.9px]">{lead.name}</span>
+              <span className="text-base font-medium tracking-[-0.4px]">원장</span>
+            </span>
+          </p>
+          <div className="relative h-[524px] w-[min(448px,calc(100vw-40px))] overflow-hidden rounded-[20px] border border-[#eee] bg-white">
+            <img key={lead.name} src={asset(lead.image)} alt={`${lead.name} 원장`} className="absolute left-1/2 top-[25px] h-[1023px] w-[682px] max-w-none -translate-x-1/2 object-cover" />
+            {/* 예약 단추 — 대표 칸 오른쪽 위에 걸친다 */}
+            <Link
+              to="/contact"
+              className="absolute right-3 top-3 flex h-[88px] w-[88px] flex-col items-center justify-center gap-[7px] rounded-full bg-[#1e3342] text-white transition hover:bg-[#2c4a5f]"
+            >
+              <img src={asset('/images/dental/svg/calendar.svg')} alt="" width={18} height={18} />
+              <span className="text-[17px] font-bold leading-[1.5] tracking-[-0.425px]">예약하기</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="hidden items-center gap-[30px] xl:flex">
+          <DoctorCard doctor={at(1)} />
+          <DoctorCard doctor={at(2)} />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <RoundButton dir="prev" size={56} onClick={() => setIndex((i) => i - 1)} />
+        <RoundButton dir="next" size={56} onClick={() => setIndex((i) => i + 1)} />
+      </div>
+    </section>
+  )
+}
+
+/* ---------- 병원 소개 ---------- */
+
+function SpacePhoto({ space }: { space: (typeof SPACES)[number] }) {
+  return (
+    <>
+      {space.base && <img src={asset(space.base)} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />}
+      <img src={asset(space.image)} alt={space.name} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+    </>
+  )
+}
+
+function Spaces() {
+  const [index, setIndex] = useState(0)
+  const n = SPACES.length
+  const at = (offset: number) => mod(index + offset, n)
+  const side = (offset: number) => (
+    <button
+      key={offset}
+      type="button"
+      onClick={() => setIndex((i) => i + offset)}
+      aria-label={`${SPACES[at(offset)].name} 크게 보기`}
+      className="relative h-[416px] w-[306px] shrink-0 overflow-hidden rounded-[20px] bg-[#d9d9d9] transition hover:opacity-90"
+    >
+      <SpacePhoto space={SPACES[at(offset)]} />
+    </button>
+  )
+
+  return (
+    <section className="flex flex-col items-center gap-12 overflow-hidden sm:gap-20">
+      <SectionTitle title="병원을 소개합니다" eyebrow="A SPACE DESIGNED FOR YOUR COMFORT" />
+      <div className="flex w-full flex-col items-center gap-12">
+        <div className="flex items-center justify-center gap-12">
+          <div className="hidden items-center gap-12 xl:flex">
+            {side(-2)}
+            {side(-1)}
+          </div>
+          <div className="relative aspect-[740/462] w-[min(740px,calc(100vw-40px))] shrink-0 overflow-hidden rounded-[20px] bg-[#d9d9d9]">
+            <SpacePhoto key={index} space={SPACES[at(0)]} />
+            <span className="absolute left-5 top-5 rounded-lg bg-[#1e3342] px-4 py-2 text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px]">
+              {at(0) + 1}. {SPACES[at(0)].name}
+            </span>
+            {/* 좁은 화면에서는 좌우 칸 대신 단추로 넘긴다 */}
+            <div className="absolute inset-x-3 bottom-3 flex justify-between xl:hidden">
+              <RoundButton dir="prev" size={40} onClick={() => setIndex((i) => i - 1)} />
+              <RoundButton dir="next" size={40} onClick={() => setIndex((i) => i + 1)} />
+            </div>
+          </div>
+          <div className="hidden items-center gap-12 xl:flex">
+            {side(1)}
+            {side(2)}
+          </div>
+        </div>
+        {/* 지금 칸의 위치 막대 */}
+        <div className="relative h-1.5 w-[min(740px,calc(100vw-40px))] rounded-full bg-[#dde3e8]" aria-hidden>
+          <div className="absolute inset-y-0 rounded-full bg-[#434a50] transition-[left] duration-300" style={{ width: `${100 / n}%`, left: `${(at(0) * 100) / n}%` }} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- 오시는 길 ---------- */
+
+/** 업무시간 한 줄을 '이름 : 시간' 으로 나눈다 — 관리자 [사이트 설정]의 업무시간을 읽는다. */
+function splitHours(line: string) {
+  const colon = line.indexOf(' : ')
+  if (colon > 0) return [line.slice(0, colon).trim(), line.slice(colon + 3).trim()]
+  const space = line.search(/\s/)
+  return space > 0 ? [line.slice(0, space), line.slice(space + 1).trim()] : [line, '']
+}
+
+function Location() {
+  const company = useSiteSetting() ?? DEFAULT_COMPANY
+  const query = encodeURIComponent(company.mapQuery || company.address)
+  const hours = (company.hours || '').split('\n').map((l) => l.trim()).filter(Boolean)
+  const maps = [
+    {
+      label: '네이버 길찾기',
+      href: `https://map.naver.com/p/search/${query}`,
+      icon: (
+        <span className="relative block h-7 w-7 overflow-hidden bg-[#ff6e6e]">
+          <img src={asset('/images/dental/map-naver.png')} alt="" className="absolute left-[-1px] top-[-1px] h-[30px] w-[30px] max-w-none object-cover" />
+        </span>
+      ),
+    },
+    {
+      label: '구글 길찾기',
+      href: `https://www.google.com/maps/search/?api=1&query=${query}`,
+      icon: (
+        <span className="grid h-7 w-7 place-items-center">
+          <img src={asset('/images/dental/map-google.png')} alt="" className="h-[21px] w-5 object-cover" />
+        </span>
+      ),
+    },
+    {
+      label: '카카오 길찾기',
+      href: `https://map.kakao.com/?q=${query}`,
+      icon: (
+        <span className="grid h-7 w-7 place-items-center">
+          <img src={asset('/images/dental/svg/map-kakao.svg')} alt="" width={24} height={24} />
+        </span>
+      ),
+    },
+  ]
+
+  return (
+    <section className="mx-auto flex w-full max-w-[1600px] flex-col gap-12 px-5 sm:px-10 lg:flex-row lg:items-center lg:gap-[120px] 2xl:px-0">
+      <div className="relative aspect-[740/560] w-full overflow-hidden rounded-[24px] bg-[#d9d9d9] lg:w-[740px] lg:shrink-0">
+        <img src={asset('/images/dental/location.png')} alt={`${company.companyName} 외관`} className="absolute left-[-8.32%] top-0 h-full w-[113.5%] max-w-none object-cover" loading="lazy" />
+      </div>
+
+      <div className="flex flex-col gap-12 lg:w-[525px]">
+        <div className="flex flex-col gap-8">
+          <SectionTitle title={`${company.companyName}로 오시는 길`} eyebrow={`YOUR WAY TO ${(company.companyNameEn || company.companyName).toUpperCase()}`} align="left" />
+          <p className="text-[20px] font-medium leading-[1.5] tracking-[-0.5px] text-[#111]">{company.address}</p>
+          <div className="flex flex-wrap gap-3">
+            {maps.map((m) => (
+              <a
+                key={m.label}
+                href={m.href}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-[10px] border border-[#eee] bg-white px-4 py-2 text-[17px] font-semibold leading-[1.5] tracking-[-0.425px] text-[#111] transition hover:border-[#1e3342]"
+              >
+                {m.icon}
+                {m.label}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {hours.length > 0 && (
+          <div className="flex flex-col gap-4 leading-[1.5] text-[#111]">
+            <h3 className="text-[24px] font-semibold tracking-[-0.6px]">진료시간</h3>
+            {hours.map((line) => {
+              const [label, value] = splitHours(line)
+              return (
+                <p key={line} className="flex gap-4 text-[17px]">
+                  <span className="whitespace-pre font-medium tracking-[-0.425px]">{label} :</span>
+                  <span>{value}</span>
+                </p>
+              )
+            })}
+          </div>
+        )}
+
+        {company.tel && (
+          <p className="flex flex-wrap items-center gap-5 leading-[1.5]">
+            <span className="text-[24px] font-medium tracking-[-0.6px] text-[#111]">상담문의</span>
+            <a href={`tel:${company.tel}`} className="font-['Roboto',sans-serif] text-[38px] font-bold text-[#1e3342] sm:text-[46px]">
+              {company.tel}
+            </a>
           </p>
         )}
-      </form>
-      </Reveal>
+      </div>
     </section>
   )
 }
 
 export default function HomePage() {
   return (
-    <div className="bg-[#f7f4ef]">
+    <div className="flex flex-col gap-24 overflow-x-clip bg-[#faf9f6] pb-24 pt-6 sm:gap-[120px] sm:pb-[100px] sm:pt-12">
       <Hero />
-      <Stats />
-      <Process />
-      <Styles />
-      <Portfolio />
-      <QuickContact />
+      <Programs />
+      <Cases />
+      <Doctors />
+      <Spaces />
+      <Location />
     </div>
   )
 }

@@ -645,18 +645,39 @@ const SPACE_CENTER = { w: 1, h: 462 / 740 }
 const SPACE_SIDE = { w: 306 / 740, h: 416 / 740 }
 /** 가운데에서 떨어진 칸별 카드 중심 위치 (시안: 571px, 925px) */
 const SPACE_X = [0, 571 / 740, 925 / 740, 1279 / 740]
+/** 자동으로 다음 칸으로 넘어가는 간격 */
+const SPACE_AUTOPLAY_MS = 4000
 
 function Spaces() {
   const [index, setIndex] = useState(0)
   const n = SPACE_RING.length
   const { offsets, jumps } = useRing(n, index)
   const current = mod(index, SPACES.length)
+  // 마우스를 올려 두거나 키보드로 들어와 있는 동안에는 멈춘다.
+  const [hovering, setHovering] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const paused = hovering || focused
+
+  // 4초마다 다음 칸으로 — 직접 넘기면 index 가 바뀌어 4초를 처음부터 다시 센다.
+  useEffect(() => {
+    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const timer = window.setTimeout(() => setIndex((i) => i + 1), SPACE_AUTOPLAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [index, paused])
 
   return (
     <section className="flex flex-col items-center gap-12 overflow-hidden [--w:min(740px,calc(100vw-40px))] sm:gap-20">
       <SectionTitle title="병원을 소개합니다" eyebrow="A SPACE DESIGNED FOR YOUR COMFORT" />
       <div className="flex w-full flex-col items-center gap-12">
-        <div className="relative w-full" style={{ height: `calc(var(--w) * ${SPACE_CENTER.h})` }}>
+        <div
+          className="relative w-full"
+          style={{ height: `calc(var(--w) * ${SPACE_CENTER.h})` }}
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+          // 마우스로 누른 단추에 남는 포커스로는 멈추지 않는다 — 키보드로 들어왔을 때만.
+          onFocus={(e) => e.target.matches(':focus-visible') && setFocused(true)}
+          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setFocused(false)}
+        >
           {SPACE_RING.map((space, i) => {
             const d = offsets[i]
             const center = d === 0

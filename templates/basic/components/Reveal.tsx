@@ -9,9 +9,10 @@ export default function Reveal({
   /** 순서대로 나오게 할 때의 자리 번호. 0부터 시작한다. */
   index = 0,
   /** 한 칸당 늦추는 시간(ms) */
-  step = 110,
+  step = 180,
   /** 나타나기 시작하는 방향 */
   from = 'bottom',
+  gentle = true,
   as: Tag = 'div',
   className = '',
   style,
@@ -22,6 +23,8 @@ export default function Reveal({
   index?: number
   step?: number
   from?: 'bottom' | 'left' | 'right'
+  /** 긴 페이드와 완만한 이동으로 천천히 등장 */
+  gentle?: boolean
   /** 감싸는 태그를 바꾼다. 표의 칸처럼 div 를 못 쓰는 자리에 쓴다. */
   as?: ElementType
   className?: string
@@ -64,14 +67,14 @@ export default function Reveal({
   }, [])
 
   const hidden =
-    from === 'left' ? '-translate-x-6 opacity-0' : from === 'right' ? 'translate-x-6 opacity-0' : 'translate-y-7 opacity-0'
+    from === 'left' ? '-translate-x-6 opacity-0' : from === 'right' ? 'translate-x-6 opacity-0' : gentle ? 'translate-y-16 opacity-0' : 'translate-y-7 opacity-0'
 
   return (
     <Tag
       ref={ref}
       aria-label={ariaLabel}
       style={{ ...style, transitionDelay: shown ? `${index * step}ms` : '0ms' }}
-      className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
+      className={`${gentle ? 'reveal-gentle' : 'transition-all duration-700 ease-out'} motion-reduce:transition-none ${
         shown ? 'translate-x-0 translate-y-0 opacity-100' : hidden
       } ${className}`}
     >

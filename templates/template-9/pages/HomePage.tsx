@@ -406,12 +406,12 @@ function Process() {
         onPointerLeave={onUp}
         className="flex cursor-grab select-none items-start gap-10 overflow-x-auto px-5 [scrollbar-width:none] active:cursor-grabbing sm:px-10 xl:gap-[100px] xl:px-[168px] [&::-webkit-scrollbar]:hidden"
       >
-        {PROCESS.map((p) => {
+        {PROCESS.map((p, i) => {
           const title = (
             <h3 className="font-serif-kr pt-5 text-2xl font-normal text-white xl:text-[32px]">{p.title}</h3>
           )
           return (
-            <div key={p.title} className="flex w-[80vw] min-w-[260px] max-w-[620px] shrink-0 flex-col gap-6 xl:w-[614px]">
+            <Reveal gentle index={i} step={180} key={p.title} className="flex w-[80vw] min-w-[260px] max-w-[620px] shrink-0 flex-col gap-6 xl:w-[614px]">
               {p.titleFirst && title}
               <div className={`aspect-[614/461] w-full overflow-hidden bg-[#d3d3d3] ${p.rounded ?? 'rounded-2xl'}`}>
                 {p.video ? (
@@ -435,7 +435,7 @@ function Process() {
               <p className="pb-2.5 text-base leading-normal tracking-[-0.4px] text-white opacity-90 xl:whitespace-nowrap">
                 <Lines lines={p.desc} />
               </p>
-            </div>
+            </Reveal>
           )
         })}
       </div>
@@ -569,7 +569,7 @@ function Portfolio() {
           {PORTFOLIO.map((p, i) => {
             const reverse = i % 2 === 1
             return (
-              <li
+              <Reveal as="li" gentle index={i} step={180}
                 key={p.title}
                 className={`portfolio-row flex flex-col gap-10 border-[#ebebeb] px-6 py-12 [&:not(:last-child)]:border-b sm:px-10 xl:flex-row xl:items-start xl:justify-between xl:gap-8 xl:px-[88px] xl:py-[92px] ${
                   reverse ? 'xl:flex-row-reverse' : ''
@@ -605,7 +605,7 @@ function Portfolio() {
                     <img src={p.image} alt={p.title} className={`absolute max-w-none ${p.imageClass}`} loading="lazy" />
                   </div>
                 </div>
-              </li>
+              </Reveal>
             )
           })}
         </ul>
@@ -683,15 +683,16 @@ function QuickContact() {
         aria-hidden
       />
 
-      <div className="relative pl-2">
+      <Reveal gentle className="relative pl-2">
         <h2 className="font-serif-kr text-[22px] font-normal text-white sm:text-[27.994px]">예산은 달라도, 완성도의 기준은 같습니다.</h2>
         <p className="pt-6 text-base leading-6 text-[#f7f4ef]">
           워드앤코드는 공간의 조건과 취향을 세심히 읽고,
           <br />
           주어진 예산 안에서 가장 좋은 설계의 답을 제안합니다.
         </p>
-      </div>
+      </Reveal>
 
+      <Reveal gentle index={1} className="relative w-full max-w-[409px]">
       <form
         onSubmit={onSubmit}
         noValidate
@@ -787,6 +788,7 @@ function QuickContact() {
           </p>
         )}
       </form>
+      </Reveal>
     </section>
   )
 }

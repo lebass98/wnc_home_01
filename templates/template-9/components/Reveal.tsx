@@ -9,10 +9,10 @@ export default function Reveal({
   /** 순서대로 나오게 할 때의 자리 번호. 0부터 시작한다. */
   index = 0,
   /** 한 칸당 늦추는 시간(ms) */
-  step = 110,
+  step = 180,
   /** 나타나기 시작하는 방향 */
   from = 'bottom',
-  gentle = false,
+  gentle = true,
   as: Tag = 'div',
   className = '',
   style,

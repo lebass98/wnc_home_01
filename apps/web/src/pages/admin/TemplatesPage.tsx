@@ -502,18 +502,20 @@ export default function TemplatesPage() {
                         코드 편집
                       </Link>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => previewLive(row)}
-                      title="켜지 않고 새 탭에서 모습만 미리 봅니다"
-                      className="btn-secondary hidden sm:inline-flex"
-                    >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-                      </svg>
-                      프리뷰
-                    </button>
+                    {!row.active && (
+                      <button
+                        type="button"
+                        onClick={() => previewLive(row)}
+                        title="켜지 않고 새 탭에서 모습만 미리 봅니다"
+                        className="btn-secondary hidden sm:inline-flex"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                        </svg>
+                        프리뷰
+                      </button>
+                    )}
                     <ToggleSwitch checked={row.active} onChange={() => !working && activate(row)} label={`${row.name} 활성화`} />
                     <RowMenu
                       items={[

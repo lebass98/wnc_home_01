@@ -6,7 +6,6 @@ import { requireAuth, requireAdmin } from '../lib/auth.js'
 import multer from 'multer'
 import {
   ensureBuiltin,
-  loadActiveTemplate,
   parseLayouts,
   slugify,
   syncTemplateFolders,
@@ -173,14 +172,17 @@ templatesRouter.get(
   }),
 )
 
-/** 새 템플릿 — 지금 활성 템플릿을 복제해 시작한다. */
+/** 새 템플릿 — Basic을 복제해 시작한다. */
 templatesRouter.post(
   '/',
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, description } = z.object({ name: nameSchema, description: descriptionSchema.optional() }).parse(req.body)
-    const base = await loadActiveTemplate()
+    const base = await ensureBuiltin()
+    if (!hasFiles(base.id)) {
+      return res.status(400).json({ message: 'Basic 템플릿의 원본 파일이 없습니다. Basic 템플릿을 복구한 뒤 다시 만들어 주세요.' })
+    }
     let created = await prisma.siteTemplate.create({
       data: {
         name,
@@ -193,13 +195,9 @@ templatesRouter.post(
       },
     })
     created = await assignSlug(created.id, slugify(name))
-    // 지금 사이트 소스와 메뉴·페이지를 그대로 담아 둔다 — 이 시점의 모습이 이 템플릿의 출발점이다.
-    await snapshotLive(created.id, manifestOf(created))
-    await writeTemplateData(created.id, await dumpSiteData())
-    await writeTemplateComponents(created.id, await readSiteComponents())
-    // 화면·메뉴·페이지·설정이 쓰는 이미지·영상을 템플릿 폴더에 함께 담는다.
-    await syncTemplateMedia(created.id)
-    // 지금 사이트 모습에서 출발하므로 켜진 템플릿의 미리보기를 그대로 쓴다.
+    // Basic의 소스·데이터·컴포넌트·미디어를 함께 복제하고 새 템플릿 정보만 갱신한다.
+    await cp(templateDir(base.id), templateDir(created.id), { recursive: true })
+    await writeManifest(created.id, manifestOf(created))
     await copyThumbs(base.id, created.id)
     res.status(201).json(await itemOf(created))
   }),

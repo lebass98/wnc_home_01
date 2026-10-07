@@ -1020,7 +1020,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   if (rawPath === '/templates' && method === 'POST') {
     const name = String(body.name ?? '').trim()
     if (!name) throw new DemoError('템플릿 이름을 입력하세요.', 400)
-    const base = activeTemplate()
+    const base = db.templates.find((t) => t.builtin) ?? basicTemplate()
     const now = new Date().toISOString()
     const created: DemoTemplate = {
       id: db.nextTemplateId++,
@@ -1033,9 +1033,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       header: base.header,
       footer: base.footer,
       pageLayouts: { ...base.pageLayouts },
-      // 실제 API 처럼 지금 메뉴·페이지와 컴포넌트 설정을 출발점으로 담는다.
-      data: cloneSiteData(),
-      components: cloneComponents(),
+      // 실제 API처럼 Basic의 보관된 데이터와 설정에서 시작한다.
+      data: base.data ? structuredClone(base.data) : undefined,
+      components: structuredClone(templateComponents(base) ?? DEFAULT_COMPONENT_SETTINGS),
       createdAt: now,
       updatedAt: now,
     }

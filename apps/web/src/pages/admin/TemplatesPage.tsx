@@ -1424,7 +1424,7 @@ function MetaEditModal({
   )
 }
 
-/** 새 템플릿 — 지금 활성 템플릿을 복제해 시작한다. */
+/** 새 템플릿 — Basic을 복제해 시작한다. */
 function CreateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -1462,7 +1462,7 @@ function CreateModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
     >
       <div className="space-y-4">
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          지금 활성 템플릿의 구성을 복제해 새 템플릿을 만듭니다. 만든 뒤 레이아웃 편집으로 구성을 바꿀 수 있습니다.
+          Basic 템플릿의 화면·레이아웃·데이터·설정을 복제해 새 템플릿을 만듭니다. 만든 뒤 레이아웃 편집으로 구성을 바꿀 수 있습니다.
         </p>
         <div>
           <label className="label" htmlFor="tpl-new-name">

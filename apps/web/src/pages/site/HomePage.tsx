@@ -10,7 +10,7 @@ const asset = (path: string) => {
 }
 
 /** 메인 비주얼을 관리자에서 비워 두었을 때 쓰는 기본 모습 */
-const DEFAULT_HERO = { title: '워드앤코드 인테리어', image: '/images/interior/hero-main.png' }
+const DEFAULT_HERO = { title: 'DEPLATE\n디플릿 인테리어 스튜디오', image: '/images/interior/hero-main.png' }
 
 /** 숫자로 보는 워드앤코드 */
 const STATS = [
@@ -120,7 +120,7 @@ function Hero() {
   const section = useRef<HTMLElement>(null)
   const progress = useRef(0)
   const slides = mainVisual.slides.length
-    ? mainVisual.slides.map((s) => ({ title: s.title, image: componentImageUrl(s.image || DEFAULT_HERO.image) }))
+    ? mainVisual.slides.map((s) => ({ title: s.title === '워드앤코드 인테리어' ? DEFAULT_HERO.title : s.title, image: componentImageUrl(s.image || DEFAULT_HERO.image) }))
     : [{ title: DEFAULT_HERO.title, image: asset(DEFAULT_HERO.image) }]
   const [index, setIndex] = useState(0)
 
@@ -239,7 +239,12 @@ function Hero() {
             <div className="absolute inset-0 flex items-center justify-center pb-[50px]">
               {slides.map((slide, i) => (
                 <h1 key={`${slide.title}-${i}`} aria-hidden={i !== current} className={`font-serif-kr absolute whitespace-pre-line px-6 text-center text-[26px] text-[#171614] transition-opacity duration-1000 sm:text-[36px] ${i === current ? 'opacity-100' : 'opacity-0'}`}>
-                  {slide.title}
+                  {slide.title === DEFAULT_HERO.title ? (
+                    <>
+                      <span className="block font-serif text-[36px] leading-[1.2] tracking-[0.04em] sm:text-[44px]">DEPLATE</span>
+                      <span className="mt-2 block text-[22px] leading-[1.4] sm:text-[30px]">디플릿 인테리어 스튜디오</span>
+                    </>
+                  ) : slide.title}
                 </h1>
               ))}
             </div>

@@ -147,7 +147,11 @@ function Hero() {
       element.style.setProperty('--color-opacity', String(clamp((raw - 0.08) / 0.7)))
       element.style.setProperty('--hero-opacity', String(1 - clamp(raw / 0.35)))
       element.style.setProperty('--slogan-opacity', String(clamp((raw - 0.5) / 0.35)))
-      element.style.setProperty('--slogan-shift', `${(1 - eased) * 70}px`)
+      const gathering = clamp((raw - 0.45) / 0.55)
+      const gathered = gathering * gathering * (3 - 2 * gathering)
+      element.style.setProperty('--slogan-shift', `${(1 - gathered) * (width < 768 ? 48 : 160)}px`)
+      element.style.setProperty('--slogan-image-width', `${targetWidth}px`)
+      element.style.setProperty('--slogan-image-height', `${targetHeight}px`)
     }
     const animate = (time: number) => {
       frame = 0

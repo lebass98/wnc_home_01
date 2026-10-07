@@ -2,19 +2,34 @@ import { Link, useLocation } from 'react-router-dom'
 import MenuLink from '../components/MenuLink'
 import { findGroup } from '../lib/menus'
 import SiteUtilMenu from '../components/SiteUtilMenu'
+import BrandLogo from '../components/BrandLogo'
 import type { SiteHeaderProps } from './index'
 
 /**
  * 센터 헤더 — 위 줄 가운데에 로고, 아래 줄 가운데에 1차 메뉴 두 줄 구성.
  * 2차 메뉴는 각 항목 아래 드롭다운 카드로 열린다. 좁은 화면은 기본 헤더처럼 한 줄 + 햄버거다.
  */
-/** 로고 — 타이틀 이미지를 올렸으면 그림을, 없으면 글자를 건다. */
-function Logo({ logo, logoImage, className }: { logo: string; logoImage?: string | null; className: string }) {
+/** 로고 — 타이틀 이미지를 올렸으면 그림을, 기본 상태면 브랜드 로고(SVG)를, 로고 글자를 정했으면 글자를 건다. */
+function Logo({
+  logo,
+  logoImage,
+  brandLogo,
+  className,
+  brandClassName,
+}: {
+  logo: string
+  logoImage?: string | null
+  brandLogo?: boolean
+  className: string
+  /** 브랜드 로고의 높이·색 */
+  brandClassName: string
+}) {
   if (logoImage) return <img src={logoImage} alt={logo} className="h-8 w-auto max-w-[13rem] object-contain" />
+  if (brandLogo) return <BrandLogo className={brandClassName} />
   return <span className={className}>{logo}</span>
 }
 
-export default function CenterHeader({ menu, logo, logoImage, overlay, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
+export default function CenterHeader({ menu, logo, logoImage, brandLogo, overlay, transparent, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   const { pathname } = useLocation()
   // 1차 메뉴는 지금 화면이 속한 묶음을 켠다 — 주소 접두어가 아니라 메뉴 구조로 판단한다 (/service → 사업분야).
   const activeGroupId = findGroup(menu, pathname)?.id
@@ -33,7 +48,9 @@ export default function CenterHeader({ menu, logo, logoImage, overlay, transpare
             <Logo
               logo={logo}
               logoImage={logoImage}
+              brandLogo={brandLogo}
               className={`text-2xl font-bold tracking-[0.3em] ${transparent ? 'text-white' : 'text-slate-900'}`}
+              brandClassName={`h-7 ${transparent ? 'text-white' : 'text-slate-900'}`}
             />
           </Link>
           {/* 오른쪽 — 언어 선택 · 팝업 다시 열기 · 사이트맵 */}
@@ -125,7 +142,9 @@ export default function CenterHeader({ menu, logo, logoImage, overlay, transpare
           <Logo
             logo={logo}
             logoImage={logoImage}
+            brandLogo={brandLogo}
             className={`text-xl font-bold tracking-[0.25em] ${transparent ? 'text-white' : 'text-slate-900'}`}
+            brandClassName={`h-6 ${transparent ? 'text-white' : 'text-slate-900'}`}
           />
         </Link>
         <button

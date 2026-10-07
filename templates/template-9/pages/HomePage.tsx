@@ -116,14 +116,95 @@ function Lines({ lines }: { lines: string[] }) {
 /** 둥근 큰 사진 위에 로고와 제목. 관리자 [메인 비주얼]의 슬라이드가 둘 이상이면 천천히 바뀐다. */
 function Hero() {
   const { mainVisual, header } = useComponentSettings()
+  const section = useRef<HTMLElement>(null)
+  const progress = useRef(0)
   const slides = mainVisual.slides.length
     ? mainVisual.slides.map((s) => ({ title: s.title, image: componentImageUrl(s.image || DEFAULT_HERO.image) }))
     : [{ title: DEFAULT_HERO.title, image: asset(DEFAULT_HERO.image) }]
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
+    const element = section.current
+    if (!element) return
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let frame = 0
+    let previousTime = 0
+    let rendered = 0
+    let target = 0
+    let sectionTop = 0
+    let distance = 1
+    let width = 0
+    let height = 0
+    const clamp = (value: number) => Math.max(0, Math.min(1, value))
+    const render = (raw: number) => {
+      const eased = raw * raw * (3 - 2 * raw)
+      const padding = width < 640 ? 12 : width < 1280 ? 24 : 40
+      const targetWidth = Math.min(852, width * (width < 768 ? 0.9 : 0.59))
+      const targetHeight = Math.min(407, targetWidth * 407 / 852, height * 0.65)
+      element.style.setProperty('--visual-width', `${width - 2 * padding + (targetWidth - width + 2 * padding) * eased}px`)
+      element.style.setProperty('--visual-height', `${height - 2 * padding + (targetHeight - height + 2 * padding) * eased}px`)
+      element.style.setProperty('--visual-radius', `${28 - 12 * eased}px`)
+      element.style.setProperty('--color-opacity', String(clamp((raw - 0.08) / 0.7)))
+      element.style.setProperty('--hero-opacity', String(1 - clamp(raw / 0.35)))
+      element.style.setProperty('--slogan-opacity', String(clamp((raw - 0.5) / 0.35)))
+      element.style.setProperty('--slogan-shift', `${(1 - eased) * 70}px`)
+    }
+    const animate = (time: number) => {
+      frame = 0
+      // 시간 기준 보간: 60/120Hz 모두 같은 속도로 부드럽게 따라간다.
+      const elapsed = previousTime ? Math.min(time - previousTime, 64) : 1000 / 60
+      previousTime = time
+      rendered += (target - rendered) * (1 - Math.exp(-elapsed / 110))
+      const settled = Math.abs(target - rendered) < 0.0001
+      if (settled) rendered = target
+      render(rendered)
+      if (!settled) frame = window.requestAnimationFrame(animate)
+      else previousTime = 0
+    }
+    const schedule = () => {
+      // 마지막 20%는 완성된 컬러 화면을 유지한다.
+      target = motion.matches ? 1 : clamp((window.scrollY - sectionTop) / distance)
+      progress.current = target
+      if (motion.matches) {
+        window.cancelAnimationFrame(frame)
+        frame = 0
+        previousTime = 0
+        rendered = target
+        render(rendered)
+      } else if (!frame) frame = window.requestAnimationFrame(animate)
+    }
+    const measure = () => {
+      // 레이아웃 측정은 크기가 변할 때만 하고 애니메이션 프레임에서는 쓰기만 한다.
+      const rect = element.getBoundingClientRect()
+      height = (element.firstElementChild as HTMLElement).clientHeight
+      width = element.clientWidth
+      sectionTop = rect.top + window.scrollY
+      distance = Math.max(1, (rect.height - height) / 1.2)
+      schedule()
+      render(rendered)
+    }
+    measure()
+    rendered = target
+    render(rendered)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', measure)
+    motion.addEventListener('change', measure)
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', measure)
+      motion.removeEventListener('change', measure)
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!mainVisual.autoplay || slides.length < 2) return
-    const timer = window.setInterval(() => setIndex((i) => (i + 1) % slides.length), Math.max(mainVisual.interval, 2000))
+    const timer = window.setInterval(() => {
+      if (progress.current < 0.01 && !document.hidden) setIndex((i) => (i + 1) % slides.length)
+    }, Math.max(mainVisual.interval, 2000))
     return () => window.clearInterval(timer)
   }, [mainVisual.autoplay, mainVisual.interval, slides.length])
 
@@ -131,57 +212,34 @@ function Hero() {
   const logo = header.logoImage ? componentImageUrl(header.logoImage) : asset('/images/interior/main/logo.png')
 
   return (
-    <section className="bg-[#f7f4ef] p-3 sm:p-6 xl:p-10">
-      <div className="relative h-[min(881px,calc(100svh-24px))] min-h-[440px] overflow-hidden rounded-[20px] sm:rounded-[27.84px]">
-        {slides.map((slide, i) => (
-          <img
-            key={`${slide.image}-${i}`}
-            src={slide.image}
-            alt=""
-            className={`absolute inset-0 h-full w-full object-cover object-[36%_50%] transition-opacity duration-1000 ${
-              i === current ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-        ))}
-
-        {/* 좁은 화면에서는 떠 있는 헤더가 왼쪽 위를 가려 로고를 아래로 내린다. */}
-        <img
-          src={logo}
-          alt="워드앤코드"
-          className="absolute bottom-3 left-0 h-auto w-40 object-cover gnb:bottom-auto gnb:top-0 gnb:h-[110px] gnb:w-[328px]"
-        />
-
-        <div className="absolute inset-0 flex items-center justify-center pb-[50px]">
+    <section ref={section} className="interior-scroll-hero" aria-label="상상 속 공간을 실제로 구현하는 워드앤코드">
+      <div className="interior-scroll-stage">
+        <div className="interior-scroll-visual">
           {slides.map((slide, i) => (
-            <h1
-              key={`${slide.title}-${i}`}
-              className={`font-serif-kr absolute whitespace-pre-line px-6 text-center text-[26px] text-[#171614] transition-opacity duration-1000 sm:text-[36px] ${
-                i === current ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              {slide.title}
-            </h1>
+            <img
+              key={`${slide.image}-${i}`}
+              src={slide.image}
+              alt=""
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+              className={`absolute inset-0 h-full w-full object-cover object-[36%_50%] transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+            />
           ))}
+          <img src={asset('/images/interior/main/slogan.png')} alt="햇살과 우드 톤이 어우러진 완성된 거실" className="interior-scroll-color" />
+          <div className="interior-scroll-heading">
+            <img src={logo} alt="워드앤코드" className="absolute bottom-3 left-0 h-auto w-40 object-cover gnb:bottom-auto gnb:top-0 gnb:h-[110px] gnb:w-[328px]" />
+            <div className="absolute inset-0 flex items-center justify-center pb-[50px]">
+              {slides.map((slide, i) => (
+                <h1 key={`${slide.title}-${i}`} aria-hidden={i !== current} className={`font-serif-kr absolute whitespace-pre-line px-6 text-center text-[26px] text-[#171614] transition-opacity duration-1000 sm:text-[36px] ${i === current ? 'opacity-100' : 'opacity-0'}`}>
+                  {slide.title}
+                </h1>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
-  )
-}
-
-/* ---------- 상상 속 공간 ---------- */
-
-function Slogan() {
-  const text = 'font-serif-kr text-[22px] font-semibold leading-[47.589px] tracking-[12px] sm:text-[27.994px] sm:tracking-[24px]'
-  return (
-    <section className="relative flex flex-col items-center gap-6 px-5 py-24 xl:h-[919px] xl:flex-row xl:justify-between xl:px-[260px] xl:py-0">
-      <Reveal className="w-full max-w-[852px] overflow-hidden rounded-2xl xl:absolute xl:left-1/2 xl:top-1/2 xl:h-[407px] xl:w-[852px] xl:-translate-x-1/2 xl:-translate-y-1/2">
-        <img src={asset('/images/interior/main/slogan.png')} alt="" className="aspect-[852/407] h-full w-full object-cover" loading="lazy" />
-      </Reveal>
-      <div className="order-first flex items-start self-start xl:order-none xl:h-[327px] xl:self-auto">
-        <p className={`${text} text-[#7d9dd9] mix-blend-difference`}>상상 속 공간을</p>
-      </div>
-      <div className="flex items-end justify-center self-end xl:h-[327px] xl:self-auto">
-        <p className={`${text} text-[#4b5b77] mix-blend-multiply`}>실제로 구현하는</p>
+        <h2 className="interior-scroll-slogan font-serif-kr">
+          <span className="interior-scroll-slogan-first">상상 속 공간을</span>
+          <span className="interior-scroll-slogan-last">실제로 구현하는</span>
+        </h2>
       </div>
     </section>
   )
@@ -560,7 +618,6 @@ export default function HomePage() {
   return (
     <div className="bg-[#f7f4ef]">
       <Hero />
-      <Slogan />
       <Stats />
       <Process />
       <Styles />

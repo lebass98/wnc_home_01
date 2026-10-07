@@ -18,6 +18,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 메인 비주얼: 스크롤 위치에 맞춰 크기와 이미지, 카피를 함께 전환한다. */
+.interior-scroll-hero {
+  --color-opacity: 0;
+  --hero-opacity: 1;
+  --slogan-opacity: 0;
+  --slogan-shift: 70px;
+  position: relative;
+  height: 220svh;
+  background: #f7f4ef;
+}
+.interior-scroll-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+.interior-scroll-visual {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--visual-width, calc(100% - 24px));
+  height: var(--visual-height, calc(100% - 24px));
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  border-radius: var(--visual-radius, 28px);
+}
+.interior-scroll-color {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 36% 50%;
+  opacity: var(--color-opacity);
+}
+.interior-scroll-heading {
+  position: absolute;
+  inset: 0;
+  opacity: var(--hero-opacity);
+}
+.interior-scroll-slogan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--slogan-opacity);
+  font-size: clamp(22px, 1.94vw, 28px);
+  font-weight: 600;
+  letter-spacing: clamp(12px, 1.66vw, 24px);
+  line-height: 1.7;
+}
+.interior-scroll-slogan span { position: absolute; white-space: nowrap; }
+.interior-scroll-slogan-first {
+  left: 2%;
+  top: calc(50% - min(14.1vw, 203.5px) + 40px);
+  color: #805610;
+  transform: translateX(calc(-1 * var(--slogan-shift)));
+}
+.interior-scroll-slogan-last {
+  right: 2%;
+  bottom: calc(50% - min(14.1vw, 203.5px) + 40px);
+  color: #4b5b77;
+  mix-blend-mode: multiply;
+  transform: translateX(var(--slogan-shift));
+}
+@media (max-width: 767px) {
+  .interior-scroll-slogan { font-size: clamp(18px, 3.4vw, 24px); letter-spacing: 8px; }
+  .interior-scroll-slogan-first { left: 5%; top: calc(50% - 21.5vw - 64px); }
+  .interior-scroll-slogan-last { right: 5%; bottom: calc(50% - 21.5vw - 64px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .interior-scroll-hero { height: 100svh; }
+  .interior-scroll-stage { position: relative; }
+  .interior-scroll-visual img, .interior-scroll-heading h1 { transition: none; }
+}
+
 @layer base {
   :root {
     /* 데모 배너가 없을 때 기본값 */

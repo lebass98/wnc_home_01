@@ -77,7 +77,7 @@ export default function SiteLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {preview && <TemplatePreviewBanner name={preview.name} />}
+      {preview && <TemplatePreviewBanner id={preview.id} name={preview.name} />}
       <SitePopups />
       {/* 주소를 바꾼 화면 — [리디렉션]에 등록된 옛 주소면 새 주소로 넘긴다 */}
       <RedirectGate />

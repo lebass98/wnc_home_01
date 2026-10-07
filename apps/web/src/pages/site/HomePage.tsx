@@ -63,12 +63,35 @@ const CASE_TABS = Object.keys(CASES)
 const DOCTOR_CENTER_CROP = 'top-[7%] h-[93%] w-[86%] object-top'
 /** 옆 칸에서 사진을 자르는 방법 — 카드 아래쪽에 작게 */
 const DOCTOR_SIDE_CROP = 'top-[21.5%] h-[78.2%] w-[82.3%] object-top'
-const DOCTORS: { name: string; role?: string; image: string; centerCrop?: string }[] = [
-  { name: '최지원', role: '대표원장', image: '/images/dental/doctor-choi.png', centerCrop: 'top-[4.8%] h-[195.2%] w-[152.2%] object-center' },
-  { name: '공예린', image: '/images/dental/doctor-gong.png' },
-  { name: '도예준', image: '/images/dental/doctor-do.png' },
-  { name: '김정원', image: '/images/dental/doctor-kim.png' },
-  { name: '이백도', image: '/images/dental/doctor-lee.png' },
+/** bio 는 가운데 칸 사진 아래 블러 상자에 나오는 약력 — 시안에 없어 넣은 예시 문구다. */
+const DOCTORS: { name: string; role?: string; image: string; centerCrop?: string; bio: string[] }[] = [
+  {
+    name: '최지원',
+    role: '대표원장',
+    image: '/images/dental/doctor-choi.png',
+    centerCrop: 'top-[4.8%] h-[195.2%] w-[152.2%] object-center',
+    bio: ['치의학 박사', '보건복지부 인증 통합치의학과 전문의', '대한치과임플란트학회 정회원', '前 대학병원 치과 임상교수'],
+  },
+  {
+    name: '공예린',
+    image: '/images/dental/doctor-gong.png',
+    bio: ['치의학 석사', '보건복지부 인증 치과보존과 전문의', '대한심미치과학회 정회원', '라미네이트·미백 심미치료 담당'],
+  },
+  {
+    name: '도예준',
+    image: '/images/dental/doctor-do.png',
+    bio: ['치의학 석사', '보건복지부 인증 치과교정과 전문의', '대한치과교정학회 정회원', '투명교정 인증의'],
+  },
+  {
+    name: '김정원',
+    image: '/images/dental/doctor-kim.png',
+    bio: ['치의학 석사', '보건복지부 인증 소아치과 전문의', '대한소아치과학회 정회원', '예방·정기 검진 담당'],
+  },
+  {
+    name: '이백도',
+    image: '/images/dental/doctor-lee.png',
+    bio: ['치의학 석사', '보건복지부 인증 구강악안면외과 전문의', '대한구강악안면외과학회 정회원', '사랑니·뼈이식 수술 담당'],
+  },
 ]
 
 /** 병원 공간 — 가운데 큰 칸에 이름표가 붙는다. base 는 사진 아래에 깔리는 바탕 사진이다. */
@@ -574,6 +597,26 @@ function Doctors() {
                     }`}
                     loading="lazy"
                   />
+                  {/*
+                    약력 — 가운데가 되면 사진 아래쪽에서 블러 상자가 올라온다.
+                    카드가 다 커진 뒤에 올라오도록 조금 늦게 출발하고, 밀려날 때는 바로 내려간다.
+                  */}
+                  <div
+                    aria-hidden={!center}
+                    className={`absolute inset-x-3 bottom-3 rounded-2xl border border-white/70 bg-white/55 px-5 py-4 shadow-[0_8px_24px_rgba(17,17,17,0.08)] backdrop-blur-md sm:inset-x-4 sm:bottom-4 sm:px-6 sm:py-5 ${
+                      jumps[i] ? '' : 'transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]'
+                    } ${center ? 'translate-y-0 opacity-100 delay-500' : 'translate-y-[calc(100%+1rem)] opacity-0'}`}
+                  >
+                    <p className="text-[13px] font-bold leading-[1.6] tracking-[1.2px] text-[#1e3342] sm:text-sm">약력</p>
+                    <ul className="mt-1.5 space-y-0.5 text-[13px] leading-[1.6] tracking-[-0.35px] text-[#111] sm:text-[15px]">
+                      {doc.bio.map((line) => (
+                        <li key={line} className="flex gap-2">
+                          <span className="mt-[0.7em] h-1 w-1 shrink-0 rounded-full bg-[#627381]" aria-hidden />
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                   {/* 옆 칸을 누르면 그 원장님이 가운데로 온다 */}
                   {!center && !hidden && (
                     <button type="button" onClick={() => setIndex((x) => x + d)} aria-label={`${doc.name} 원장 보기`} className="absolute inset-0" />

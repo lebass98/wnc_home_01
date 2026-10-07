@@ -146,14 +146,20 @@ function Hero() {
   const { mainVisual } = useComponentSettings()
   const slides = mainVisual.slides.length ? mainVisual.slides : [DEFAULT_SLIDE]
   const [index, setIndex] = useState(0)
+  const [cycle, setCycle] = useState(0)
+  const duration = Math.max(mainVisual.interval, 3000)
   const current = mod(index, slides.length)
-  const go = (step: number) => setIndex((i) => mod(i + step, slides.length))
+  const select = (next: number) => {
+    setIndex(next)
+    setCycle((value) => value + 1)
+  }
+  const go = (step: number) => select(mod(index + step, slides.length))
 
   useEffect(() => {
     if (!mainVisual.autoplay || slides.length < 2) return
-    const timer = window.setInterval(() => setIndex((i) => i + 1), Math.max(mainVisual.interval, 3000))
+    const timer = window.setInterval(() => setIndex((i) => i + 1), duration)
     return () => window.clearInterval(timer)
-  }, [mainVisual.autoplay, mainVisual.interval, slides.length, index])
+  }, [mainVisual.autoplay, duration, slides.length, index, cycle])
 
   return (
     <section className="mx-auto w-full max-w-[1600px] px-5 sm:px-10 2xl:px-0">
@@ -163,7 +169,7 @@ function Hero() {
             key={`${s.image}-${i}`}
             src={componentImageUrl(s.image || DEFAULT_SLIDE.image)}
             alt=""
-            className={`absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-700 ${i === current ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 h-full w-full object-cover object-right transition-opacity duration-[1200ms] ease-in-out motion-reduce:transition-none ${i === current ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
         {/* 글이 읽히도록 왼쪽을 하얗게 덮는다 */}
@@ -182,18 +188,18 @@ function Hero() {
                   <div
                     key={`${s.title}-${i}`}
                     aria-hidden={i !== current}
-                    className={`flex flex-col gap-4 transition-opacity duration-700 ${i === current ? 'relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
+                    className={`dental-hero-copy flex flex-col gap-4 transition-opacity duration-700 ${i === current ? 'dental-hero-copy-active relative opacity-100' : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'}`}
                   >
                     <h1 className="text-[34px] leading-[1.5] tracking-[-1.2px] text-[#111] sm:text-[48px]">
-                      <span className="font-medium">{first}</span>
+                      <span className="dental-hero-title-first inline-block font-medium">{first}</span>
                       {rest.length > 0 && (
                         <>
                           <br />
-                          <span className="font-bold">{rest.join('\n')}</span>
+                          <span className="dental-hero-title-rest inline-block font-bold">{rest.join('\n')}</span>
                         </>
                       )}
                     </h1>
-                    <p className="whitespace-pre-line text-[17px] leading-[1.6] tracking-[-0.425px] text-[#464648]">{s.description}</p>
+                    <p className="dental-hero-description whitespace-pre-line text-[17px] leading-[1.6] tracking-[-0.425px] text-[#464648]">{s.description}</p>
                   </div>
                 )
               })}
@@ -201,12 +207,12 @@ function Hero() {
           </div>
 
           <div className="flex items-center gap-[50px]">
-            <div className="flex items-center gap-5 text-base leading-[1.6] tracking-[-0.4px]">
+            <div className="relative flex items-center gap-5 text-base leading-[1.6] tracking-[-0.4px]">
               {slides.map((_, i) => (
                 <button
                   key={i}
                   type="button"
-                  onClick={() => setIndex(i)}
+                  onClick={() => select(i)}
                   aria-label={`${i + 1}번째 슬라이드`}
                   aria-current={i === current}
                   className={i === current ? 'font-semibold text-[#111]' : 'text-[#999] hover:text-[#545456]'}
@@ -214,13 +220,20 @@ function Hero() {
                   {String(i + 1).padStart(2, '0')}
                 </button>
               ))}
+              <div className="absolute inset-x-0 -bottom-3 h-[2px] overflow-hidden bg-black/15" aria-hidden>
+                <span
+                  key={`${index}-${cycle}-${duration}-${mainVisual.autoplay}`}
+                  className={`block h-full origin-left bg-[#111] ${mainVisual.autoplay && slides.length > 1 ? 'dental-hero-progress' : ''}`}
+                  style={{ animationDuration: `${duration}ms` }}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => go(-1)} aria-label="이전 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#ddd] transition hover:border-[#111]">
-                <img src={asset('/images/dental/svg/hero-prev.svg')} alt="" width={30} height={30} />
+              <button type="button" onClick={() => go(-1)} aria-label="이전 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#111] transition hover:bg-black/5">
+                <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden><path d="M17 9L12 15L17 21" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
-              <button type="button" onClick={() => go(1)} aria-label="다음 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#111]">
-                <img src={asset('/images/dental/svg/hero-next.svg')} alt="" width={30} height={30} />
+              <button type="button" onClick={() => go(1)} aria-label="다음 슬라이드" className="grid h-10 w-10 place-items-center rounded-full border border-[#111] transition hover:bg-black/5">
+                <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden><path d="M13 9L18 15L13 21" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
             </div>
           </div>

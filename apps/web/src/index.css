@@ -466,3 +466,27 @@ html.lenis { scroll-behavior: auto; }
     @apply pointer-events-none float-left h-0 text-slate-400;
   }
 }
+
+/* 치과 메인 비주얼: 슬라이드가 활성화될 때 문구를 순서대로 보여준다. */
+@keyframes dental-hero-copy-in {
+  from { opacity: 0; transform: translateY(52px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.dental-hero-copy-active .dental-hero-title-first,
+.dental-hero-copy-active .dental-hero-title-rest,
+.dental-hero-copy-active .dental-hero-description {
+  animation: dental-hero-copy-in 1100ms cubic-bezier(.22, 1, .36, 1) both;
+}
+.dental-hero-copy-active .dental-hero-title-rest { animation-delay: 180ms; }
+.dental-hero-copy-active .dental-hero-description { animation-delay: 380ms; }
+@keyframes dental-hero-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.dental-hero-progress { animation: dental-hero-progress linear both; }
+@media (prefers-reduced-motion: reduce) {
+  .dental-hero-copy { transition: none; }
+  .dental-hero-copy-active .dental-hero-title-first,
+  .dental-hero-copy-active .dental-hero-title-rest,
+  .dental-hero-copy-active .dental-hero-description { animation: none; }
+}

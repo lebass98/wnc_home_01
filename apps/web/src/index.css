@@ -76,14 +76,16 @@
   left: calc(50% - var(--slogan-image-width, 59vw) / 2);
   top: calc(50% - var(--slogan-image-height, 407px) / 2 + 40px);
   color: #805610;
-  transform: translateX(calc(-35% - var(--slogan-shift)));
+  /* 최종 위치: 문구의 약 1/4만 사진 왼쪽 위에 걸친다. */
+  transform: translateX(calc(-75% - var(--slogan-shift)));
 }
 .interior-scroll-slogan-last {
   right: calc(50% - var(--slogan-image-width, 59vw) / 2);
   bottom: calc(50% - var(--slogan-image-height, 407px) / 2 + 40px);
   color: #4b5b77;
   mix-blend-mode: multiply;
-  transform: translateX(calc(35% + var(--slogan-shift)));
+  /* 최종 위치: 문구의 약 1/4만 사진 오른쪽 아래에 걸친다. */
+  transform: translateX(calc(75% + var(--slogan-shift)));
 }
 @media (max-width: 767px) {
   .interior-scroll-slogan { font-size: clamp(18px, 3.4vw, 24px); letter-spacing: 8px; }

@@ -255,6 +255,61 @@ function Hero() {
 
 /* ---------- 숫자 ---------- */
 
+/** 숫자 영역이 보일 때 한 번만 목표 값까지 증가한다. */
+function CountUp({ value, delay = 0 }: { value: number; delay?: number }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let frame = 0
+    let started = false
+    let observer: IntersectionObserver | undefined
+    const finish = () => {
+      window.cancelAnimationFrame(frame)
+      setCount(value)
+      observer?.disconnect()
+    }
+    const start = () => {
+      if (started) return
+      started = true
+      observer?.disconnect()
+      const startTime = performance.now() + delay
+      const tick = (time: number) => {
+        const progress = Math.max(0, Math.min(1, (time - startTime) / 1600))
+        const eased = 1 - Math.pow(1 - progress, 3)
+        setCount(Math.round(value * eased))
+        if (progress < 1) frame = window.requestAnimationFrame(tick)
+      }
+      frame = window.requestAnimationFrame(tick)
+    }
+    const onMotionChange = () => { if (motion.matches) finish() }
+    if (motion.matches || typeof IntersectionObserver === 'undefined') {
+      finish()
+    } else {
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) start()
+      }, { threshold: 0.5, rootMargin: '0px 0px -8% 0px' })
+      observer.observe(element)
+    }
+    motion.addEventListener('change', onMotionChange)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer?.disconnect()
+      motion.removeEventListener('change', onMotionChange)
+    }
+  }, [value, delay])
+
+  return (
+    <span ref={ref} className="text-[88px] tabular-nums xl:text-[120px]">
+      <span className="sr-only">{value}</span>
+      <span aria-hidden="true">{count}</span>
+    </span>
+  )
+}
+
 function Stats() {
   return (
     <section className="px-5 pb-24 sm:px-10 xl:px-20 xl:pb-40">
@@ -266,7 +321,7 @@ function Stats() {
               {s.title}
             </h3>
             <p className="flex items-center justify-center pb-[30px] pl-4 pt-10 font-normal leading-none text-[#7a6759]">
-              <span className="text-[88px] xl:text-[120px]">{s.value}</span>
+              <CountUp value={Number(s.value)} delay={i * 110} />
               <span className="text-[44px] xl:text-[60px]">+</span>
             </p>
             <p className="font-serif-kr text-[22px] font-extralight leading-normal text-[#7a6759]">{String(i + 1).padStart(2, '0')}</p>

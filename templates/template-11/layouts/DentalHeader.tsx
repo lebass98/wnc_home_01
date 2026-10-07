@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import MenuLink from '../components/MenuLink'
 import { findGroup } from '../lib/menus'
+import { useHideOnScroll } from '../lib/useHideOnScroll'
 import type { SiteHeaderProps } from './index'
 
 const asset = (path: string) => `${import.meta.env.BASE_URL.replace(/\/$/, '')}${path}`
@@ -19,15 +20,27 @@ export function DentalLogo({ logo, logoImage, className = '' }: { logo: string; 
 }
 
 /**
- * 치과 헤더 — 흰 바탕 한 줄. 로고·1차 메뉴, 오른쪽 끝에 [상담예약하기]와 사이트맵 단추.
+ * 치과 헤더 — 반투명 흰 바탕에 블러를 깐 한 줄. 로고·1차 메뉴, 오른쪽 끝에 [상담예약하기]와 사이트맵 단추.
  * 메뉴에 올리면 2차 메뉴가 작은 카드로 내려온다.
+ * 아래로 스크롤하면 위로 사라지고, 위로 스크롤하면 다시 내려온다.
  */
 export default function DentalHeader({ menu, logo, logoImage, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   const { pathname } = useLocation()
   const activeGroupId = findGroup(menu, pathname)?.id
+  const [hidden, setHidden] = useHideOnScroll(pathname)
 
   return (
-    <header style={{ top: 'var(--demo-banner-h)' }} className="sticky z-40 bg-white">
+    <header
+      // 키보드로 메뉴에 들어오면 감춰져 있어도 다시 보인다.
+      onFocusCapture={() => setHidden(false)}
+      style={{
+        top: 'var(--demo-banner-h)',
+        transform: hidden ? 'translateY(calc(-100% - var(--demo-banner-h)))' : 'translateY(0)',
+      }}
+      className={`sticky z-40 bg-white/75 backdrop-blur-md transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+        hidden ? 'pointer-events-none' : ''
+      }`}
+    >
       <div className="flex items-center justify-between gap-6 px-5 py-4 sm:px-10 xl:px-[160px] xl:py-6">
         <div className="flex flex-1 items-center justify-between gap-10 xl:max-w-[1274px]">
           <Link to="/" aria-label={logo} className="shrink-0">

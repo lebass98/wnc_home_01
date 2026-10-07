@@ -629,5 +629,16 @@ model MediaAsset {
   alt          String   @default("")
   title        String   @default("")
   originalName String   @default("")
+  /// 담긴 폴더(MediaFolder.id). 비어 있으면 '미분류' — 파일은 실제로 옮기지 않고 분류만 바꾼다.
+  folderId     Int?
   updatedAt    DateTime @updatedAt
+}
+
+/// 미디어 라이브러리의 분류 폴더 — 디스크 폴더가 아니라 이름표다.
+/// 파일은 uploads/ 맨 위에 그대로 두므로 폴더를 옮겨도 주소(/uploads/...)가 바뀌지 않는다.
+model MediaFolder {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

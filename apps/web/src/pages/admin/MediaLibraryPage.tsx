@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { MediaItem } from '@wnc/shared'
+import type { MediaFolder, MediaItem } from '@wnc/shared'
 import { api, IS_DEMO } from '../../lib/api'
 import { formatStamp } from '../../lib/format'
 import { invalidateMediaAlts, uploadMediaFile } from '../../lib/media'
@@ -18,6 +18,8 @@ type UseFilter = 'all' | 'used' | 'unused'
 type SortKey = 'new' | 'old' | 'name' | 'name-desc' | 'big' | 'small'
 /** 보기 방식 — 썸네일 카드 / 썸네일이 붙은 목록 */
 type ViewMode = 'grid' | 'list'
+/** 보고 있는 폴더 — 'all' 전체, 'none' 미분류, 숫자면 그 폴더 */
+type FolderFilter = 'all' | 'none' | number
 
 const SORT_LABEL: Record<SortKey, string> = {
   new: '최근에 올린 순',
@@ -50,7 +52,7 @@ function extOf(m: MediaItem): string {
 const extLabel = (ext: string) => (ext ? ext.toUpperCase() : '확장자 없음')
 
 /** 화면에 쓰는 아이콘 — 프로젝트 방식대로 인라인 SVG 로 그린다. */
-const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external' | 'prev' | 'next', string> = {
+const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'pdf' | 'zip' | 'file' | 'zoom' | 'close' | 'external' | 'prev' | 'next' | 'folder' | 'folderPlus' | 'move' | 'pencil', string> = {
   grid: 'M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 13h6v6H4v-6zm10 0h6v6h-6v-6z',
   list: 'M4 6h16M4 12h16M4 18h16',
   trash: 'M6 7h12M9 7V5h6v2m-7 0 .6 12a1 1 0 001 1h4.8a1 1 0 001-1L16 7',
@@ -65,6 +67,10 @@ const ICON: Record<'grid' | 'list' | 'trash' | 'upload' | 'image' | 'video' | 'p
   external: 'M14 4h6v6m0-6-8 8M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4',
   prev: 'M15 19l-7-7 7-7',
   next: 'M9 5l7 7-7 7',
+  folder: 'M3 7a2 2 0 012-2h3.6l2 2.5H19a2 2 0 012 2V17a2 2 0 01-2 2H5a2 2 0 01-2-2V7z',
+  folderPlus: 'M3 7a2 2 0 012-2h3.6l2 2.5H19a2 2 0 012 2V17a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm9 4v5m-2.5-2.5h5',
+  move: 'M4 7h7m0 0L8.5 4.5M11 7 8.5 9.5M20 17h-7m0 0 2.5-2.5M13 17l2.5 2.5',
+  pencil: 'M4 20h4l10-10a2.1 2.1 0 00-3-3L5 17v3z',
 }
 
 function Icon({ name, className = 'h-4 w-4' }: { name: keyof typeof ICON; className?: string }) {
@@ -117,6 +123,8 @@ function MediaModal({
   onMove,
   position,
   total,
+  folders,
+  onFolderChange,
 }: {
   item: MediaItem
   onClose: () => void
@@ -124,6 +132,9 @@ function MediaModal({
   onDeleted: () => void
   /** 목록에서 앞·뒤 파일로 옮긴다. 끝에 닿으면 아무 일도 하지 않는다. */
   onMove: (step: -1 | 1) => void
+  /** 고를 수 있는 폴더와, 이 파일의 폴더를 바꾸는 함수 */
+  folders: MediaFolder[]
+  onFolderChange: (folderId: number | null) => Promise<void>
   /** 지금 보고 있는 순서(1부터)와 전체 개수 — 목록에서 걸러 낸 것만 센다. */
   position: number
   total: number
@@ -230,7 +241,14 @@ function MediaModal({
 
           {/* 정보 패널 — 평상시에는 숨어 있고 이 창에서만 보인다. */}
           <aside className="card min-h-0 w-full shrink-0 overflow-y-auto p-4 lg:w-[22rem]">
-            <MediaDetail key={item.name} item={item} onSaved={onSaved} onDeleted={onDeleted} />
+            <MediaDetail
+              key={item.name}
+              item={item}
+              onSaved={onSaved}
+              onDeleted={onDeleted}
+              folders={folders}
+              onFolderChange={onFolderChange}
+            />
           </aside>
         </div>
       </div>
@@ -246,6 +264,9 @@ export default function MediaLibraryPage() {
   const [sort, setSort] = useState<SortKey>('new')
   /** 체크한 확장자만 보여 준다. 빈 배열이면 모든 확장자. */
   const [exts, setExts] = useState<string[]>([])
+  const [folders, setFolders] = useState<MediaFolder[]>([])
+  /** 보고 있는 폴더 — 전체·미분류·특정 폴더 */
+  const [folder, setFolder] = useState<FolderFilter>('all')
   const [view, setView] = useState<ViewMode>('grid')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
@@ -264,6 +285,9 @@ export default function MediaLibraryPage() {
         setError('')
       })
       .catch((e: Error) => setError(e.message))
+    api<MediaFolder[]>('/media/folders', { auth: true })
+      .then(setFolders)
+      .catch(() => setFolders([]))
   }
   useEffect(load, [])
 
@@ -276,6 +300,8 @@ export default function MediaLibraryPage() {
       if (use === 'used' && m.usages.length === 0) return false
       if (use === 'unused' && m.usages.length > 0) return false
       if (exts.length > 0 && !exts.includes(extOf(m))) return false
+      if (folder === 'none' && m.folderId !== null) return false
+      if (typeof folder === 'number' && m.folderId !== folder) return false
       return !q || [m.name, m.originalName, m.alt, m.title].some((v) => v.toLowerCase().includes(q))
     })
     const nameOf = (m: MediaItem) => (m.originalName || m.name).toLowerCase()
@@ -289,7 +315,7 @@ export default function MediaLibraryPage() {
       small: (a, b) => a.size - b.size,
     }
     return [...filtered].sort(sorters[sort])
-  }, [items, kind, use, query, sort, exts])
+  }, [items, kind, use, query, sort, exts, folder])
 
   /** 올라와 있는 확장자와 개수 — 많은 것부터 보여 준다. */
   const extGroups = useMemo(() => {
@@ -313,6 +339,55 @@ export default function MediaLibraryPage() {
   const toggle = (name: string) =>
     setPicked((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]))
   const toggleAll = () => setPicked(allPicked ? [] : shown.map((m) => m.name))
+
+  /** 폴더 만들기 — 이름만 받는다. */
+  async function createFolder() {
+    const name = prompt('새 폴더 이름을 입력하세요.')?.trim()
+    if (!name) return
+    try {
+      const created = await api<MediaFolder>('/media/folders', { method: 'POST', body: { name }, auth: true })
+      setFolders((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'ko')))
+      setFolder(created.id)
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  async function renameFolder(target: MediaFolder) {
+    const name = prompt('폴더 이름을 바꿉니다.', target.name)?.trim()
+    if (!name || name === target.name) return
+    try {
+      await api(`/media/folders/${target.id}`, { method: 'PUT', body: { name }, auth: true })
+      load()
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  /** 폴더 삭제 — 담긴 파일은 지우지 않고 미분류로 돌아간다. */
+  async function removeFolder(target: MediaFolder) {
+    if (!confirm(`'${target.name}' 폴더를 지울까요?\n\n담긴 파일 ${target.count}개는 지워지지 않고 '미분류' 로 돌아갑니다.`)) return
+    try {
+      await api(`/media/folders/${target.id}`, { method: 'DELETE', auth: true })
+      if (folder === target.id) setFolder('all')
+      load()
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
+
+  /** 체크한 파일을 폴더로 옮긴다 — 파일 주소는 그대로다. */
+  async function movePicked(folderId: number | null) {
+    const names = pickedShown.map((m) => m.name)
+    if (names.length === 0) return
+    try {
+      await api('/media/move', { method: 'PUT', body: { names, folderId }, auth: true })
+      setPicked([])
+      load()
+    } catch (e) {
+      alert((e as Error).message)
+    }
+  }
 
   async function upload(files: FileList) {
     const list = [...files]
@@ -460,6 +535,94 @@ export default function MediaLibraryPage() {
         </p>
       </div>
 
+      <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+          <Icon name="folder" />
+          폴더
+        </span>
+        {([
+          ['all', `전체 (${items?.length ?? 0})`],
+          ['none', `미분류 (${items?.filter((m) => m.folderId === null).length ?? 0})`],
+        ] as [FolderFilter, string][]).map(([key, label]) => (
+          <button
+            key={String(key)}
+            type="button"
+            onClick={() => setFolder(key)}
+            aria-pressed={folder === key}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+              folder === key
+                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200'
+                : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        {folders.map((f) => (
+          <span
+            key={f.id}
+            className={`inline-flex items-center gap-1 rounded-full border pl-3 pr-1.5 text-xs font-medium transition ${
+              folder === f.id
+                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-200'
+                : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
+            }`}
+          >
+            <button type="button" onClick={() => setFolder(f.id)} aria-pressed={folder === f.id} className="py-1">
+              {f.name} ({f.count})
+            </button>
+            {/* 고른 폴더에서만 이름 바꾸기·지우기를 보여 줘 줄이 복잡해지지 않게 한다. */}
+            {folder === f.id && !IS_DEMO && (
+              <>
+                <button type="button" onClick={() => renameFolder(f)} title="폴더 이름 바꾸기" className="rounded p-1 hover:bg-white/60 dark:hover:bg-slate-800">
+                  <Icon name="pencil" className="h-3.5 w-3.5" />
+                  <span className="sr-only">{f.name} 이름 바꾸기</span>
+                </button>
+                <button type="button" onClick={() => removeFolder(f)} title="폴더 지우기" className="rounded p-1 text-red-600 hover:bg-white/60 dark:hover:bg-slate-800">
+                  <Icon name="trash" className="h-3.5 w-3.5" />
+                  <span className="sr-only">{f.name} 지우기</span>
+                </button>
+              </>
+            )}
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={createFolder}
+          disabled={IS_DEMO}
+          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-brand-400 hover:text-brand-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300"
+        >
+          <Icon name="folderPlus" className="h-3.5 w-3.5" />
+          폴더 만들기
+        </button>
+
+        {/* 고른 파일을 폴더로 옮긴다 — 파일 주소는 그대로다. */}
+        {pickedShown.length > 0 && (
+          <label className="ml-auto inline-flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+            <Icon name="move" className="h-4 w-4" />
+            고른 {pickedShown.length}개를
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value === '') return
+                movePicked(e.target.value === 'none' ? null : Number(e.target.value))
+                e.target.value = ''
+              }}
+              disabled={IS_DEMO}
+              className="select w-40 py-1.5 text-xs"
+              aria-label="고른 파일을 옮길 폴더"
+            >
+              <option value="">옮길 폴더 고르기…</option>
+              <option value="none">미분류로 빼기</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+
       {extGroups.length > 0 && (
         <div className="card mb-4 flex flex-wrap items-center gap-2 p-4">
           <span className="text-sm font-medium text-slate-600 dark:text-slate-300">확장자</span>
@@ -534,7 +697,15 @@ export default function MediaLibraryPage() {
                       {extLabel(extOf(m))} · {formatSize(m.size)}
                       {m.kind === 'image' && m.width ? ` · ${formatDimension(m)}` : ''}
                     </p>
-                    <p className="px-2 pb-1.5 text-[11px] tabular-nums text-slate-400">{formatStamp(m.createdAt).slice(0, 10)}</p>
+                    <p className="flex items-center gap-1 px-2 pb-1.5 text-[11px] text-slate-400">
+                      <span className="tabular-nums">{formatStamp(m.createdAt).slice(0, 10)}</span>
+                      {m.folderName && (
+                        <span className="inline-flex min-w-0 items-center gap-0.5">
+                          · <Icon name="folder" className="h-3 w-3" />
+                          <span className="truncate">{m.folderName}</span>
+                        </span>
+                      )}
+                    </p>
                   </button>
                   <label
                     className="absolute right-1.5 top-1.5 cursor-pointer rounded bg-white/90 p-1 shadow-sm dark:bg-slate-900/90"
@@ -561,6 +732,7 @@ export default function MediaLibraryPage() {
                       />
                     </th>
                     <th className="py-2 font-medium">파일</th>
+                    <th className="py-2 font-medium">폴더</th>
                     <th className="py-2 font-medium">종류</th>
                     <th className="py-2 font-medium">이미지 크기</th>
                     <th className="py-2 font-medium">용량</th>
@@ -607,6 +779,16 @@ export default function MediaLibraryPage() {
                         </div>
                       </td>
                       <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-400">
+                        {m.folderName ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Icon name="folder" className="h-3.5 w-3.5" />
+                            {m.folderName}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">미분류</span>
+                        )}
+                      </td>
+                      <td className="py-2 whitespace-nowrap text-slate-500 dark:text-slate-400">
                         {KIND_LABEL[m.kind]}
                         {extOf(m) && <span className="ml-1 text-[11px] text-slate-400">{extLabel(extOf(m))}</span>}
                       </td>
@@ -631,6 +813,11 @@ export default function MediaLibraryPage() {
           item={current}
           position={shownIndex + 1}
           total={shownIndex < 0 ? 1 : shown.length}
+          folders={folders}
+          onFolderChange={async (folderId) => {
+            await api('/media/move', { method: 'PUT', body: { names: [current.name], folderId }, auth: true })
+            load()
+          }}
           onMove={(step) => {
             const next = shown[shownIndex + step]
             if (next) setSelected(next.name)
@@ -653,14 +840,19 @@ function MediaDetail({
   item,
   onSaved,
   onDeleted,
+  folders,
+  onFolderChange,
 }: {
   item: MediaItem
   onSaved: (alt: string, title: string) => void
   onDeleted: () => void
+  folders: MediaFolder[]
+  onFolderChange: (folderId: number | null) => Promise<void>
 }) {
   const [alt, setAlt] = useState(item.alt)
   const [title, setTitle] = useState(item.title)
   const [saving, setSaving] = useState(false)
+  const [moving, setMoving] = useState(false)
   const [notice, setNotice] = useState('')
   const dirty = alt !== item.alt || title !== item.title
 
@@ -722,6 +914,8 @@ function MediaDetail({
             <dd className="tabular-nums text-slate-700 dark:text-slate-200">{formatDimension(item)}</dd>
           </>
         )}
+        <dt className="text-slate-400">폴더</dt>
+        <dd className="text-slate-700 dark:text-slate-200">{item.folderName || '미분류'}</dd>
         <dt className="text-slate-400">올린 날</dt>
         <dd className="tabular-nums text-slate-700 dark:text-slate-200">{formatStamp(item.createdAt)}</dd>
       </dl>
@@ -729,6 +923,38 @@ function MediaDetail({
       <button type="button" onClick={copy} className="btn-secondary w-full">
         주소 복사
       </button>
+
+      <div>
+        <label htmlFor="media-folder" className="label">
+          폴더 옮기기
+        </label>
+        <select
+          id="media-folder"
+          value={item.folderId ?? ''}
+          onChange={async (e) => {
+            setMoving(true)
+            try {
+              await onFolderChange(e.target.value === '' ? null : Number(e.target.value))
+            } catch (err) {
+              alert((err as Error).message)
+            } finally {
+              setMoving(false)
+            }
+          }}
+          disabled={moving}
+          className="select"
+        >
+          <option value="">미분류</option>
+          {folders.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+          분류만 바뀝니다. 파일 주소({item.url})는 그대로라 본문에 박힌 그림이 깨지지 않습니다.
+        </p>
+      </div>
 
       <div className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-700">
         <div>

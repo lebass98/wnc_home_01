@@ -1981,6 +1981,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   // --- 미디어 라이브러리 — 데모에는 업로드 서버가 없어 비어 있다 ---
   if (rawPath === '/media' && method === 'GET') return []
+  if (rawPath === '/media/folders' && method === 'GET') return []
   if (rawPath === '/media/alts' && method === 'GET') return {}
   if (rawPath.startsWith('/media/')) {
     throw new DemoError('GitHub Pages 데모에서는 업로드 파일을 관리할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)

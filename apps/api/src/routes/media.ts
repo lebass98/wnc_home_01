@@ -110,8 +110,14 @@ mediaRouter.get(
   '/',
   requireAuth,
   asyncHandler(async (_req, res) => {
-    const [names, usages, assets] = await Promise.all([listUploadFiles(), collectUsages(), prisma.mediaAsset.findMany()])
+    const [names, usages, assets, folders] = await Promise.all([
+      listUploadFiles(),
+      collectUsages(),
+      prisma.mediaAsset.findMany(),
+      prisma.mediaFolder.findMany(),
+    ])
     const info = new Map(assets.map((a) => [a.path, a]))
+    const folderName = new Map(folders.map((f) => [f.id, f.name]))
     const items = await Promise.all(
       names.map(async (name) => {
         const file = path.join(UPLOAD_DIR, name)
@@ -131,6 +137,9 @@ mediaRouter.get(
           title: a?.title ?? '',
           originalName: a?.originalName ?? '',
           ...(dim ? { width: dim.width, height: dim.height } : {}),
+          // 폴더가 지워졌으면 '미분류' 로 본다.
+          folderId: a?.folderId != null && folderName.has(a.folderId) ? a.folderId : null,
+          folderName: (a?.folderId != null && folderName.get(a.folderId)) || '',
           usages: usages.get(name) ?? [],
         }
       }),
@@ -146,6 +155,101 @@ mediaRouter.get(
   asyncHandler(async (_req, res) => {
     const rows = await prisma.mediaAsset.findMany({ where: { NOT: { alt: '' } }, select: { path: true, alt: true } })
     res.json(Object.fromEntries(rows.map((r) => [r.path, r.alt])))
+  }),
+)
+
+/* ------------------------------------------------------------------
+ * 분류 폴더 — 디스크 폴더가 아니라 이름표다. 파일은 uploads/ 맨 위에 그대로 두므로
+ * 폴더를 만들고 옮겨도 공개 주소(/uploads/<파일>)는 바뀌지 않는다(본문에 박힌 주소가 안 깨진다).
+ * ------------------------------------------------------------------ */
+
+const folderName = z
+  .string()
+  .trim()
+  .min(1, '폴더 이름을 입력하세요.')
+  .max(50, '폴더 이름은 50자까지 쓸 수 있습니다.')
+  .refine((v) => !v.includes('/'), '폴더 이름에 / 는 쓸 수 없습니다.')
+
+/** 폴더 목록 — 담긴 파일 수를 함께 센다(디스크에 남아 있는 파일만). */
+mediaRouter.get(
+  '/folders',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    const [folders, assets, names] = await Promise.all([
+      prisma.mediaFolder.findMany({ orderBy: { name: 'asc' } }),
+      prisma.mediaAsset.findMany({ where: { NOT: { folderId: null } } }),
+      listUploadFiles(),
+    ])
+    const alive = new Set(names.map((n) => `/uploads/${n}`))
+    const count = new Map<number, number>()
+    for (const a of assets) {
+      if (a.folderId == null || !alive.has(a.path)) continue
+      count.set(a.folderId, (count.get(a.folderId) ?? 0) + 1)
+    }
+    res.json(folders.map((f) => ({ id: f.id, name: f.name, count: count.get(f.id) ?? 0 })))
+  }),
+)
+
+mediaRouter.post(
+  '/folders',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { name } = z.object({ name: folderName }).parse(req.body)
+    if (await prisma.mediaFolder.findUnique({ where: { name } }))
+      return res.status(409).json({ message: `'${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
+    const row = await prisma.mediaFolder.create({ data: { name } })
+    res.status(201).json({ id: row.id, name: row.name, count: 0 })
+  }),
+)
+
+mediaRouter.put(
+  '/folders/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id)
+    const { name } = z.object({ name: folderName }).parse(req.body)
+    if (!(await prisma.mediaFolder.findUnique({ where: { id } })))
+      return res.status(404).json({ message: '폴더를 찾을 수 없습니다.' })
+    const taken = await prisma.mediaFolder.findUnique({ where: { name } })
+    if (taken && taken.id !== id) return res.status(409).json({ message: `'${name}' 폴더가 이미 있습니다. 다른 이름을 쓰세요.` })
+    const row = await prisma.mediaFolder.update({ where: { id }, data: { name } })
+    res.json({ id: row.id, name: row.name })
+  }),
+)
+
+/** 폴더 삭제 — 담긴 파일은 지우지 않고 '미분류' 로 돌려보낸다. */
+mediaRouter.delete(
+  '/folders/:id',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id)
+    if (!(await prisma.mediaFolder.findUnique({ where: { id } })))
+      return res.status(404).json({ message: '폴더를 찾을 수 없습니다.' })
+    const moved = await prisma.mediaAsset.updateMany({ where: { folderId: id }, data: { folderId: null } })
+    await prisma.mediaFolder.delete({ where: { id } })
+    res.json({ ok: true, moved: moved.count })
+  }),
+)
+
+/** 고른 파일을 폴더로 옮긴다(folderId = null 이면 미분류로). 파일 자체는 움직이지 않는다. */
+mediaRouter.put(
+  '/move',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { names, folderId } = z
+      .object({ names: z.array(z.string()).min(1, '옮길 파일을 고르세요.').max(500), folderId: z.number().int().nullable() })
+      .parse(req.body)
+    if (folderId !== null && !(await prisma.mediaFolder.findUnique({ where: { id: folderId } })))
+      return res.status(404).json({ message: '폴더를 찾을 수 없습니다. 목록을 새로 불러 주세요.' })
+
+    let moved = 0
+    for (const name of names) {
+      if (!fileOf(name)) continue
+      const path = `/uploads/${name}`
+      await prisma.mediaAsset.upsert({ where: { path }, create: { path, folderId }, update: { folderId } })
+      moved += 1
+    }
+    res.json({ ok: true, moved })
   }),
 )
 

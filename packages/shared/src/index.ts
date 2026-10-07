@@ -1649,5 +1649,16 @@ export interface MediaItem {
   /** 그림의 가로·세로 (픽셀) — 알 수 없는 형식이면 없다 */
   width?: number
   height?: number
+  /** 담긴 분류 폴더 — 없으면 '미분류' */
+  folderId: number | null
+  folderName: string
   usages: MediaUsage[]
+}
+
+/** 미디어 라이브러리의 분류 폴더 — 디스크 폴더가 아니라 이름표다. */
+export interface MediaFolder {
+  id: number
+  name: string
+  /** 이 폴더에 담긴 파일 수 */
+  count: number
 }

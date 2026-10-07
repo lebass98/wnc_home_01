@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import MenuLink from '../components/MenuLink'
 import { findGroup } from '../lib/menus'
@@ -10,10 +11,38 @@ import type { SiteHeaderProps } from './index'
  */
 export default function InteriorHeader({ menu, onOpenMobile, onOpenSitemap }: SiteHeaderProps) {
   const { pathname } = useLocation()
+  const [hidden, setHidden] = useState(false)
+
+  useEffect(() => {
+    setHidden(false)
+    let previousY = Math.max(0, window.scrollY)
+    const onScroll = () => {
+      const y = Math.max(0, window.scrollY)
+      if (y <= 60) {
+        setHidden(false)
+        previousY = y
+        return
+      }
+      // 작은 관성 움직임에는 반응하지 않아 방향 전환 시 깜빡이지 않는다.
+      if (Math.abs(y - previousY) < 8) return
+      setHidden(y > previousY)
+      previousY = y
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [pathname])
+
   const activeGroupId = findGroup(menu, pathname)?.id
 
   return (
-    <header style={{ top: 'calc(var(--demo-banner-h) + 24px)' }} className="fixed inset-x-0 z-40 flex justify-center px-4">
+    <header
+      onFocusCapture={() => setHidden(false)}
+      style={{
+        top: 'calc(var(--demo-banner-h) + 24px)',
+        transform: hidden ? 'translateY(calc(-100% - var(--demo-banner-h) - 40px))' : 'translateY(0)',
+      }}
+      className={`fixed inset-x-0 z-40 flex justify-center px-4 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${hidden ? 'pointer-events-none' : ''}`}
+    >
       <div
         className="flex items-center gap-4 rounded-full bg-white/40 py-2 pl-6 pr-2 shadow-[0_8px_30px_rgba(36,29,18,0.12)] backdrop-blur-md sm:gap-6 sm:pl-10"
       >

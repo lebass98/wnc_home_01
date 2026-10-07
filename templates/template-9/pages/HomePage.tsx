@@ -477,7 +477,7 @@ function Styles() {
           <li key={s.label} className={`relative ${s.offset}`}>
             {/* 세 번째 칸 위에 걸치는 제목 */}
             {i === 2 && <div className="absolute bottom-full right-3 mb-[67px] hidden xl:block">{heading}</div>}
-            <Reveal index={i} className="relative aspect-[428/600] overflow-hidden rounded-2xl">
+            <Reveal gentle index={i} step={180} className="relative aspect-[428/600] overflow-hidden rounded-2xl">
               <img
                 src={s.image}
                 alt={`인테리어 스타일 — ${s.label}`}

@@ -21,6 +21,15 @@
 /* 관성 스크롤과 브라우저의 기본 smooth 동작이 중복되지 않게 한다. */
 html.lenis { scroll-behavior: auto; }
 
+.reveal-gentle {
+  transition-property: transform, opacity;
+  transition-duration: 1600ms, 1400ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-gentle { transition: none; }
+}
+
 /* 메인 비주얼: 스크롤 위치에 맞춰 크기와 이미지, 카피를 함께 전환한다. */
 .interior-scroll-hero {
   --color-edge-start: 100%;

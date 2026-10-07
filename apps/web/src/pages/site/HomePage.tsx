@@ -535,29 +535,12 @@ function Doctors() {
   const [index, setIndex] = useState(0)
   const n = DOCTOR_RING.length
   const { offsets, jumps } = useRing(n, index)
-  const lead = mod(index, DOCTORS.length)
 
   return (
     <section className="flex flex-col items-center gap-7 overflow-hidden [--w:min(448px,calc(100vw-40px))]">
       <div className="flex w-full flex-col items-center gap-12">
-        {/* 대표 칸 위의 이름 — 바뀔 때 살짝 떠오른다 */}
-        <div className="relative h-[47px] w-full">
-          {DOCTORS.map((doc, i) => (
-            <p
-              key={doc.name}
-              aria-hidden={i !== lead}
-              className={`absolute inset-x-0 top-0 flex items-end justify-center gap-5 text-[#111] transition-[opacity,transform] duration-500 ${
-                i === lead ? 'translate-y-0 opacity-100 delay-200' : 'translate-y-2 opacity-0'
-              }`}
-            >
-              {doc.role && <span className="text-[15px] leading-[1.6] tracking-[1.2px]">{doc.role}</span>}
-              <span className="flex items-end gap-2.5 leading-[1.5]">
-                <span className="text-[36px] font-bold leading-[47px] tracking-[-0.9px]">{doc.name}</span>
-                <span className="text-base font-medium tracking-[-0.4px]">원장</span>
-              </span>
-            </p>
-          ))}
-        </div>
+        {/* 대표 칸 위 이름 자리 — 이름은 각 카드가 들고 있다가 가운데가 되면 이 자리로 나온다 */}
+        <div className="h-[47px] w-full" aria-hidden />
 
         {/* 카드 줄 — 모든 카드가 대표 칸 크기로 겹쳐 있고, 아래를 기준으로 줄었다 커진다 */}
         <div className="relative aspect-[448/524] w-[var(--w)]">
@@ -574,35 +557,53 @@ function Doctors() {
                   transform: `translateX(calc(var(--w) * ${x})) scale(${center ? 1 : DOCTOR_SIDE_SCALE})`,
                   zIndex: center ? 2 : 1,
                 }}
-                className={`absolute inset-0 origin-bottom overflow-hidden rounded-[20px] border border-[#eee] bg-white [container-type:inline-size] ${
-                  hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
-                } ${jumps[i] ? '' : `transition-[transform,opacity] ${SLIDE_EASE}`}`}
+                className={`absolute inset-0 origin-bottom ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'} ${
+                  jumps[i] ? '' : `transition-[transform,opacity] ${SLIDE_EASE}`
+                }`}
               >
+                <div className="absolute inset-0 overflow-hidden rounded-[20px] border border-[#eee] bg-white">
+                  {/*
+                    사진은 한 장 — 옆 칸 크롭(아래쪽에 작게)에서 대표 칸 크롭(상반신 크게)으로
+                    위치·크기·초점이 함께 움직여 실제로 확대되듯 바뀐다.
+                  */}
+                  <img
+                    src={asset(doc.image)}
+                    alt={center ? `${doc.name} 원장` : ''}
+                    className={`absolute left-1/2 max-w-none -translate-x-1/2 object-cover ${center ? doc.centerCrop ?? DOCTOR_CENTER_CROP : DOCTOR_SIDE_CROP} ${
+                      jumps[i] ? '' : `transition-[top,width,height,object-position] ${SLIDE_EASE}`
+                    }`}
+                    loading="lazy"
+                  />
+                  {/* 옆 칸을 누르면 그 원장님이 가운데로 온다 */}
+                  {!center && !hidden && (
+                    <button type="button" onClick={() => setIndex((x) => x + d)} aria-label={`${doc.name} 원장 보기`} className="absolute inset-0" />
+                  )}
+                </div>
                 {/*
-                  사진은 한 장 — 옆 칸 크롭(아래쪽에 작게)에서 대표 칸 크롭(상반신 크게)으로
-                  위치·크기·초점이 함께 움직여 실제로 확대되듯 바뀐다.
+                  이름 — 옆 칸에서는 카드 안 왼쪽 위에 있다가, 가운데가 되면 카드 밖 위 가운데로 걸어 나오며 커진다.
+                  카드 틀이 0.808배로 줄어 있으므로 옆 칸 글자는 그만큼 키워 둔다 (보이는 크기 28px·16px).
                 */}
-                <img
-                  src={asset(doc.image)}
-                  alt={center ? `${doc.name} 원장` : ''}
-                  className={`absolute left-1/2 max-w-none -translate-x-1/2 object-cover ${center ? doc.centerCrop ?? DOCTOR_CENTER_CROP : DOCTOR_SIDE_CROP} ${
-                    jumps[i] ? '' : `transition-[top,width,height,object-position] ${SLIDE_EASE}`
-                  }`}
-                  loading="lazy"
-                />
-                {/* 옆 칸 이름 — 카드 안 왼쪽 위. 대표 칸이 되면 위의 큰 이름이 대신한다. */}
                 <p
-                  className={`absolute left-[10.7%] top-[5.4%] flex items-end gap-[2.76cqw] leading-[1.5] text-[#111] transition-opacity duration-500 ${
-                    center ? 'opacity-0' : 'opacity-100 delay-200'
-                  }`}
+                  className={`pointer-events-none absolute z-10 flex items-end whitespace-nowrap leading-[1.5] text-[#111] ${
+                    jumps[i] ? '' : `transition-[left,top,transform] ${SLIDE_EASE}`
+                  } ${center ? 'left-1/2 top-[-95px] -translate-x-1/2' : 'left-[10.7%] top-[5.4%] translate-x-0'}`}
                 >
-                  <span className="text-[7.74cqw] font-bold tracking-[-0.7px]">{doc.name}</span>
-                  <span className="text-[4.42cqw] font-medium tracking-[-0.4px]">원장</span>
+                  {doc.role && (
+                    <span
+                      className={`overflow-hidden text-[15px] leading-[1.6] tracking-[1.2px] transition-[max-width,margin,opacity] ${SLIDE_EASE} ${
+                        center ? 'mr-5 max-w-[6em] opacity-100' : 'mr-0 max-w-0 opacity-0'
+                      }`}
+                    >
+                      {doc.role}
+                    </span>
+                  )}
+                  <span className={`font-bold leading-[47px] ${jumps[i] ? '' : `transition-[font-size] ${SLIDE_EASE}`} ${center ? 'text-[36px] tracking-[-0.9px]' : 'text-[34.65px] tracking-[-0.7px]'}`}>
+                    {doc.name}
+                  </span>
+                  <span className={`ml-2.5 pb-1.5 font-medium tracking-[-0.4px] ${jumps[i] ? '' : `transition-[font-size] ${SLIDE_EASE}`} ${center ? 'text-base' : 'text-[19.8px]'}`}>
+                    원장
+                  </span>
                 </p>
-                {/* 옆 칸을 누르면 그 원장님이 가운데로 온다 */}
-                {!center && !hidden && (
-                  <button type="button" onClick={() => setIndex((x) => x + d)} aria-label={`${doc.name} 원장 보기`} className="absolute inset-0" />
-                )}
               </div>
             )
           })}

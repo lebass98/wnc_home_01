@@ -310,12 +310,17 @@ export default function TemplatesPage() {
    * 디자인만 이 템플릿의 것으로 보여 준다 (서버의 /design·/components·/site-pages/layouts 가
    * ?preview=<id> 를 받아 처리한다).
    */
-  function previewLive(row: SiteTemplateInfo) {
+  /**
+   * 주소를 만들기만 한다 — 실제로 새 탭을 여는 일은 <a target="_blank"> 에게 맡긴다.
+   * window.open() 으로 열면 Safari 등에서 '사용자가 직접 누른 동작'으로 보지 않고
+   * 조용히 막는 경우가 있어(에러도 없이 그냥 안 열림), 브라우저 기본 링크 동작을 쓴다.
+   */
+  function previewUrl(row: SiteTemplateInfo): string {
     const base = import.meta.env.BASE_URL
     const url = new URL(base, window.location.origin)
     url.searchParams.set('previewTemplate', String(row.id))
     url.searchParams.set('previewName', row.name)
-    window.open(url.toString(), '_blank', 'noopener')
+    return url.toString()
   }
 
   /** 내보내기 — 화면·레이아웃·부품 파일이 담긴 zip 을 내려받는다. */
@@ -503,9 +508,10 @@ export default function TemplatesPage() {
                       </Link>
                     )}
                     {!row.active && (
-                      <button
-                        type="button"
-                        onClick={() => previewLive(row)}
+                      <a
+                        href={previewUrl(row)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         title="켜지 않고 새 탭에서 모습만 미리 봅니다"
                         className="btn-secondary hidden sm:inline-flex"
                       >
@@ -514,7 +520,7 @@ export default function TemplatesPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
                         </svg>
                         프리뷰
-                      </button>
+                      </a>
                     )}
                     <ToggleSwitch checked={row.active} onChange={() => !working && activate(row)} label={`${row.name} 활성화`} />
                     <RowMenu

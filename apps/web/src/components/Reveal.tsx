@@ -13,6 +13,7 @@ export default function Reveal({
   /** 나타나기 시작하는 방향 */
   from = 'bottom',
   gentle = true,
+  visible,
   as: Tag = 'div',
   className = '',
   style,
@@ -25,6 +26,8 @@ export default function Reveal({
   from?: 'bottom' | 'left' | 'right'
   /** 긴 페이드와 완만한 이동으로 천천히 등장 */
   gentle?: boolean
+  /** 그룹의 공통 시작 시점으로 등장 순서를 맞춘다. */
+  visible?: boolean
   /** 감싸는 태그를 바꾼다. 표의 칸처럼 div 를 못 쓰는 자리에 쓴다. */
   as?: ElementType
   className?: string
@@ -37,6 +40,7 @@ export default function Reveal({
   const [shown, setShown] = useState(false)
 
   useEffect(() => {
+    if (visible !== undefined) return
     const el = ref.current
     if (!el) return
 
@@ -64,7 +68,9 @@ export default function Reveal({
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [visible])
+
+  const isShown = visible ?? shown
 
   const hidden =
     from === 'left' ? '-translate-x-6 opacity-0' : from === 'right' ? 'translate-x-6 opacity-0' : gentle ? 'translate-y-16 opacity-0' : 'translate-y-7 opacity-0'
@@ -73,9 +79,9 @@ export default function Reveal({
     <Tag
       ref={ref}
       aria-label={ariaLabel}
-      style={{ ...style, transitionDelay: shown ? `${index * step}ms` : '0ms' }}
+      style={{ ...style, transitionDelay: isShown ? `${index * step}ms` : '0ms' }}
       className={`${gentle ? 'reveal-gentle' : 'transition-all duration-700 ease-out'} motion-reduce:transition-none ${
-        shown ? 'translate-x-0 translate-y-0 opacity-100' : hidden
+        isShown ? 'translate-x-0 translate-y-0 opacity-100' : hidden
       } ${className}`}
     >
       {children}

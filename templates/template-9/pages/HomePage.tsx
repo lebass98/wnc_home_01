@@ -449,6 +449,27 @@ function Process() {
 /* ---------- 인테리어 스타일 ---------- */
 
 function Styles() {
+  const group = useRef<HTMLUListElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const element = group.current
+    if (!element) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof IntersectionObserver === 'undefined') {
+      setVisible(true)
+      return
+    }
+    // 높이가 다른 카드도 같은 시점부터 왼쪽 순서대로 등장한다.
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true)
+        observer.disconnect()
+      }
+    }, { threshold: 0, rootMargin: '0px 0px -15% 0px' })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
   const heading = (
     <h2 className="font-serif-kr text-[26px] font-normal leading-normal text-[#241e12] xl:text-right xl:text-[32px]">
       나의 취향이 오롯이
@@ -474,12 +495,12 @@ function Styles() {
         {paragraph}
       </div>
 
-      <ul className="mx-auto grid max-w-[1760px] grid-cols-2 items-start gap-4 xl:min-h-[879px] xl:grid-cols-4">
+      <ul ref={group} className="mx-auto grid max-w-[1760px] grid-cols-2 items-start gap-4 xl:min-h-[879px] xl:grid-cols-4">
         {STYLES.map((s, i) => (
           <li key={s.label} className={`relative ${s.offset}`}>
             {/* 세 번째 칸 위에 걸치는 제목 */}
             {i === 2 && <div className="absolute bottom-full right-3 mb-[67px] hidden xl:block">{heading}</div>}
-            <Reveal gentle index={i} step={180} className="relative aspect-[428/600] overflow-hidden rounded-2xl">
+            <Reveal gentle visible={visible} index={i} step={240} className="relative aspect-[428/600] overflow-hidden rounded-2xl">
               <img
                 src={s.image}
                 alt={`인테리어 스타일 — ${s.label}`}

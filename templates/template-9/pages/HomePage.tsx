@@ -523,10 +523,7 @@ function Portfolio() {
         position.current += (target - position.current) * (1 - Math.exp(-elapsed / 180))
         if (Math.abs(target - position.current) < 0.0001) position.current = target
         else moving = true
-        const textProgress = 1 - Math.pow(1 - position.current, 3)
         const imageProgress = 1 - Math.pow(1 - clamp(position.current / 0.75), 3)
-        row.style.setProperty('--portfolio-opacity', String(textProgress))
-        row.style.setProperty('--portfolio-y', `${(1 - textProgress) * 20}%`)
         row.style.setProperty('--portfolio-image-opacity', String(imageProgress))
         row.style.setProperty('--portfolio-scale', String(1.3 - 0.3 * imageProgress))
         row.style.setProperty('--portfolio-clip', `${(1 - imageProgress) * 100}%`)
@@ -570,12 +567,15 @@ function Portfolio() {
 
         <ul className="overflow-hidden rounded-[24px] bg-white xl:rounded-[32px]">
           {PORTFOLIO.map((p, i) => {
+            const reverse = i % 2 === 1
             return (
               <li
                 key={p.title}
-                className="portfolio-row flex flex-col gap-10 border-[#ebebeb] px-6 py-12 [&:not(:last-child)]:border-b sm:px-10 xl:flex-row xl:items-center xl:justify-between xl:gap-12 xl:px-10 xl:py-[72px]"
+                className={`portfolio-row flex flex-col gap-10 border-[#ebebeb] px-6 py-12 [&:not(:last-child)]:border-b sm:px-10 xl:flex-row xl:items-start xl:justify-between xl:gap-8 xl:px-[88px] xl:py-[92px] ${
+                  reverse ? 'xl:flex-row-reverse' : ''
+                }`}
               >
-                <div className="portfolio-description flex min-w-0 flex-col justify-between gap-10 pt-2 xl:min-h-[480px] xl:w-[55%]">
+                <div className="flex flex-col justify-between gap-8 pt-2 xl:h-[369px] xl:w-[625px] xl:shrink-0">
                   <div>
                     <p className="text-base text-[#8f784b]">Portfolio {i + 1}</p>
                     <h3 className="font-serif-kr pt-5 text-[24px] font-medium text-[#1f1f1f] xl:text-[32px]">{p.title}</h3>
@@ -596,8 +596,14 @@ function Portfolio() {
                   </dl>
                 </div>
 
-                <div className="portfolio-image relative aspect-[580/480] w-full overflow-hidden rounded-2xl xl:aspect-auto xl:h-[min(480px,65svh)] xl:w-[38%] xl:shrink-0">
-                  <img src={p.image} alt={p.title} className="h-full w-full object-cover" loading="lazy" />
+                <div className="portfolio-image relative aspect-[872/369] w-full overflow-hidden rounded-2xl xl:aspect-auto xl:h-[369px] xl:w-[872px] xl:shrink-0">
+                  {/* 시안은 872×480 사진 칸의 위쪽 369px 만 보여 준다 */}
+                  <div className="absolute inset-x-0 top-0 aspect-[872/480] overflow-hidden rounded-[14px]">
+                    {p.base && (
+                      <img src={asset('/images/interior/main/portfolio-base.png')} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                    )}
+                    <img src={p.image} alt={p.title} className={`absolute max-w-none ${p.imageClass}`} loading="lazy" />
+                  </div>
                 </div>
               </li>
             )

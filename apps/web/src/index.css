@@ -26,17 +26,13 @@ html.lenis { scroll-behavior: auto; }
   transition-duration: 1600ms, 1400ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out;
 }
-.portfolio-description {
-  opacity: var(--portfolio-opacity, 1);
-  transform: translateY(var(--portfolio-y, 0%));
-}
 .portfolio-image {
   opacity: var(--portfolio-image-opacity, 1);
   transform: scale(var(--portfolio-scale, 1));
   clip-path: inset(0 0 var(--portfolio-clip, 0%) 0 round 16px);
 }
 @media (prefers-reduced-motion: reduce) {
-  .portfolio-description, .portfolio-image { opacity: 1; transform: none; clip-path: none; }
+  .portfolio-image { opacity: 1; transform: none; clip-path: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal-gentle { transition: none; }

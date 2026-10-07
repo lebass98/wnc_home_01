@@ -21,6 +21,16 @@
 /* 관성 스크롤과 브라우저의 기본 smooth 동작이 중복되지 않게 한다. */
 html.lenis { scroll-behavior: auto; }
 
+.interior-contact-background {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: scroll;
+}
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .interior-contact-background { background-attachment: fixed; }
+}
+
 .reveal-gentle {
   transition-property: transform, opacity;
   transition-duration: 1600ms, 1400ms;

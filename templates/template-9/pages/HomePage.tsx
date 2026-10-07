@@ -673,8 +673,10 @@ function QuickContact() {
   const line = 'h-[30px] w-full border-0 border-b border-[#a99d93] bg-transparent px-0 text-white outline-none focus:border-white'
 
   return (
-    <section className="relative flex flex-col justify-between gap-12 overflow-hidden px-5 py-20 sm:px-10 xl:h-[919px] xl:px-[168px] xl:py-[120px]">
-      <img src={asset('/images/interior/contact-bg.png')} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+    <section
+      className="interior-contact-background relative flex flex-col justify-between gap-12 overflow-hidden px-5 py-20 sm:px-10 xl:h-[919px] xl:px-[168px] xl:py-[120px]"
+      style={{ backgroundImage: `url("${asset('/images/interior/contact-bg.png')}")` }}
+    >
       <div
         className="absolute inset-0"
         style={{ backgroundImage: 'linear-gradient(25.58deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%)' }}

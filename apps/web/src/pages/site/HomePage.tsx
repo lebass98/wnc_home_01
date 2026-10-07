@@ -458,44 +458,154 @@ function Programs() {
 
 /* ---------- 치료 전후 ---------- */
 
-/** 가운데 손잡이를 끌어 전후를 비교한다. */
-function Compare() {
+/** 손잡이 자동 움직임의 곡선 — 천천히 출발해 천천히 멈춘다. */
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+
+/**
+ * 치료 전후 비교 — 손잡이 왼쪽이 치료 전, 오른쪽이 치료 후다.
+ * ① 화면에 처음 들어오면 손잡이가 스스로 한 번 왕복해 끌 수 있다는 걸 보여 준다.
+ * ② 사례(caseKey)가 바뀌면 치료 전이 덮었다가 손잡이가 쓸고 지나가며 치료 후가 드러난다.
+ * ③ 마우스가 있는 기기는 누르지 않아도 손잡이가 마우스를 따라오고, 나가면 가운데로 돌아온다. 터치는 끌기.
+ * ④ 손잡이가 한쪽 끝에 가까우면 그쪽 꼬리표가 흐려지고, 가만히 있을 때 화살표가 숨 쉬듯 움직인다.
+ * 사용자가 만지면 자동 움직임은 바로 멈춘다. 움직임 줄이기 설정이면 ①② 를 건너뛴다.
+ */
+function Compare({ caseKey }: { caseKey: string }) {
   const box = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState(50)
+  const posRef = useRef(50)
   const dragging = useRef(false)
+  const frame = useRef(0)
+  const [busy, setBusy] = useState(false)
 
-  const move = (clientX: number) => {
+  const set = (v: number) => {
+    posRef.current = v
+    setPos(v)
+  }
+  const stop = () => {
+    cancelAnimationFrame(frame.current)
+    frame.current = 0
+  }
+  /** 여러 지점을 차례로 지나가는 자동 움직임 */
+  const play = (steps: { to: number; ms: number }[], from = posRef.current) => {
+    stop()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return set(steps[steps.length - 1].to)
+    let i = 0
+    let start = performance.now()
+    let origin = from
+    set(from)
+    const tick = (now: number) => {
+      const step = steps[i]
+      const k = clamp01((now - start) / step.ms)
+      set(origin + (step.to - origin) * easeInOut(k))
+      if (k >= 1) {
+        origin = step.to
+        start = now
+        i += 1
+        if (i >= steps.length) {
+          frame.current = 0
+          return
+        }
+      }
+      frame.current = requestAnimationFrame(tick)
+    }
+    frame.current = requestAnimationFrame(tick)
+  }
+  useEffect(() => stop, [])
+
+  // ① 처음 화면에 들어올 때 한 번 왕복
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        io.disconnect()
+        play([
+          { to: 14, ms: 650 },
+          { to: 86, ms: 900 },
+          { to: 50, ms: 650 },
+        ])
+      },
+      { threshold: 0.5 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  // ② 사례가 바뀌면 치료 전으로 덮었다가 쓸어 내며 치료 후를 드러낸다.
+  //    직전 사례와 같으면(처음 그릴 때·개발 모드의 두 번 실행) 건너뛴다.
+  const shownCase = useRef(caseKey)
+  useEffect(() => {
+    if (shownCase.current === caseKey) return
+    shownCase.current = caseKey
+    play(
+      [
+        { to: 0, ms: 1000 },
+        { to: 50, ms: 600 },
+      ],
+      100,
+    )
+  }, [caseKey])
+
+  const toPos = (clientX: number) => {
     const rect = box.current?.getBoundingClientRect()
-    if (!rect) return
-    setPos(Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100)))
+    if (!rect) return posRef.current
+    return Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100))
   }
-  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dragging.current = true
-    e.currentTarget.setPointerCapture(e.pointerId)
-    move(e.clientX)
-  }
+  /** 마우스(누르지 않은 상태)로 따라가기 — 섬세한 포인터에서만 */
+  const followsMouse = (e: ReactPointerEvent) => e.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches
 
   return (
     <div
       ref={box}
-      onPointerDown={onDown}
-      onPointerMove={(e) => dragging.current && move(e.clientX)}
+      onPointerDown={(e) => {
+        stop()
+        dragging.current = true
+        setBusy(true)
+        e.currentTarget.setPointerCapture(e.pointerId)
+        set(toPos(e.clientX))
+      }}
+      onPointerMove={(e) => {
+        if (dragging.current || followsMouse(e)) {
+          stop()
+          setBusy(true)
+          set(toPos(e.clientX))
+        }
+      }}
       onPointerUp={() => (dragging.current = false)}
       onPointerCancel={() => (dragging.current = false)}
+      onPointerLeave={(e) => {
+        dragging.current = false
+        setBusy(false)
+        // 마우스가 나가면 가운데로 천천히 돌아온다
+        if (followsMouse(e)) play([{ to: 50, ms: 500 }])
+      }}
       className="relative aspect-[1200/524] w-full cursor-ew-resize touch-pan-y select-none overflow-hidden rounded-[24px]"
     >
       {/* 치료 후 — 전체에 깔고, 손잡이 오른쪽만 어둡게 덮는다 */}
       <img src={asset('/images/dental/case-after.png')} alt="치료 후" draggable={false} className="absolute left-1/2 top-1/2 h-[120.8%] w-[120.8%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
       <div className="absolute inset-y-0 right-0 bg-[rgba(13,13,13,0.4)]" style={{ left: `${pos}%` }} aria-hidden />
-      <span className="absolute right-6 top-6 rounded-lg bg-[#1e3342] px-4 py-2 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white">AFTER</span>
+      <span
+        className="absolute right-6 top-6 rounded-lg bg-[#1e3342] px-4 py-2 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white"
+        style={{ opacity: clamp01((92 - pos) / 20) }}
+      >
+        AFTER
+      </span>
 
       {/* 치료 전 — 손잡이 왼쪽만 보인다 */}
       <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         <img src={asset('/images/dental/case-before.png')} alt="치료 전" draggable={false} className="absolute left-1/2 top-1/2 h-[123.5%] w-[123.5%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
-        <span className="absolute left-6 top-6 flex h-10 items-center rounded-lg bg-white/[0.24] px-4 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px]">
+        <span
+          className="absolute left-6 top-6 flex h-10 items-center rounded-lg bg-white/[0.24] px-4 font-['Roboto',sans-serif] text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px]"
+          style={{ opacity: clamp01((pos - 8) / 20) }}
+        >
           Before
         </span>
       </div>
+
+      {/* 경계선 — 위아래 끝까지 이어지는 얇은 흰 선 */}
+      <div className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/90 shadow-[0_0_8px_rgba(0,0,0,0.25)]" style={{ left: `${pos}%` }} aria-hidden />
 
       <div
         role="slider"
@@ -505,13 +615,15 @@ function Compare() {
         aria-valuemin={0}
         aria-valuemax={100}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowLeft') setPos((p) => Math.max(0, p - 5))
-          if (e.key === 'ArrowRight') setPos((p) => Math.min(100, p + 5))
+          const step = e.key === 'ArrowLeft' ? -5 : e.key === 'ArrowRight' ? 5 : 0
+          if (!step) return
+          stop()
+          set(Math.min(100, Math.max(0, posRef.current + step)))
         }}
         style={{ left: `${pos}%` }}
         className="absolute top-1/2 grid h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.18)] sm:h-[70px] sm:w-[70px]"
       >
-        <img src={asset('/images/dental/svg/compare-handle.svg')} alt="" width={22} height={14} />
+        <img src={asset('/images/dental/svg/compare-handle.svg')} alt="" width={22} height={14} className={busy ? '' : 'dental-compare-nudge'} />
       </div>
     </div>
   )
@@ -542,7 +654,7 @@ function Cases() {
 
       <div className="flex flex-col gap-10 xl:flex-row xl:items-start xl:gap-20">
         <div className="flex w-full flex-col gap-7 xl:w-[1200px] xl:shrink-0">
-          <Compare />
+          <Compare caseKey={`${tab}-${selected}`} />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-2">
             <div className="flex flex-1 flex-col gap-2">
               <h3 className="text-[24px] font-bold leading-[1.5] tracking-[-0.7px] text-[#111] sm:text-[28px]">{current.title.replace('\n', ' ')}</h3>

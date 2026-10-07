@@ -490,3 +490,13 @@ html.lenis { scroll-behavior: auto; }
   .dental-hero-copy-active .dental-hero-title-rest,
   .dental-hero-copy-active .dental-hero-description { animation: none; }
 }
+
+/* 치과 메인 치료 전후 비교: 가만히 있을 때 손잡이 화살표가 좌우로 숨 쉬듯 벌어진다. */
+@keyframes dental-compare-nudge {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.25); }
+}
+.dental-compare-nudge { animation: dental-compare-nudge 1600ms ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .dental-compare-nudge { animation: none; }
+}

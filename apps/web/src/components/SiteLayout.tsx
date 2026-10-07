@@ -11,6 +11,7 @@ import SitePopups from './SitePopups'
 import RedirectGate from './RedirectGate'
 import SitemapDrawer from './SitemapDrawer'
 import MobileNavDrawer from './MobileNavDrawer'
+import { useSmoothScroll } from '../lib/useSmoothScroll'
 
 /**
  * 홈페이지 공통 틀 — 헤더·푸터는 [디자인 설정]에서 고른 레이아웃을
@@ -28,6 +29,7 @@ export default function SiteLayout() {
   const [open, setOpen] = useState(false)
   const [sitemapOpen, setSitemapOpen] = useState(false)
   const { pathname } = useLocation()
+  useSmoothScroll(pathname, open || sitemapOpen)
 
   // 메뉴는 관리자 [메뉴 관리]에서 정한다. 상단·푸터는 각각의 노출 스위치로 거른다.
   const siteMenu = useSiteMenu()
@@ -43,7 +45,6 @@ export default function SiteLayout() {
   useEffect(() => {
     setOpen(false)
     setSitemapOpen(false)
-    window.scrollTo(0, 0)
   }, [pathname])
 
   // 상단이 어두운 화면(메인 히어로·서브 페이지 배너)에서는

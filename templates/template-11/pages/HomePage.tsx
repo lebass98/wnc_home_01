@@ -1,5 +1,5 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { useSiteSetting } from '../../lib/seo'
@@ -166,6 +166,77 @@ function RoundButton({ dir, onClick, size = 48 }: { dir: 'prev' | 'next'; onClic
     >
       <img src={dir === 'prev' ? asset('/images/dental/svg/chevron-left-white.svg') : asset('/images/dental/svg/chevron-right-white.svg')} alt="" width={24} height={24} />
     </button>
+  )
+}
+
+/**
+ * 누르거나 끌어서 고르는 위치 막대 — 막대를 칸 수만큼 똑같이 나눠, 누른 자리의 칸을 고른다.
+ * 보이는 막대는 얇아(6~8px) 누르기 어려우므로 바깥 hitClass 로 누를 수 있는 영역을 넓힌다.
+ * 키보드는 방향키·Home·End 로 움직인다.
+ */
+function TrackBar({
+  count,
+  value,
+  onChange,
+  vertical = false,
+  label,
+  hitClass,
+  trackClass,
+  thumbClass,
+  thumbStyle,
+}: {
+  count: number
+  value: number
+  onChange: (i: number) => void
+  vertical?: boolean
+  label: string
+  hitClass: string
+  trackClass: string
+  thumbClass: string
+  thumbStyle: CSSProperties
+}) {
+  const track = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+
+  const pick = (clientX: number, clientY: number) => {
+    const r = track.current?.getBoundingClientRect()
+    if (!r) return
+    const ratio = vertical ? (clientY - r.top) / r.height : (clientX - r.left) / r.width
+    const next = Math.min(count - 1, Math.max(0, Math.floor(ratio * count)))
+    if (next !== value) onChange(next)
+  }
+
+  return (
+    <div
+      role="slider"
+      tabIndex={0}
+      aria-label={label}
+      aria-orientation={vertical ? 'vertical' : 'horizontal'}
+      aria-valuemin={1}
+      aria-valuemax={count}
+      aria-valuenow={value + 1}
+      onPointerDown={(e) => {
+        dragging.current = true
+        e.currentTarget.setPointerCapture(e.pointerId)
+        pick(e.clientX, e.clientY)
+      }}
+      onPointerMove={(e) => dragging.current && pick(e.clientX, e.clientY)}
+      onPointerUp={() => (dragging.current = false)}
+      onPointerCancel={() => (dragging.current = false)}
+      onKeyDown={(e) => {
+        const step = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key]
+        if (step) onChange(Math.min(count - 1, Math.max(0, value + step)))
+        else if (e.key === 'Home') onChange(0)
+        else if (e.key === 'End') onChange(count - 1)
+        else return
+        e.preventDefault()
+      }}
+      className={`group cursor-pointer touch-none select-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#1e3342]/40 ${hitClass}`}
+    >
+      <div ref={track} className={`relative rounded-full bg-[#dde3e8] transition-colors group-hover:bg-[#cfd7de] ${trackClass}`}>
+        <div className={`absolute rounded-full bg-[#434a50] ${thumbClass}`} style={thumbStyle} />
+      </div>
+    </div>
   )
 }
 
@@ -508,13 +579,18 @@ function Cases() {
               </li>
             ))}
           </ul>
-          <div className="relative hidden w-2 shrink-0 rounded-full bg-[#dde3e8] xl:block" aria-hidden>
-            {/* 선택한 사례의 자리를 가리킨다 — 사진 한 칸(110px) 높이 */}
-            <div
-              className="absolute inset-x-0 h-[110px] rounded-full bg-[#434a50] transition-[top] duration-300"
-              style={{ top: `calc((100% - 110px) * ${selected / Math.max(1, list.length - 1)})` }}
-            />
-          </div>
+          {/* 선택한 사례의 자리를 가리키는 막대 — 누르거나 끌면 그 자리의 사례로 바뀐다 (손잡이: 사진 한 칸 110px) */}
+          <TrackBar
+            vertical
+            count={list.length}
+            value={selected}
+            onChange={setSelected}
+            label="치료 사례 고르기"
+            hitClass="-mx-2 hidden shrink-0 px-2 xl:block"
+            trackClass="h-full w-2"
+            thumbClass="inset-x-0 h-[110px] transition-[top] duration-300"
+            thumbStyle={{ top: `calc((100% - 110px) * ${selected / Math.max(1, list.length - 1)})` }}
+          />
         </div>
       </div>
     </section>
@@ -768,13 +844,17 @@ function Spaces() {
             </span>
           </div>
         </div>
-        {/* 지금 칸의 위치 막대 */}
-        <div className="relative h-1.5 w-[var(--w)] rounded-full bg-[#dde3e8]" aria-hidden>
-          <div
-            className={`absolute inset-y-0 rounded-full bg-[#434a50] transition-[left] ${SLIDE_EASE}`}
-            style={{ width: `${100 / SPACES.length}%`, left: `${(current * 100) / SPACES.length}%` }}
-          />
-        </div>
+        {/* 지금 칸의 위치 막대 — 누르거나 끌면 그 칸으로 미끄러진다 (가까운 쪽으로 돈다) */}
+        <TrackBar
+          count={SPACES.length}
+          value={current}
+          onChange={(target) => setIndex((v) => v + offsetOf(target, mod(v, SPACES.length), SPACES.length))}
+          label="병원 공간 고르기"
+          hitClass="-my-3 w-[var(--w)] py-3"
+          trackClass="h-1.5 w-full"
+          thumbClass={`inset-y-0 transition-[left] ${SLIDE_EASE}`}
+          thumbStyle={{ width: `${100 / SPACES.length}%`, left: `${(current * 100) / SPACES.length}%` }}
+        />
       </div>
     </section>
   )

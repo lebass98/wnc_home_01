@@ -195,7 +195,7 @@ export default function ContactListPage() {
               <dl className="space-y-3.5">
                 {[
                   ['이름', selected.name],
-                  ['이메일', selected.email],
+                  ['이메일', selected.email || '-'],
                   ['연락처', selected.phone ?? '-'],
                   ['회사명', selected.company ?? '-'],
                   ['접수일시', formatDateTime(selected.createdAt)],
@@ -260,9 +260,14 @@ export default function ContactListPage() {
 
             <footer className="border-t border-slate-200 p-6 dark:border-slate-700">
               <div className="flex gap-3">
-                <a href={replyHref(selected)} className="btn-secondary flex-1">
-                  이메일 답장
-                </a>
+                {/* 메인 빠른 상담처럼 이메일 없이 들어온 문의는 연락처로 회신한다. */}
+                {selected.email ? (
+                  <a href={replyHref(selected)} className="btn-secondary flex-1">
+                    이메일 답장
+                  </a>
+                ) : (
+                  <p className="flex-1 self-center text-sm text-slate-500 dark:text-slate-400">이메일이 없는 문의입니다 — 연락처로 회신하세요.</p>
+                )}
                 <button type="button" onClick={() => handleDelete(selected)} className="btn-danger">
                   삭제
                 </button>

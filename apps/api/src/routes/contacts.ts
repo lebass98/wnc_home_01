@@ -10,7 +10,8 @@ const STATUSES = ['NEW', 'IN_PROGRESS', 'DONE'] as const
 
 const contactInputSchema = z.object({
   name: z.string().min(1, '이름을 입력하세요.').max(50),
-  email: z.string().email('이메일 형식이 올바르지 않습니다.'),
+  // 메인 빠른 상담 폼은 이메일 없이 연락처로 받는다 — 비워 두면 빈 값으로 저장한다.
+  email: z.union([z.string().email('이메일 형식이 올바르지 않습니다.'), z.literal('')]).default(''),
   phone: z.string().max(30).optional(),
   company: z.string().max(100).optional(),
   message: z.string().min(1, '문의 내용을 입력하세요.').max(5000),

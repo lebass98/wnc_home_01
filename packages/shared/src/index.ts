@@ -195,7 +195,8 @@ export interface Contact {
 
 export interface ContactInput {
   name: string
-  email: string
+  /** 비워 둘 수 있다 — 메인 빠른 상담 폼은 연락처만 받는다. */
+  email?: string
   phone?: string
   company?: string
   message: string

@@ -1,0 +1,76 @@
+{
+  "header": {
+    "transparent": true,
+    "logoText": "",
+    "logoImage": ""
+  },
+  "footer": {
+    "showMenu": true,
+    "showSocial": true
+  },
+  "mainVisual": {
+    "autoplay": true,
+    "interval": 3000,
+    "slides": [
+      {
+        "title": "워드앤코드 인테리어",
+        "description": "",
+        "image": "/images/interior/hero-main.png"
+      }
+    ]
+  },
+  "subVisual": {
+    "showEyebrow": true,
+    "overlayOpacity": 0,
+    "pages": {
+      "about": {
+        "image": "/images/subvisual/subvisual_about.jpg",
+        "eyebrow": "회사소개"
+      },
+      "directions": {
+        "image": "/images/subvisual/subvisual_directions.jpg",
+        "eyebrow": "오시는 길"
+      },
+      "services": {
+        "image": "/images/subvisual/subvisual_services.jpg",
+        "eyebrow": "사업분야"
+      },
+      "service": {
+        "image": "/images/subvisual/subvisual_services.jpg",
+        "eyebrow": "서비스 안내"
+      },
+      "products": {
+        "image": "/images/subvisual/subvisual_products.jpg",
+        "eyebrow": "제품소개"
+      },
+      "board": {
+        "image": "/images/subvisual/subvisual_board.jpg",
+        "eyebrow": "공지 및 소식"
+      },
+      "faq": {
+        "image": "/images/subvisual/subvisual_faq.jpg",
+        "eyebrow": "자주 묻는 질문"
+      },
+      "contact": {
+        "image": "/images/subvisual/subvisual_contact.jpg",
+        "eyebrow": "고객문의"
+      },
+      "terms": {
+        "image": "/images/subvisual/subvisual_terms.jpg",
+        "eyebrow": "이용약관"
+      },
+      "privacy": {
+        "image": "/images/subvisual/subvisual_privacy.jpg",
+        "eyebrow": "개인정보처리방침"
+      },
+      "custom": {
+        "image": "/images/subvisual/subvisual_policy.jpg",
+        "eyebrow": "고객서비스"
+      }
+    }
+  },
+  "breadcrumb": {
+    "visible": true,
+    "showHome": true
+  }
+}

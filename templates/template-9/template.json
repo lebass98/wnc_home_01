@@ -1,0 +1,14 @@
+{
+  "type": "wnc-template",
+  "slug": "template-9",
+  "name": "인테리어 [최지영과장님]",
+  "description": "심여를 기울인작품",
+  "version": "1.0.0",
+  "author": "admin",
+  "header": "interior",
+  "footer": "interior",
+  "pageLayouts": {
+    "/terms": "left",
+    "/privacy": "left"
+  }
+}

@@ -1642,7 +1642,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     const contact: Contact = {
       id: db.nextContactId++,
       name: body.name,
-      email: body.email,
+      email: body.email ?? '',
       phone: body.phone || null,
       company: body.company || null,
       message: body.message,

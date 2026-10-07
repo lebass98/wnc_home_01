@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SITE_DESIGN, type SiteDesign } from '@wnc/shared'
 import { api } from './api'
+import { previewQuery } from './preview'
 
 /**
  * 사이트 전역 디자인 — [디자인 설정]에서 고른 헤더·푸터를 홈페이지가 읽어 틀을 바꾼다.
@@ -18,7 +19,7 @@ export function invalidateSiteDesign() {
 
 function load(): Promise<SiteDesign> {
   // 못 받으면 기본 디자인으로 그리되, 실패를 캐시에 남기지 않아 다음 화면에서 다시 받는다.
-  designPromise ??= api<SiteDesign>('/design').catch(() => {
+  designPromise ??= api<SiteDesign>(`/design${previewQuery()}`).catch(() => {
     designPromise = null
     return DEFAULT_SITE_DESIGN
   })

@@ -7,6 +7,8 @@ import { useSiteSeo, useSiteSetting } from '../lib/seo'
 import { useVisitLog } from '../lib/visit'
 import { useSiteDesign } from '../lib/siteDesign'
 import { footerComponent, headerComponent } from '../layouts'
+import { getPreview } from '../lib/preview'
+import TemplatePreviewBanner from './TemplatePreviewBanner'
 import SitePopups from './SitePopups'
 import RedirectGate from './RedirectGate'
 import SitemapDrawer from './SitemapDrawer'
@@ -71,9 +73,11 @@ export default function SiteLayout() {
 
   const Header = headerComponent(design.header)
   const Footer = footerComponent(design.footer)
+  const preview = getPreview()
 
   return (
     <div className="flex min-h-screen flex-col">
+      {preview && <TemplatePreviewBanner name={preview.name} />}
       <SitePopups />
       {/* 주소를 바꾼 화면 — [리디렉션]에 등록된 옛 주소면 새 주소로 넘긴다 */}
       <RedirectGate />

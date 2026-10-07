@@ -143,10 +143,18 @@ async function listBackups(key: string) {
   )
 }
 
-/** 화면별 레이아웃 매핑 — 활성 템플릿의 값이다. 홈페이지가 처음 뜰 때 읽어 가므로 공개로 둔다. */
+/**
+ * 화면별 레이아웃 매핑 — 활성 템플릿의 값이다. 홈페이지가 처음 뜰 때 읽어 가므로 공개로 둔다.
+ * ?preview=<템플릿 id> 를 주면 그 템플릿의 값을 돌려준다 (design.ts 의 /design 과 같은 방식).
+ */
 sitePagesRouter.get(
   '/layouts',
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
+    const previewId = Number(req.query.preview)
+    if (Number.isInteger(previewId)) {
+      const preview = await prisma.siteTemplate.findUnique({ where: { id: previewId } })
+      if (preview) return res.json(parseLayouts(preview.pageLayouts))
+    }
     const active = await loadActiveTemplate()
     res.json(parseLayouts(active.pageLayouts))
   }),

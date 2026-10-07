@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { defaultComponentResponse, type ComponentSettingsResponse } from '@wnc/shared'
 import { api } from './api'
+import { previewQuery } from './preview'
 
 let snapshot = defaultComponentResponse()
 let pending: Promise<ComponentSettingsResponse> | null = null
@@ -10,7 +11,7 @@ let generation = 0
 
 export function loadComponentSettings() {
   const current = generation
-  pending ??= api<ComponentSettingsResponse>('/components').then((value) => {
+  pending ??= api<ComponentSettingsResponse>(`/components${previewQuery()}`).then((value) => {
     if (current === generation) {
       snapshot = value
       for (const listener of listeners) listener()

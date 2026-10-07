@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PageLayoutType, SitePageLayoutMap } from '@wnc/shared'
 import { api } from './api'
+import { previewQuery } from './preview'
 
 /**
  * 화면별 레이아웃 — 페이지 관리에서 고른 값을 홈페이지가 읽어 서브 틀을 바꾼다.
@@ -18,7 +19,7 @@ export function invalidatePageLayouts() {
 
 function load(): Promise<SitePageLayoutMap> {
   // 못 받으면 기본 레이아웃으로 그리되, 실패를 캐시에 남기지 않아 다음 화면에서 다시 받는다.
-  layoutPromise ??= api<SitePageLayoutMap>('/site-pages/layouts').catch(() => {
+  layoutPromise ??= api<SitePageLayoutMap>(`/site-pages/layouts${previewQuery()}`).catch(() => {
     layoutPromise = null
     return {} as SitePageLayoutMap
   })

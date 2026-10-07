@@ -334,10 +334,50 @@ function Stats() {
 
 /* ---------- 진행 과정 ---------- */
 
-/** 가로로 흐르는 진행 과정 — 휠·터치는 기본 스크롤, 마우스는 끌어서 넘긴다. */
+/** 세로 스크롤을 가로 이동으로 연결하고 마지막 카드 뒤에서 고정을 해제한다. */
 function Process() {
+  const section = useRef<HTMLElement>(null)
+  const stage = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
+  const scrollOrigin = useRef(0)
+
+  useEffect(() => {
+    const element = section.current
+    const viewport = stage.current
+    const row = track.current
+    if (!element || !viewport || !row) return
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let frame = 0
+    let distance = 0
+    let origin = 0
+    const update = () => {
+      frame = 0
+      if (!motion.matches) row.scrollLeft = Math.max(0, Math.min(distance, window.scrollY - origin))
+    }
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
+    const measure = () => {
+      distance = Math.max(0, row.scrollWidth - row.clientWidth)
+      origin = element.getBoundingClientRect().top + window.scrollY
+      scrollOrigin.current = origin
+      element.style.height = motion.matches ? 'auto' : `${viewport.offsetHeight + distance + window.innerHeight * 0.15}px`
+      update()
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(row)
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', measure)
+    motion.addEventListener('change', measure)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', measure)
+      motion.removeEventListener('change', measure)
+    }
+  }, [])
 
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== 'mouse' || !track.current) return
@@ -347,14 +387,16 @@ function Process() {
     if (!drag.current || !track.current) return
     const dx = e.clientX - drag.current.x
     if (Math.abs(dx) > 3) drag.current.moved = true
-    track.current.scrollLeft = drag.current.left - dx
+    const row = track.current
+    const left = Math.max(0, Math.min(row.scrollWidth - row.clientWidth, drag.current.left - dx))
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) row.scrollLeft = left
+    else window.scrollTo({ top: scrollOrigin.current + left, behavior: 'instant' })
   }
-  const onUp = () => {
-    drag.current = null
-  }
+  const onUp = () => { drag.current = null }
 
   return (
-    <section className="bg-[#241d12] py-20 xl:py-[100px]">
+    <section ref={section} className="interior-process-scroll bg-[#241d12]">
+      <div ref={stage} className="interior-process-stage">
       <div
         ref={track}
         onPointerDown={onDown}
@@ -380,6 +422,7 @@ function Process() {
             </div>
           )
         })}
+      </div>
       </div>
     </section>
   )

@@ -110,6 +110,20 @@
   .interior-scroll-visual img, .interior-scroll-heading h1 { transition: none; }
 }
 
+.interior-process-stage {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding-block: clamp(40px, 8svh, 100px);
+  overflow: hidden;
+}
+.interior-process-stage > div { width: 100%; scroll-behavior: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .interior-process-stage { position: relative; min-height: auto; }
+}
+
 @layer base {
   :root {
     /* 데모 배너가 없을 때 기본값 */

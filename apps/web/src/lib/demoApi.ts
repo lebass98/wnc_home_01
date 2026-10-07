@@ -110,14 +110,13 @@ function interiorComponents(): ComponentSettings {
 /** 치과 시안의 컴포넌트 설정 — 로컬 관리자 [메인 비주얼]에 넣은 세 장과 같다. */
 function dentalComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
-  const image = '/images/dental/hero-01.png'
   settings.mainVisual = {
     autoplay: true,
     interval: 5000,
     slides: [
-      { title: '편안함을\n먼저 생각하는 진료', description: '치료의 순간까지 세심하게 살피며,\n환자 한 분 한 분의 편안함을 생각합니다.', image },
-      { title: '정확한 진단에서\n시작하는 치료', description: '충분한 검사와 설명으로\n꼭 필요한 치료만 권해 드립니다.', image },
-      { title: '오래 건강한\n치아를 위한 약속', description: '치료가 끝난 뒤에도\n정기 관리로 꾸준히 함께합니다.', image },
+      { title: '편안함을\n먼저 생각하는 진료', description: '치료의 순간까지 세심하게 살피며,\n환자 한 분 한 분의 편안함을 생각합니다.', image: '/images/dental/hero-01.png' },
+      { title: '정확한 진단에서\n시작하는 치료', description: '충분한 검사와 설명으로\n꼭 필요한 치료만 권해 드립니다.', image: '/images/dental/hero-02.png' },
+      { title: '오래 건강한\n치아를 위한 약속', description: '치료가 끝난 뒤에도\n정기 관리로 꾸준히 함께합니다.', image: '/images/dental/hero-03.png' },
     ],
   }
   return settings

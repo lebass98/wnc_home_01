@@ -254,6 +254,15 @@ async function doSync() {
     })
     registerTemplateSlug(created.id, entry.name)
   }
+
+  // 기본 제공 표시는 basic 폴더의 템플릿에만 붙는다.
+  // 예전에 Basic 행이 다른 디자인(인테리어)으로 덮이면서 표시가 그쪽에 남고, 진짜 Basic 은
+  // 일반 템플릿으로 다시 등록된 일이 있었다 — 그러면 인테리어는 지울 수 없고 Basic 은 지울 수 있게 된다.
+  const basic = await prisma.siteTemplate.findUnique({ where: { slug: 'basic' } })
+  if (basic) {
+    await prisma.siteTemplate.updateMany({ where: { builtin: true, NOT: { id: basic.id } }, data: { builtin: false } })
+    if (!basic.builtin) await prisma.siteTemplate.update({ where: { id: basic.id }, data: { builtin: true } })
+  }
 }
 
 /** 매니페스트에 폴더 이름을 적는다. */

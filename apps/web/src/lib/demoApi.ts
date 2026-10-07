@@ -59,7 +59,7 @@ import {
  */
 
 // 시드 구성이 크게 바뀔 때 버전을 올린다 — 옛 저장본을 버리고 새 시드를 받게 한다.
-const STORAGE_KEY = 'wnc_demo_db_v3'
+const STORAGE_KEY = 'wnc_demo_db_v4'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
@@ -93,10 +93,17 @@ function demoThumbnails(t: DemoTemplate) {
   return { main: `${base}-main.jpg`, sub: `${base}-sub.jpg`, subLabel: '회사소개', takenAt: DEMO_THUMB_TAKEN_AT }
 }
 
-/** 인테리어 시안의 컴포넌트 설정 — 메인 비주얼 첫 장이 시안의 히어로 사진이다. */
+/**
+ * 인테리어 시안의 컴포넌트 설정 — 로컬 관리자 [메인 비주얼]에 넣은 값과 같다.
+ * 사이트 소스의 메인이 인테리어 시안이라 Basic 슬라이드(세 장·Basic 문구)를 쓰면 시안과 다르게 보인다.
+ */
 function interiorComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
-  settings.mainVisual.slides[0] = { ...settings.mainVisual.slides[0], image: '/images/interior/hero-main.png' }
+  settings.mainVisual = {
+    autoplay: true,
+    interval: 3000,
+    slides: [{ title: '워드앤코드 인테리어', description: '', image: '/images/interior/hero-main.png' }],
+  }
   return settings
 }
 
@@ -200,8 +207,10 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
-    templates: [basicTemplate(), interiorTemplate()],
+    // 사이트 소스의 메인이 인테리어 시안이라 데모도 인테리어를 켠 상태로 시작한다 — 로컬과 같은 모습.
+    templates: [{ ...basicTemplate(), active: false }, { ...interiorTemplate(), active: true }],
     nextTemplateId: 3,
+    componentSettings: { ...defaultComponentResponse(), settings: interiorComponents() },
     posts,
     contacts,
     categories,

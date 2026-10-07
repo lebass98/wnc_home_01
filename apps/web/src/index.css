@@ -20,7 +20,8 @@
 
 /* 메인 비주얼: 스크롤 위치에 맞춰 크기와 이미지, 카피를 함께 전환한다. */
 .interior-scroll-hero {
-  --color-opacity: 0;
+  --color-edge-start: 100%;
+  --color-edge-end: 124%;
   --hero-opacity: 1;
   --slogan-opacity: 0;
   --slogan-shift: 70px;
@@ -51,7 +52,8 @@
   height: 100%;
   object-fit: cover;
   object-position: 36% 50%;
-  opacity: var(--color-opacity);
+  -webkit-mask-image: linear-gradient(to right, transparent var(--color-edge-start), #000 var(--color-edge-end));
+  mask-image: linear-gradient(to right, transparent var(--color-edge-start), #000 var(--color-edge-end));
 }
 .interior-scroll-heading {
   position: absolute;

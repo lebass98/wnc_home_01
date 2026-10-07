@@ -144,7 +144,11 @@ function Hero() {
       element.style.setProperty('--visual-width', `${width - 2 * padding + (targetWidth - width + 2 * padding) * eased}px`)
       element.style.setProperty('--visual-height', `${height - 2 * padding + (targetHeight - height + 2 * padding) * eased}px`)
       element.style.setProperty('--visual-radius', `${28 - 12 * eased}px`)
-      element.style.setProperty('--color-opacity', String(clamp((raw - 0.08) / 0.7)))
+      // 오른쪽부터 컬러가 드러나고, 부드러운 경계가 왼쪽으로 이동한다.
+      const colorProgress = clamp((raw - 0.08) / 0.7)
+      const colorEdge = 100 - colorProgress * 124
+      element.style.setProperty('--color-edge-start', `${colorEdge}%`)
+      element.style.setProperty('--color-edge-end', `${colorEdge + 24}%`)
       element.style.setProperty('--hero-opacity', String(1 - clamp(raw / 0.35)))
       element.style.setProperty('--slogan-opacity', String(clamp((raw - 0.5) / 0.35)))
       const gathering = clamp((raw - 0.45) / 0.55)

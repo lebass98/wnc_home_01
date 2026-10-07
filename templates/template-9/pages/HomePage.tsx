@@ -31,6 +31,7 @@ const PROCESS = [
     title: '설계·견적',
     titleFirst: false,
     image: asset('/images/interior/main/process-02.png'),
+    video: asset('/videos/interior/process-design.mp4'),
     desc: ['보기 좋은 공간이 실제 생활에도 편안하도록 동선과 디자인, 자재와 예산을 균형 있게 조율합니다.', '막연했던 바람을 오래 머물고 싶은 공간의 설계로 구체화합니다.'],
   },
   {
@@ -413,7 +414,22 @@ function Process() {
             <div key={p.title} className="flex w-[80vw] min-w-[260px] max-w-[620px] shrink-0 flex-col gap-6 xl:w-[614px]">
               {p.titleFirst && title}
               <div className={`aspect-[614/461] w-full overflow-hidden bg-[#d3d3d3] ${p.rounded ?? 'rounded-2xl'}`}>
-                <img src={p.image} alt="" draggable={false} className="h-full w-full object-cover" loading="lazy" />
+                {p.video ? (
+                  <video
+                    src={p.video}
+                    poster={p.image}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    disablePictureInPicture
+                    aria-label="설계 도면과 자재를 검토하는 영상"
+                    className="block h-full w-full object-cover object-center"
+                  />
+                ) : (
+                  <img src={p.image} alt="" draggable={false} className="h-full w-full object-cover" loading="lazy" />
+                )}
               </div>
               {!p.titleFirst && title}
               <p className="pb-2.5 text-base leading-normal tracking-[-0.4px] text-white opacity-90 xl:whitespace-nowrap">

@@ -56,7 +56,7 @@ export default function InteriorFooter({ company, menu, onOpenSitemap }: SiteFoo
             <span className="font-bold text-[#676057]">(유료){company.tel || '1644-0000'}</span>
             <span className="text-[#676057]">평일 09:00~18:00</span>
           </div>
-          <div className="hidden items-center gap-[26px] text-sm text-[#20201f] sm:flex">
+          <div className="ml-auto hidden items-center justify-end gap-[26px] text-sm text-[#20201f] sm:flex">
             <Link to="/contact" className="transition hover:opacity-70">고객센터</Link>
             <Link to="/board" className="transition hover:opacity-70">공지사항</Link>
             <Link to="/contact/faq" className="transition hover:opacity-70">자주 묻는 질문</Link>

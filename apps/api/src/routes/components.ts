@@ -17,7 +17,7 @@ const conflict = () => Object.assign(new Error('다른 화면에서 설정이 �
  */
 componentsRouter.get('/', asyncHandler(async (req, res) => {
   const previewId = Number(req.query.preview)
-  if (Number.isInteger(previewId) && (await prisma.siteTemplate.findUnique({ where: { id: previewId } }))) {
+  if (Number.isInteger(previewId) && (await prisma.siteTemplate.findFirst({ where: { id: previewId, active: false } }))) {
     const result = defaultComponentResponse()
     const raw = (await readTemplateComponents(previewId)) as Record<string, unknown> | null
     if (raw) {

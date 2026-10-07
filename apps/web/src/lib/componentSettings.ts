@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { defaultComponentResponse, type ComponentSettingsResponse } from '@wnc/shared'
-import { api } from './api'
-import { previewQuery } from './preview'
+import { api, IS_DEMO } from './api'
+import { getPreview, previewAssetBase, previewQuery } from './preview'
 
 let snapshot = defaultComponentResponse()
 let pending: Promise<ComponentSettingsResponse> | null = null
@@ -53,7 +53,9 @@ export function useComponentSettings() {
 
 /** 기본 정적 이미지는 GitHub Pages의 하위 경로를 적용하고 업로드·외부 주소는 그대로 쓴다. */
 export function componentImageUrl(value: string) {
-  const url = value.startsWith('/images/') ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}${value}` : value
+  const preview = getPreview()
+  if (preview && !IS_DEMO && value.startsWith('/uploads/')) return `/api/templates/${preview.id}/assets/uploads/${value.slice('/uploads/'.length)}`
+  const url = /^\/(images|videos|fonts)\//.test(value) ? `${previewAssetBase().replace(/\/$/, '')}${value}` : value
   // 기본 서브비주얼 교체 후 기존 브라우저 캐시를 갱신한다.
   const builtInSubVisual = /\/images\/subvisual\/subvisual_(about|directions|services|products|board|faq|contact|terms|privacy|policy)\.jpg$/
   return !/^https?:\/\//.test(url) && builtInSubVisual.test(url) ? `${url}?v=20260908-hd` : url

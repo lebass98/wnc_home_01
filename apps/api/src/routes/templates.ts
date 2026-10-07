@@ -33,6 +33,7 @@ import {
 } from '../lib/templateFiles.js'
 import { rm, cp } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { applySiteData, checkSiteLinks, dumpSiteData } from '../lib/templateData.js'
 import {
   hasData,
@@ -171,6 +172,24 @@ templatesRouter.get(
     res.json(await listAll())
   }),
 )
+
+/** 프리뷰 전용 미디어 — 운영 사이트 파일을 덮어쓰지 않고 보관본을 제공한다. */
+templatesRouter.get('/:id/assets/:root/*', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) return res.sendStatus(404)
+  const row = await prisma.siteTemplate.findUnique({ where: { id } })
+  if (!row?.slug) return res.sendStatus(404)
+  registerTemplateSlug(row.id, row.slug)
+  const root = req.params.root
+  if (root !== 'public' && root !== 'uploads') return res.sendStatus(404)
+  const file = req.params[0]
+  if (!file || file.split(/[\\/]/).some((part) => part === '..' || part.startsWith('.'))) return res.sendStatus(404)
+  const saved = path.join(templateDir(row.id), root, file)
+  const liveRoot = path.resolve(process.cwd(), root === 'public' ? '../web/public' : 'uploads')
+  const source = !row.active && existsSync(saved) ? saved : path.join(liveRoot, file)
+  if (!existsSync(source)) return res.sendStatus(404)
+  res.sendFile(source)
+}))
 
 /** 새 템플릿 — Basic을 복제해 시작한다. */
 templatesRouter.post(

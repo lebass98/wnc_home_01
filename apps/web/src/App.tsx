@@ -1,3 +1,4 @@
+import TemplatePreviewPage from './components/TemplatePreviewPage'
 import ComponentsPage from './pages/admin/ComponentsPage'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
@@ -80,31 +81,33 @@ export default function App() {
         <Routes>
           {/* 공개 회사소개 사이트 */}
           <Route element={<SiteLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/about/directions" element={<DirectionsPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/service" element={<ServiceGuidePage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/products/:id" element={<ProductDetailPage />} />
-            <Route path="/board" element={<BoardPage />} />
-            <Route path="/board/:id" element={<PostDetailPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/contact/faq" element={<FaqPage />} />
-            <Route path="/terms" element={<CustomPage slug="terms" tabs={POLICY_TABS} />} />
+            <Route path="/" element={<TemplatePreviewPage name="HomePage"><HomePage /></TemplatePreviewPage>} />
+            <Route path="/about" element={<TemplatePreviewPage name="AboutPage"><AboutPage /></TemplatePreviewPage>} />
+            <Route path="/about/directions" element={<TemplatePreviewPage name="DirectionsPage"><DirectionsPage /></TemplatePreviewPage>} />
+            <Route path="/services" element={<TemplatePreviewPage name="ServicesPage"><ServicesPage /></TemplatePreviewPage>} />
+            <Route path="/service" element={<TemplatePreviewPage name="ServiceGuidePage"><ServiceGuidePage /></TemplatePreviewPage>} />
+            <Route path="/products" element={<TemplatePreviewPage name="ProductsPage"><ProductsPage /></TemplatePreviewPage>} />
+            <Route path="/products/:id" element={<TemplatePreviewPage name="ProductDetailPage"><ProductDetailPage /></TemplatePreviewPage>} />
+            <Route path="/board" element={<TemplatePreviewPage name="BoardPage"><BoardPage /></TemplatePreviewPage>} />
+            <Route path="/board/:id" element={<TemplatePreviewPage name="PostDetailPage"><PostDetailPage /></TemplatePreviewPage>} />
+            <Route path="/contact" element={<TemplatePreviewPage name="ContactPage"><ContactPage /></TemplatePreviewPage>} />
+            <Route path="/contact/faq" element={<TemplatePreviewPage name="FaqPage"><FaqPage /></TemplatePreviewPage>} />
+            <Route path="/terms" element={<TemplatePreviewPage name="CustomPage" pageProps={{ slug: 'terms', tabs: POLICY_TABS }}><CustomPage slug="terms" tabs={POLICY_TABS} /></TemplatePreviewPage>} />
             <Route
               path="/privacy"
               element={
+                <TemplatePreviewPage name="CustomPage" pageProps={{ slug: 'privacy', tabs: POLICY_TABS, prologue: <PrivacyLabels />, appendix: <PrivacyRevisionHistory /> }}>
                 <CustomPage
                   slug="privacy"
                   tabs={POLICY_TABS}
                   prologue={<PrivacyLabels />}
                   appendix={<PrivacyRevisionHistory />}
                 />
+                </TemplatePreviewPage>
               }
             />
             {/* 관리자가 만든 일반 페이지 */}
-            <Route path="/page/:slug" element={<CustomPage />} />
+            <Route path="/page/:slug" element={<TemplatePreviewPage name="CustomPage"><CustomPage /></TemplatePreviewPage>} />
           </Route>
 
           {/* 어드민 */}

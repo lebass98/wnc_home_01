@@ -989,7 +989,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   if (rawPath === '/design' && method === 'GET') {
     const t = templateForPreview()
-    return { header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
+    return { slug: t.builtin ? 'basic' : t.header === 'interior' ? 'template-9' : undefined, header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
   }
 
   // --- 화면별 레이아웃 — 활성 템플릿의 값이다 (?preview=<id> 면 그 템플릿의 값) ---

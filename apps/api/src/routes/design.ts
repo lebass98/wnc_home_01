@@ -20,7 +20,7 @@ designRouter.get(
     const previewId = Number(req.query.preview)
     if (Number.isInteger(previewId)) {
       const preview = await prisma.siteTemplate.findUnique({ where: { id: previewId } })
-      if (preview) return res.json({ header: preview.header, footer: preview.footer, updatedAt: preview.updatedAt.toISOString(), preview: true })
+      if (preview && !preview.active) return res.json({ slug: preview.slug, header: preview.header, footer: preview.footer, updatedAt: preview.updatedAt.toISOString(), preview: true })
     }
     const active = await loadActiveTemplate()
     res.json({ header: active.header, footer: active.footer, updatedAt: active.updatedAt.toISOString() })

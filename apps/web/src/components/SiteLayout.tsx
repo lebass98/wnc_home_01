@@ -1,3 +1,4 @@
+import TemplatePreviewPage from './TemplatePreviewPage'
 import { componentImageUrl, useComponentSettings } from '../lib/componentSettings'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
@@ -87,6 +88,8 @@ export default function SiteLayout() {
         onClose={() => setOpen(false)}
         onOpenSitemap={() => setSitemapOpen(true)}
       />
+      <TemplatePreviewPage folder="layouts" name={({ basic: 'BasicHeader', interior: 'InteriorHeader', center: 'CenterHeader', dental: 'DentalHeader' } as Record<string, string>)[design.header] ?? 'BasicHeader'}
+        pageProps={{ menu, logo, logoImage, brandLogo, overlay: overHero, transparent, onOpenMobile: () => setOpen(true), onOpenSitemap: () => setSitemapOpen(true) }}>
       <Header
         menu={menu}
         logo={logo}
@@ -97,12 +100,16 @@ export default function SiteLayout() {
         onOpenMobile={() => setOpen(true)}
         onOpenSitemap={() => setSitemapOpen(true)}
       />
+      </TemplatePreviewPage>
 
       <main className="flex-1">
         <Outlet />
       </main>
 
+      <TemplatePreviewPage folder="layouts" name={({ basic: 'BasicFooter', interior: 'InteriorFooter', simple: 'SimpleFooter', dental: 'DentalFooter' } as Record<string, string>)[design.footer] ?? 'BasicFooter'}
+        pageProps={{ company: components.footer.showSocial ? company : { ...company, snsFacebook: '', snsYoutube: '', snsBlog: '', snsInstagram: '' }, menu: components.footer.showMenu ? footerMenu : [], onOpenSitemap: () => setSitemapOpen(true) }}>
       <Footer company={components.footer.showSocial ? company : { ...company, snsFacebook: '', snsYoutube: '', snsBlog: '', snsInstagram: '' }} menu={components.footer.showMenu ? footerMenu : []} onOpenSitemap={() => setSitemapOpen(true)} />
+      </TemplatePreviewPage>
     </div>
   )
 }

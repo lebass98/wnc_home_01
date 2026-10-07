@@ -1,0 +1,14 @@
+{
+  "type": "wnc-template",
+  "slug": "template-11",
+  "name": "워드앤코드 치과 [신현우주임]",
+  "description": "심여를 기울인작품",
+  "version": "1.0.0",
+  "author": "admin",
+  "header": "dental",
+  "footer": "dental",
+  "pageLayouts": {
+    "/terms": "left",
+    "/privacy": "left"
+  }
+}

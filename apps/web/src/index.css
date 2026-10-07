@@ -1,5 +1,7 @@
 /* 인테리어 템플릿의 세리프 제목 글꼴 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600&display=swap');
+/* 치과 템플릿의 영문 소제목 글꼴 */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
 /*
  * 로고 글꼴 — Bitcoa. 파일은 public/fonts/ 에 넣는다 (그 폴더의 README 참고).

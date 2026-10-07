@@ -1,0 +1,86 @@
+{
+  "header": {
+    "transparent": true,
+    "logoText": "",
+    "logoImage": ""
+  },
+  "footer": {
+    "showMenu": true,
+    "showSocial": true
+  },
+  "mainVisual": {
+    "autoplay": true,
+    "interval": 5000,
+    "slides": [
+      {
+        "title": "편안함을\n먼저 생각하는 진료",
+        "description": "치료의 순간까지 세심하게 살피며,\n환자 한 분 한 분의 편안함을 생각합니다.",
+        "image": "/images/dental/hero-01.png"
+      },
+      {
+        "title": "정확한 진단에서\n시작하는 치료",
+        "description": "충분한 검사와 설명으로\n꼭 필요한 치료만 권해 드립니다.",
+        "image": "/images/dental/hero-01.png"
+      },
+      {
+        "title": "오래 건강한\n치아를 위한 약속",
+        "description": "치료가 끝난 뒤에도\n정기 관리로 꾸준히 함께합니다.",
+        "image": "/images/dental/hero-01.png"
+      }
+    ]
+  },
+  "subVisual": {
+    "showEyebrow": true,
+    "overlayOpacity": 0,
+    "pages": {
+      "about": {
+        "image": "/images/subvisual/subvisual_about.jpg",
+        "eyebrow": "회사소개"
+      },
+      "directions": {
+        "image": "/images/subvisual/subvisual_directions.jpg",
+        "eyebrow": "오시는 길"
+      },
+      "services": {
+        "image": "/images/subvisual/subvisual_services.jpg",
+        "eyebrow": "사업분야"
+      },
+      "service": {
+        "image": "/images/subvisual/subvisual_services.jpg",
+        "eyebrow": "서비스 안내"
+      },
+      "products": {
+        "image": "/images/subvisual/subvisual_products.jpg",
+        "eyebrow": "제품소개"
+      },
+      "board": {
+        "image": "/images/subvisual/subvisual_board.jpg",
+        "eyebrow": "공지 및 소식"
+      },
+      "faq": {
+        "image": "/images/subvisual/subvisual_faq.jpg",
+        "eyebrow": "자주 묻는 질문"
+      },
+      "contact": {
+        "image": "/images/subvisual/subvisual_contact.jpg",
+        "eyebrow": "고객문의"
+      },
+      "terms": {
+        "image": "/images/subvisual/subvisual_terms.jpg",
+        "eyebrow": "이용약관"
+      },
+      "privacy": {
+        "image": "/images/subvisual/subvisual_privacy.jpg",
+        "eyebrow": "개인정보처리방침"
+      },
+      "custom": {
+        "image": "/images/subvisual/subvisual_policy.jpg",
+        "eyebrow": "고객서비스"
+      }
+    }
+  },
+  "breadcrumb": {
+    "visible": true,
+    "showHome": true
+  }
+}

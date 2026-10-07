@@ -710,7 +710,15 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   const params = new URLSearchParams(search)
   const db = load()
 
-  if (rawPath === '/components' && method === 'GET') return structuredClone(db.componentSettings ?? defaultComponentResponse())
+  if (rawPath === '/components' && method === 'GET') {
+    // 프리뷰 중이면 그 템플릿이 담아 둔 컴포넌트 설정을, 아니면 지금 사이트에 적용된 값을 돌려준다.
+    if (params.get('preview')) {
+      const t = templateForPreview()
+      const settings = templateComponents(t) ?? structuredClone(DEFAULT_COMPONENT_SETTINGS)
+      return { settings, revisions: {} as Record<string, number> }
+    }
+    return structuredClone(db.componentSettings ?? defaultComponentResponse())
+  }
   const componentMatch = rawPath.match(/^\/components\/([^/]+)$/)
   if (componentMatch && method === 'PUT') {
     if (localStorage.getItem('wnc_admin_token') !== 'demo-token') throw new DemoError('관리자 로그인이 필요합니다.', 401)
@@ -922,7 +930,8 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
 
   // --- 디자인 템플릿 — 활성 한 벌이 사이트에 적용된다 ---
-  const activeTemplate = () => {
+  // function 선언으로 둬 호이스팅되게 한다 — /design 등 쓰는 자리가 이 정의보다 코드 위쪽에 있다.
+  function activeTemplate() {
     let active = db.templates.find((t) => t.active)
     if (!active) {
       active = db.templates[0] ?? basicTemplate()
@@ -931,6 +940,18 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       save(db)
     }
     return active
+  }
+  /**
+   * ?preview=<id> 로 켜지 않고 보는 프리뷰 — 실제 API(/design 등)와 같은 방식이다.
+   * 없는 id 면 조용히 활성 템플릿으로 돌아간다(프리뷰 주소가 실제 홈페이지를 깨뜨리면 안 된다).
+   */
+  function templateForPreview() {
+    const previewId = Number(params.get('preview'))
+    if (Number.isInteger(previewId)) {
+      const found = db.templates.find((t) => t.id === previewId)
+      if (found) return found
+    }
+    return activeTemplate()
   }
   const templateItem = ({ data, components, ...t }: DemoTemplate) => ({
     ...t,
@@ -958,12 +979,12 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     [...db.templates].sort((a, b) => Number(b.active) - Number(a.active) || b.updatedAt.localeCompare(a.updatedAt))
 
   if (rawPath === '/design' && method === 'GET') {
-    const t = activeTemplate()
-    return { header: t.header, footer: t.footer, updatedAt: t.updatedAt }
+    const t = templateForPreview()
+    return { header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
   }
 
-  // --- 화면별 레이아웃 — 활성 템플릿의 값이다 ---
-  if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...activeTemplate().pageLayouts }
+  // --- 화면별 레이아웃 — 활성 템플릿의 값이다 (?preview=<id> 면 그 템플릿의 값) ---
+  if (rawPath === '/site-pages/layouts' && method === 'GET') return { ...templateForPreview().pageLayouts }
   if (rawPath === '/site-pages/layouts' && method === 'PUT') {
     const t = activeTemplate()
     if (body.layout === 'basic') delete t.pageLayouts[body.path]

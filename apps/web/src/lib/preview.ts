@@ -1,10 +1,12 @@
 /**
  * 템플릿 프리뷰 — [템플릿 관리]에서 템플릿을 켜지 않고도 홈페이지 모습을 미리 본다.
  *
- * 주소에 ?previewTemplate=<id>&previewName=<이름> 을 달아 열면, 그 값을 세션에 옮겨 담고
- * 주소는 깨끗하게 되돌린다 — 그래야 메뉴를 눌러 다른 화면으로 가도(주소가 바뀌어도)
- * 같은 탭에서는 프리뷰가 계속 이어진다. 메뉴·글 같은 콘텐츠는 그대로 지금 사이트의 값을 쓰고,
- * 헤더·푸터·화면별 레이아웃·메인 비주얼 같은 디자인만 그 템플릿의 것으로 보인다.
+ * 주소에 ?previewTemplate=<id>&previewName=<이름> 을 달아 열면 그 값을 세션에 옮겨 담는다.
+ * 주소창의 이 쿼리는 지우지 않는다 — 지금 보고 있는 게 프리뷰라는 걸 주소만 보고도 바로
+ * 알 수 있어야 하기 때문이다. 메뉴를 눌러 다른 화면으로 가면(주소가 바뀌면) 쿼리는 자연히
+ * 사라지지만, 세션에 옮겨 둔 값이 있어 같은 탭에서는 프리뷰가 계속 이어진다.
+ * 메뉴·글 같은 콘텐츠는 그대로 지금 사이트의 값을 쓰고, 헤더·푸터·화면별 레이아웃·
+ * 메인 비주얼 같은 디자인만 그 템플릿의 것으로 보인다.
  */
 
 const KEY = 'wnc_preview_template'
@@ -20,9 +22,6 @@ function readFromUrl(): PreviewState | null {
   const id = Number(url.searchParams.get('previewTemplate'))
   if (!Number.isInteger(id) || id <= 0) return null
   const name = url.searchParams.get('previewName') ?? ''
-  url.searchParams.delete('previewTemplate')
-  url.searchParams.delete('previewName')
-  window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
   return { id, name }
 }
 

@@ -166,6 +166,8 @@ export default function TemplatesPage() {
   const [linkIssues, setLinkIssues] = useState<TemplateLinkIssue[] | null>(null)
   /** 크게 보고 있는 미리보기 */
   const [preview, setPreview] = useState<{ row: SiteTemplateInfo; which: 'main' | 'sub' } | null>(null)
+  /** 방금 프리뷰 주소를 복사한 템플릿 — 잠깐 '복사됨' 으로 바꿔 보여 준다. */
+  const [copiedId, setCopiedId] = useState<number | null>(null)
 
   async function load() {
     try {
@@ -315,6 +317,19 @@ export default function TemplatesPage() {
    * window.open() 으로 열면 Safari 등에서 '사용자가 직접 누른 동작'으로 보지 않고
    * 조용히 막는 경우가 있어(에러도 없이 그냥 안 열림), 브라우저 기본 링크 동작을 쓴다.
    */
+  /** 프리뷰 주소를 눌러 바로 열지 않고, 다른 창·다른 기기에 붙여 넣을 수 있도록 복사한다. */
+  async function copyPreviewUrl(row: SiteTemplateInfo) {
+    const url = previewUrl(row)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('이 주소를 복사하세요.', url)
+      return
+    }
+    setCopiedId(row.id)
+    setTimeout(() => setCopiedId((id) => (id === row.id ? null : id)), 1500)
+  }
+
   function previewUrl(row: SiteTemplateInfo): string {
     const base = import.meta.env.BASE_URL
     const url = new URL(base, window.location.origin)
@@ -466,6 +481,29 @@ export default function TemplatesPage() {
                     </div>
                     {row.description && (
                       <p className="mt-1 truncate text-sm text-slate-600 dark:text-slate-300">{row.description}</p>
+                    )}
+                    {!row.active && (
+                      <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5l4-4a3 3 0 00-4.24-4.24l-4 4M10.5 13.5l-4 4a3 3 0 01-4.24-4.24l4-4" />
+                        </svg>
+                        <a
+                          href={previewUrl(row)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="누르면 이 템플릿 모습을 새 탭에서 봅니다. 주소를 복사해 다른 창·다른 기기에서도 열 수 있습니다."
+                          className="min-w-0 truncate underline decoration-dotted underline-offset-2 hover:text-brand-600"
+                        >
+                          {previewUrl(row)}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => copyPreviewUrl(row)}
+                          className="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-700"
+                        >
+                          {copiedId === row.id ? '복사됨' : '주소 복사'}
+                        </button>
+                      </p>
                     )}
                     <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <span>작성자: {row.author || '—'}</span>

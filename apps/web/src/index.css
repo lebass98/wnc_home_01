@@ -143,15 +143,26 @@ html.lenis { scroll-behavior: auto; }
 .interior-process-stage {
   position: sticky;
   top: 0;
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   align-items: center;
-  padding-block: clamp(40px, 8svh, 100px);
+  padding-block: 0;
   overflow: hidden;
 }
 .interior-process-stage > div { width: 100%; scroll-behavior: auto; }
+.interior-process-track {
+  /* 등장 이동 64px을 위한 여유 공간을 미리 확보해 내부 세로 스크롤을 막는다. */
+  padding-block: 64px;
+  overflow-y: hidden;
+}
+@media (min-width: 1280px) {
+  .interior-process-media {
+    aspect-ratio: auto;
+    height: clamp(180px, calc(100svh - 340px), 461px);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .interior-process-stage { position: relative; min-height: auto; }
+  .interior-process-stage { position: relative; height: auto; }
 }
 
 @layer base {

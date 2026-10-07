@@ -404,38 +404,40 @@ function Process() {
         onPointerMove={onMove}
         onPointerUp={onUp}
         onPointerLeave={onUp}
-        className="flex cursor-grab select-none items-start gap-10 overflow-x-auto px-5 [scrollbar-width:none] active:cursor-grabbing sm:px-10 xl:gap-[100px] xl:px-[168px] [&::-webkit-scrollbar]:hidden"
+        className="interior-process-track flex cursor-grab select-none items-start gap-10 overflow-x-auto overflow-y-hidden px-5 [scrollbar-width:none] active:cursor-grabbing sm:px-10 xl:gap-[100px] xl:px-[168px] [&::-webkit-scrollbar]:hidden"
       >
         {PROCESS.map((p, i) => {
           const title = (
             <h3 className="font-serif-kr pt-5 text-2xl font-normal text-white xl:text-[32px]">{p.title}</h3>
           )
           return (
-            <Reveal gentle index={i} step={180} key={p.title} className="flex w-[80vw] min-w-[260px] max-w-[620px] shrink-0 flex-col gap-6 xl:w-[614px]">
-              {p.titleFirst && title}
-              <div className={`aspect-[614/461] w-full overflow-hidden bg-[#d3d3d3] ${p.rounded ?? 'rounded-2xl'}`}>
-                {p.video ? (
-                  <video
-                    src={p.video}
-                    poster={p.image}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="metadata"
-                    disablePictureInPicture
-                    aria-label="설계 도면과 자재를 검토하는 영상"
-                    className="block h-full w-full object-cover object-center"
-                  />
-                ) : (
-                  <img src={p.image} alt="" draggable={false} className="h-full w-full object-cover" loading="lazy" />
-                )}
-              </div>
-              {!p.titleFirst && title}
-              <p className="pb-2.5 text-base leading-normal tracking-[-0.4px] text-white opacity-90 xl:whitespace-nowrap">
-                <Lines lines={p.desc} />
-              </p>
-            </Reveal>
+            <div key={p.title} className="w-[80vw] min-w-[260px] max-w-[620px] shrink-0 xl:w-[614px]">
+              <Reveal gentle index={i} step={180} className="flex flex-col gap-6">
+                {p.titleFirst && title}
+                <div className={`interior-process-media aspect-[614/461] w-full overflow-hidden bg-[#d3d3d3] ${p.rounded ?? 'rounded-2xl'}`}>
+                  {p.video ? (
+                    <video
+                      src={p.video}
+                      poster={p.image}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      preload="metadata"
+                      disablePictureInPicture
+                      aria-label="설계 도면과 자재를 검토하는 영상"
+                      className="block h-full w-full object-cover object-center"
+                    />
+                  ) : (
+                    <img src={p.image} alt="" draggable={false} className="h-full w-full object-cover" loading="lazy" />
+                  )}
+                </div>
+                {!p.titleFirst && title}
+                <p className="pb-2.5 text-base leading-normal tracking-[-0.4px] text-white opacity-90 xl:whitespace-nowrap">
+                  <Lines lines={p.desc} />
+                </p>
+              </Reveal>
+            </div>
           )
         })}
       </div>

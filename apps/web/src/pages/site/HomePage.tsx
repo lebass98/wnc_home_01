@@ -55,9 +55,16 @@ const CASES: Record<string, { title: string; desc: string }[]> = {
 }
 const CASE_TABS = Object.keys(CASES)
 
-/** 의료진 — 가운데 칸이 대표 자리다. 좌우 단추로 돌린다. */
-const DOCTORS: { name: string; role?: string; image: string }[] = [
-  { name: '최지원', role: '대표원장', image: '/images/dental/doctor-choi.png' },
+/**
+ * 의료진 — 가운데 칸이 대표 자리다. 좌우 단추로 돌린다.
+ * centerCrop 은 가운데 칸에서 사진을 자르는 방법 — 시안의 큰 사진(682×1023)은 최지원 원장 사진에 맞춘 값이라
+ * 다른 원장님은 기본값(상반신이 보이게)을 쓴다.
+ */
+const DOCTOR_CENTER_CROP = 'top-[7%] h-[93%] w-[86%] object-top'
+/** 옆 칸에서 사진을 자르는 방법 — 카드 아래쪽에 작게 */
+const DOCTOR_SIDE_CROP = 'top-[21.5%] h-[78.2%] w-[82.3%] object-top'
+const DOCTORS: { name: string; role?: string; image: string; centerCrop?: string }[] = [
+  { name: '최지원', role: '대표원장', image: '/images/dental/doctor-choi.png', centerCrop: 'top-[4.8%] h-[195.2%] w-[152.2%] object-center' },
   { name: '공예린', image: '/images/dental/doctor-gong.png' },
   { name: '도예준', image: '/images/dental/doctor-do.png' },
   { name: '김정원', image: '/images/dental/doctor-kim.png' },
@@ -245,68 +252,110 @@ function Hero() {
 
 /* ---------- 진료 프로그램 ---------- */
 
-/** 카드 안 — 빛 번지는 배경 위에 진료 그림 */
-function ProgramCard({ image, active }: { image: string; active?: boolean }) {
-  return (
-    <>
-      <img src={asset('/images/dental/program-bg.png')} alt="" className="absolute left-1/2 top-1/2 h-[108%] w-[135%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover" />
-      <img
-        src={asset(image)}
-        alt=""
-        className={`absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-cover ${active ? 'mt-1 h-[88%] w-[73.5%]' : 'h-[95.6%] w-[79.9%]'}`}
-      />
-    </>
-  )
+/** 옆 카드 크기 — 시안의 옆 카드(581×364)는 가운데 카드(718×450)와 비율이 같아 확대·축소로 표현한다. */
+const SIDE_SCALE = 581 / 718
+/** 카드 중심 사이 거리 — 가운데 카드 폭의 배수 (시안: 중심에서 845.5px) */
+const STEP = 845.5 / 718
+
+/** 가운데 칸으로부터 몇 칸 떨어졌는지 — 다섯 장이 고리처럼 돌아 -2…2 로 맞춘다. */
+const offsetOf = (i: number, index: number, n: number) => {
+  const d = mod(i - index, n)
+  return d > n / 2 ? d - n : d
 }
 
+/**
+ * 진료 프로그램 — 다섯 장을 한 줄에 깔고 실제로 옆으로 미끄러진다.
+ * 가운데로 오는 카드는 커지고 밀려나는 카드는 작아지며, 안의 그림 비율과 바탕색도 함께 바뀐다.
+ * 카드 폭은 --w 로 정하고 위치·크기는 모두 그 배수로 계산한다 (좁은 화면에서도 같은 움직임).
+ */
 function Programs() {
   const [index, setIndex] = useState(0)
   const n = PROGRAMS.length
-  const cur = PROGRAMS[mod(index, n)]
-  const prev = PROGRAMS[mod(index - 1, n)]
-  const next = PROGRAMS[mod(index + 1, n)]
+  const active = mod(index, n)
+  // 고리 반대편으로 넘어가는 카드는 화면을 가로지르지 않게 그 순간만 애니메이션을 끈다.
+  const { offsets, jumps } = useRing(n, index)
+
+  /** 탭은 가까운 쪽으로 돌린다 — 0 → 4 는 한 칸 뒤로 */
+  const goTo = (target: number) => setIndex((i) => i + offsetOf(target, mod(i, n), n))
 
   return (
     <section className="flex flex-col items-center gap-12 overflow-hidden">
       <div className="flex w-full max-w-[758px] flex-col items-center gap-12 px-5 sm:gap-20">
         <SectionTitle title="진료 프로그램" eyebrow="DENTAL CARE DESIGNED AROUND YOUR NEEDS" />
-        <Tabs items={PROGRAMS.map((p) => p.name)} active={mod(index, n)} onChange={setIndex} />
+        <Tabs items={PROGRAMS.map((p) => p.name)} active={active} onChange={goTo} />
       </div>
 
-      <div className="relative w-full">
-        {/* 좌우로 반쯤 걸친 앞뒤 카드 — 넓은 화면에서만 */}
-        <button
-          type="button"
-          onClick={() => setIndex((i) => i - 1)}
-          aria-label={`${prev.name} 보기`}
-          className="absolute right-[calc(50%+455px)] top-[43px] hidden h-[364px] w-[581px] overflow-hidden rounded-[20px] bg-[#f6f9fd] xl:block"
-        >
-          <ProgramCard image={prev.image} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setIndex((i) => i + 1)}
-          aria-label={`${next.name} 보기`}
-          className="absolute left-[calc(50%+555px)] top-[43px] hidden h-[364px] w-[581px] overflow-hidden rounded-[20px] bg-[#ebf4fd] xl:block"
-        >
-          <ProgramCard image={next.image} />
-        </button>
+      <div className="relative w-full [--w:calc(100vw-168px)] sm:[--w:min(718px,calc(100vw-272px))]">
+        {/* 카드 줄 — 모든 카드가 가운데 칸 크기로 겹쳐 있고 위치·크기만 바뀐다 */}
+        <div className="relative mx-auto aspect-[718/450] w-[var(--w)]">
+          {PROGRAMS.map((p, i) => {
+            const d = offsets[i]
+            const center = d === 0
+            const far = Math.abs(d) > 1
+            return (
+              <button
+                key={p.name}
+                type="button"
+                tabIndex={Math.abs(d) === 1 ? 0 : -1}
+                aria-hidden={!center && far}
+                aria-label={center ? p.name : `${p.name} 보기`}
+                onClick={() => !center && setIndex((x) => x + d)}
+                style={{
+                  transform: `translateX(calc(var(--w) * ${STEP * d})) scale(${center ? 1 : SIDE_SCALE})`,
+                  zIndex: center ? 2 : 1,
+                }}
+                className={`absolute inset-0 overflow-hidden rounded-[20px] ${center ? 'cursor-default bg-[#fcfdfc]' : 'cursor-pointer bg-[#ebf4fd]'} ${
+                  far ? 'pointer-events-none opacity-0' : 'opacity-100'
+                } ${jumps[i] ? '' : `transition-[transform,opacity,background-color] ${SLIDE_EASE}`}`}
+              >
+                <img
+                  src={asset('/images/dental/program-bg.png')}
+                  alt=""
+                  className="absolute left-1/2 top-1/2 h-[108%] w-[135%] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover"
+                />
+                {/* 그림도 칸 안에서의 비율이 시안대로 바뀐다 — 가운데 528×396, 옆 464×348 */}
+                <img
+                  src={asset(p.image)}
+                  alt=""
+                  className={`absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-cover ${
+                    jumps[i] ? '' : `transition-[width,height,margin] ${SLIDE_EASE}`
+                  } ${center ? 'mt-1 h-[88%] w-[73.5%]' : 'mt-0 h-[95.6%] w-[79.9%]'}`}
+                />
+              </button>
+            )
+          })}
+        </div>
 
-        <div className="relative mx-auto flex w-full max-w-[950px] flex-col items-center gap-7 px-5">
-          <div className="flex w-full items-center gap-4 sm:gap-12">
-            <RoundButton dir="prev" onClick={() => setIndex((i) => i - 1)} />
-            <div key={cur.name} className="relative aspect-[718/450] flex-1 overflow-hidden rounded-[20px] bg-[#fcfdfc]">
-              <ProgramCard image={cur.image} active />
+        {/* 좌우 단추 — 가운데 카드 양옆 48px */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-auto justify-center">
+          <div className="flex items-center gap-4 sm:gap-12" style={{ height: 'calc(var(--w) * 450 / 718)' }}>
+            <span className="pointer-events-auto">
+              <RoundButton dir="prev" onClick={() => setIndex((i) => i - 1)} />
+            </span>
+            <span className="w-[var(--w)]" aria-hidden />
+            <span className="pointer-events-auto">
+              <RoundButton dir="next" onClick={() => setIndex((i) => i + 1)} />
+            </span>
+          </div>
+        </div>
+
+        {/* 설명 — 바뀔 때 살짝 떠오르며 바뀐다 */}
+        <div className="relative mx-auto mt-7 w-full max-w-[718px] px-5 sm:px-4">
+          {PROGRAMS.map((p, i) => (
+            <div
+              key={p.name}
+              aria-hidden={i !== active}
+              className={`flex flex-col gap-3 text-[#111] transition-[opacity,transform] duration-500 sm:flex-row sm:items-center sm:gap-10 ${
+                i === active ? 'relative translate-y-0 opacity-100 delay-200' : 'pointer-events-none absolute inset-x-5 top-0 translate-y-2 opacity-0 sm:inset-x-4'
+              }`}
+            >
+              <p className="whitespace-nowrap text-[24px] font-semibold leading-[1.5] tracking-[-0.7px] sm:text-[28px]">{p.name}</p>
+              <p className="flex-1 text-[17px] leading-[1.6] tracking-[-0.425px]">
+                {p.desc[0]}
+                <br className="hidden sm:block" /> {p.desc[1]}
+              </p>
             </div>
-            <RoundButton dir="next" onClick={() => setIndex((i) => i + 1)} />
-          </div>
-          <div className="flex w-full max-w-[718px] flex-col gap-3 px-4 text-[#111] sm:flex-row sm:items-center sm:gap-10">
-            <p className="whitespace-nowrap text-[24px] font-semibold leading-[1.5] tracking-[-0.7px] sm:text-[28px]">{cur.name}</p>
-            <p className="flex-1 text-[17px] leading-[1.6] tracking-[-0.425px]">
-              {cur.desc[0]}
-              <br className="hidden sm:block" /> {cur.desc[1]}
-            </p>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -449,58 +498,122 @@ function Cases() {
   )
 }
 
+/* ---------- 미끄러지는 카드 줄 공통 ---------- */
+
+/** 카드 움직임 — 진료 프로그램·의료진·병원 소개가 같은 속도와 곡선으로 움직인다. */
+const SLIDE_EASE = 'duration-700 ease-[cubic-bezier(0.65,0,0.35,1)]'
+
+/**
+ * 고리처럼 도는 카드 줄의 칸 위치 — 각 카드가 가운데에서 몇 칸 떨어졌는지와,
+ * 고리 반대편으로 넘어가 애니메이션을 꺼야 하는 카드(jumps)를 돌려준다.
+ */
+function useRing(count: number, index: number) {
+  const offsets = Array.from({ length: count }, (_, i) => offsetOf(i, index, count))
+  const prev = useRef({ index, offsets })
+  // 줄 전체가 index 변화만큼 밀리는데, 그만큼이 아니라 반대편으로 넘어간 카드만 애니메이션 없이 옮긴다.
+  const step = index - prev.current.index
+  const jumps = offsets.map((d, i) => d !== prev.current.offsets[i] - step)
+  useEffect(() => {
+    prev.current = { index, offsets }
+  })
+  return { offsets, jumps }
+}
+
 /* ---------- 의료진 ---------- */
 
-function DoctorCard({ doctor }: { doctor: (typeof DOCTORS)[number] }) {
-  return (
-    <div className="relative h-[424px] w-[362px] shrink-0 overflow-hidden rounded-[20px] border border-[#eee] bg-white">
-      <p className="absolute left-[39px] top-[23px] flex items-end gap-2.5 leading-[1.5] text-[#111]">
-        <span className="text-[28px] font-bold tracking-[-0.7px]">{doctor.name}</span>
-        <span className="text-base font-medium tracking-[-0.4px]">원장</span>
-      </p>
-      <img src={asset(doctor.image)} alt={`${doctor.name} 원장`} className="absolute left-1/2 top-[91px] h-[331px] w-[298px] -translate-x-1/2 object-cover object-top" loading="lazy" />
-    </div>
-  )
-}
+/**
+ * 의료진 줄 — 다섯 분을 두 번 이어 붙여 고리를 만든다.
+ * 화면 밖(±3칸 이상)에서 고리를 넘기 때문에 카드가 화면을 가로질러 튀지 않는다.
+ */
+const DOCTOR_RING = [...DOCTORS, ...DOCTORS]
+/** 가운데 카드(448×524) 대비 옆 카드(362×424) 크기 */
+const DOCTOR_SIDE_SCALE = 362 / 448
+/** 가운데에서 떨어진 칸별 카드 중심 위치 — 가운데 카드 폭의 배수 (시안: 469px, 861px) */
+const DOCTOR_X = [0, 469 / 448, 861 / 448, 1253 / 448]
 
 function Doctors() {
   const [index, setIndex] = useState(0)
-  const n = DOCTORS.length
-  const at = (offset: number) => DOCTORS[mod(index + offset, n)]
-  const lead = at(0)
+  const n = DOCTOR_RING.length
+  const { offsets, jumps } = useRing(n, index)
+  const lead = mod(index, DOCTORS.length)
 
   return (
-    <section className="flex flex-col items-center gap-7 overflow-hidden">
-      <div className="flex items-end justify-center gap-[64px]">
-        <div className="hidden items-center gap-[30px] xl:flex">
-          <DoctorCard doctor={at(-2)} />
-          <DoctorCard doctor={at(-1)} />
-        </div>
-
-        <div className="flex flex-col items-center gap-12">
-          <p className="flex items-end gap-5 text-[#111]">
-            {lead.role && <span className="text-[15px] leading-[1.6] tracking-[1.2px]">{lead.role}</span>}
-            <span className="flex items-end gap-2.5 leading-[1.5]">
-              <span className="text-[36px] font-bold leading-[47px] tracking-[-0.9px]">{lead.name}</span>
-              <span className="text-base font-medium tracking-[-0.4px]">원장</span>
-            </span>
-          </p>
-          <div className="relative h-[524px] w-[min(448px,calc(100vw-40px))] overflow-hidden rounded-[20px] border border-[#eee] bg-white">
-            <img key={lead.name} src={asset(lead.image)} alt={`${lead.name} 원장`} className="absolute left-1/2 top-[25px] h-[1023px] w-[682px] max-w-none -translate-x-1/2 object-cover" />
-            {/* 예약 단추 — 대표 칸 오른쪽 위에 걸친다 */}
-            <Link
-              to="/contact"
-              className="absolute right-3 top-3 flex h-[88px] w-[88px] flex-col items-center justify-center gap-[7px] rounded-full bg-[#1e3342] text-white transition hover:bg-[#2c4a5f]"
+    <section className="flex flex-col items-center gap-7 overflow-hidden [--w:min(448px,calc(100vw-40px))]">
+      <div className="flex w-full flex-col items-center gap-12">
+        {/* 대표 칸 위의 이름 — 바뀔 때 살짝 떠오른다 */}
+        <div className="relative h-[47px] w-full">
+          {DOCTORS.map((doc, i) => (
+            <p
+              key={doc.name}
+              aria-hidden={i !== lead}
+              className={`absolute inset-x-0 top-0 flex items-end justify-center gap-5 text-[#111] transition-[opacity,transform] duration-500 ${
+                i === lead ? 'translate-y-0 opacity-100 delay-200' : 'translate-y-2 opacity-0'
+              }`}
             >
-              <img src={asset('/images/dental/svg/calendar.svg')} alt="" width={18} height={18} />
-              <span className="text-[17px] font-bold leading-[1.5] tracking-[-0.425px]">예약하기</span>
-            </Link>
-          </div>
+              {doc.role && <span className="text-[15px] leading-[1.6] tracking-[1.2px]">{doc.role}</span>}
+              <span className="flex items-end gap-2.5 leading-[1.5]">
+                <span className="text-[36px] font-bold leading-[47px] tracking-[-0.9px]">{doc.name}</span>
+                <span className="text-base font-medium tracking-[-0.4px]">원장</span>
+              </span>
+            </p>
+          ))}
         </div>
 
-        <div className="hidden items-center gap-[30px] xl:flex">
-          <DoctorCard doctor={at(1)} />
-          <DoctorCard doctor={at(2)} />
+        {/* 카드 줄 — 모든 카드가 대표 칸 크기로 겹쳐 있고, 아래를 기준으로 줄었다 커진다 */}
+        <div className="relative aspect-[448/524] w-[var(--w)]">
+          {DOCTOR_RING.map((doc, i) => {
+            const d = offsets[i]
+            const center = d === 0
+            const hidden = Math.abs(d) > 2
+            const x = Math.sign(d) * DOCTOR_X[Math.min(Math.abs(d), 3)]
+            return (
+              <div
+                key={`${doc.name}-${i}`}
+                aria-hidden={!center}
+                style={{
+                  transform: `translateX(calc(var(--w) * ${x})) scale(${center ? 1 : DOCTOR_SIDE_SCALE})`,
+                  zIndex: center ? 2 : 1,
+                }}
+                className={`absolute inset-0 origin-bottom overflow-hidden rounded-[20px] border border-[#eee] bg-white [container-type:inline-size] ${
+                  hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
+                } ${jumps[i] ? '' : `transition-[transform,opacity] ${SLIDE_EASE}`}`}
+              >
+                {/*
+                  사진은 한 장 — 옆 칸 크롭(아래쪽에 작게)에서 대표 칸 크롭(상반신 크게)으로
+                  위치·크기·초점이 함께 움직여 실제로 확대되듯 바뀐다.
+                */}
+                <img
+                  src={asset(doc.image)}
+                  alt={center ? `${doc.name} 원장` : ''}
+                  className={`absolute left-1/2 max-w-none -translate-x-1/2 object-cover ${center ? doc.centerCrop ?? DOCTOR_CENTER_CROP : DOCTOR_SIDE_CROP} ${
+                    jumps[i] ? '' : `transition-[top,width,height,object-position] ${SLIDE_EASE}`
+                  }`}
+                  loading="lazy"
+                />
+                {/* 옆 칸 이름 — 카드 안 왼쪽 위. 대표 칸이 되면 위의 큰 이름이 대신한다. */}
+                <p
+                  className={`absolute left-[10.7%] top-[5.4%] flex items-end gap-[2.76cqw] leading-[1.5] text-[#111] transition-opacity duration-500 ${
+                    center ? 'opacity-0' : 'opacity-100 delay-200'
+                  }`}
+                >
+                  <span className="text-[7.74cqw] font-bold tracking-[-0.7px]">{doc.name}</span>
+                  <span className="text-[4.42cqw] font-medium tracking-[-0.4px]">원장</span>
+                </p>
+                {/* 옆 칸을 누르면 그 원장님이 가운데로 온다 */}
+                {!center && !hidden && (
+                  <button type="button" onClick={() => setIndex((x) => x + d)} aria-label={`${doc.name} 원장 보기`} className="absolute inset-0" />
+                )}
+              </div>
+            )
+          })}
+          {/* 예약 단추 — 대표 칸 오른쪽 위에 걸친다. 카드가 바뀌어도 자리를 지킨다. */}
+          <Link
+            to="/contact"
+            className="absolute right-3 top-3 z-10 flex h-[88px] w-[88px] flex-col items-center justify-center gap-[7px] rounded-full bg-[#1e3342] text-white transition hover:bg-[#2c4a5f]"
+          >
+            <img src={asset('/images/dental/svg/calendar.svg')} alt="" width={18} height={18} />
+            <span className="text-[17px] font-bold leading-[1.5] tracking-[-0.425px]">예약하기</span>
+          </Link>
         </div>
       </div>
 
@@ -523,50 +636,79 @@ function SpacePhoto({ space }: { space: (typeof SPACES)[number] }) {
   )
 }
 
+const SPACE_RING = [...SPACES, ...SPACES]
+/**
+ * 칸별 크기·위치 — 가운데 칸 폭(--w, 시안 740px)의 배수.
+ * 가운데 740×462, 옆 306×416. 비율이 달라 폭·높이를 각각 바꾸고 사진은 채워 자른다.
+ */
+const SPACE_CENTER = { w: 1, h: 462 / 740 }
+const SPACE_SIDE = { w: 306 / 740, h: 416 / 740 }
+/** 가운데에서 떨어진 칸별 카드 중심 위치 (시안: 571px, 925px) */
+const SPACE_X = [0, 571 / 740, 925 / 740, 1279 / 740]
+
 function Spaces() {
   const [index, setIndex] = useState(0)
-  const n = SPACES.length
-  const at = (offset: number) => mod(index + offset, n)
-  const side = (offset: number) => (
-    <button
-      key={offset}
-      type="button"
-      onClick={() => setIndex((i) => i + offset)}
-      aria-label={`${SPACES[at(offset)].name} 크게 보기`}
-      className="relative h-[416px] w-[306px] shrink-0 overflow-hidden rounded-[20px] bg-[#d9d9d9] transition hover:opacity-90"
-    >
-      <SpacePhoto space={SPACES[at(offset)]} />
-    </button>
-  )
+  const n = SPACE_RING.length
+  const { offsets, jumps } = useRing(n, index)
+  const current = mod(index, SPACES.length)
 
   return (
-    <section className="flex flex-col items-center gap-12 overflow-hidden sm:gap-20">
+    <section className="flex flex-col items-center gap-12 overflow-hidden [--w:min(740px,calc(100vw-40px))] sm:gap-20">
       <SectionTitle title="병원을 소개합니다" eyebrow="A SPACE DESIGNED FOR YOUR COMFORT" />
       <div className="flex w-full flex-col items-center gap-12">
-        <div className="flex items-center justify-center gap-12">
-          <div className="hidden items-center gap-12 xl:flex">
-            {side(-2)}
-            {side(-1)}
-          </div>
-          <div className="relative aspect-[740/462] w-[min(740px,calc(100vw-40px))] shrink-0 overflow-hidden rounded-[20px] bg-[#d9d9d9]">
-            <SpacePhoto key={index} space={SPACES[at(0)]} />
-            <span className="absolute left-5 top-5 rounded-lg bg-[#1e3342] px-4 py-2 text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px]">
-              {at(0) + 1}. {SPACES[at(0)].name}
-            </span>
-            {/* 좁은 화면에서는 좌우 칸 대신 단추로 넘긴다 */}
-            <div className="absolute inset-x-3 bottom-3 flex justify-between xl:hidden">
+        <div className="relative w-full" style={{ height: `calc(var(--w) * ${SPACE_CENTER.h})` }}>
+          {SPACE_RING.map((space, i) => {
+            const d = offsets[i]
+            const center = d === 0
+            const hidden = Math.abs(d) > 2
+            const size = center ? SPACE_CENTER : SPACE_SIDE
+            const x = Math.sign(d) * SPACE_X[Math.min(Math.abs(d), 3)]
+            return (
+              <button
+                key={`${space.name}-${i}`}
+                type="button"
+                tabIndex={center || hidden ? -1 : 0}
+                aria-hidden={hidden}
+                aria-label={center ? space.name : `${space.name} 크게 보기`}
+                onClick={() => !center && setIndex((v) => v + d)}
+                style={{
+                  left: `calc(50% + var(--w) * ${x - size.w / 2})`,
+                  top: `calc(var(--w) * ${(SPACE_CENTER.h - size.h) / 2})`,
+                  width: `calc(var(--w) * ${size.w})`,
+                  height: `calc(var(--w) * ${size.h})`,
+                  zIndex: center ? 2 : 1,
+                }}
+                className={`absolute overflow-hidden rounded-[20px] bg-[#d9d9d9] ${center ? 'cursor-default' : 'cursor-pointer hover:opacity-90'} ${
+                  hidden ? 'pointer-events-none opacity-0' : 'opacity-100'
+                } ${jumps[i] ? '' : `transition-[left,top,width,height,opacity] ${SLIDE_EASE}`}`}
+              >
+                <SpacePhoto space={space} />
+                <span
+                  className={`absolute left-5 top-5 rounded-lg bg-[#1e3342] px-4 py-2 text-[15px] font-bold leading-[1.6] text-white backdrop-blur-[4px] transition-opacity duration-500 ${
+                    center ? 'opacity-100 delay-300' : 'opacity-0'
+                  }`}
+                >
+                  {mod(i, SPACES.length) + 1}. {space.name}
+                </span>
+              </button>
+            )
+          })}
+          {/* 좁은 화면에서는 옆 칸이 작게 걸쳐 보여 단추로도 넘긴다 */}
+          <div className="pointer-events-none absolute inset-0 z-10 mx-auto flex w-[var(--w)] items-end justify-between p-3 xl:hidden">
+            <span className="pointer-events-auto">
               <RoundButton dir="prev" size={40} onClick={() => setIndex((i) => i - 1)} />
+            </span>
+            <span className="pointer-events-auto">
               <RoundButton dir="next" size={40} onClick={() => setIndex((i) => i + 1)} />
-            </div>
-          </div>
-          <div className="hidden items-center gap-12 xl:flex">
-            {side(1)}
-            {side(2)}
+            </span>
           </div>
         </div>
         {/* 지금 칸의 위치 막대 */}
-        <div className="relative h-1.5 w-[min(740px,calc(100vw-40px))] rounded-full bg-[#dde3e8]" aria-hidden>
-          <div className="absolute inset-y-0 rounded-full bg-[#434a50] transition-[left] duration-300" style={{ width: `${100 / n}%`, left: `${(at(0) * 100) / n}%` }} />
+        <div className="relative h-1.5 w-[var(--w)] rounded-full bg-[#dde3e8]" aria-hidden>
+          <div
+            className={`absolute inset-y-0 rounded-full bg-[#434a50] transition-[left] ${SLIDE_EASE}`}
+            style={{ width: `${100 / SPACES.length}%`, left: `${(current * 100) / SPACES.length}%` }}
+          />
         </div>
       </div>
     </section>

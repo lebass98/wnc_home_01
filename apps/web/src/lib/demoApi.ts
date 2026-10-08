@@ -67,6 +67,10 @@ interface DemoTemplate {
   data?: { menus: DemoMenuItem[]; pages: DemoPage[] }
   /** 컴포넌트 설정(메인 비주얼 사진 등) — 실제 API 처럼 끌 때 담고 켤 때 되살린다. */
   components?: ComponentSettings
+  license?: string
+  coreVersion?: string
+  requires?: string[]
+  changelog?: { version: string; date: string; notes: string }[]
   id: number
   name: string
   description: string
@@ -83,14 +87,21 @@ interface DemoTemplate {
 
 /**
  * 데모의 템플릿 미리보기 — 데모에는 사이트를 찍을 서버가 없어, 로컬에서 실제로 적용해 찍어 둔 그림을 싣는다.
- * 데모에서 템플릿이 바꾸는 것은 헤더·푸터뿐이라 그 구성으로 고른다. 맞는 그림이 없으면 미리보기 없음.
+ * 배포에 포함된 디자인 구성에 맞는 촬영본을 고른다. 맞는 그림이 없으면 미리보기 없음.
  */
-const DEMO_THUMB_TAKEN_AT = '2026-10-05T09:04:51.068Z'
+const savedThumbs = import.meta.glob<string>('../../../../templates/*/thumbs/*.jpg', { eager: true, query: '?url', import: 'default' })
+const savedThumbMeta = import.meta.glob<{ subLabel: string; takenAt: string }>('../../../../templates/*/thumbs/thumbs.json', { eager: true, import: 'default' })
+function demoTemplateSlug(t: DemoTemplate) {
+  return t.header === 'interior' ? 'template-9' : t.header === 'dental' ? 'template-11' : t.header === 'basic' && t.footer === 'basic' ? 'basic' : undefined
+}
 function demoThumbnails(t: DemoTemplate) {
-  const key = t.header === 'interior' ? 'interior' : t.header === 'basic' && t.footer === 'basic' ? 'basic' : null
-  if (!key) return null
-  const base = `${import.meta.env.BASE_URL}images/templates/${key}`
-  return { main: `${base}-main.jpg`, sub: `${base}-sub.jpg`, subLabel: '회사소개', takenAt: DEMO_THUMB_TAKEN_AT }
+  const slug = demoTemplateSlug(t)
+  if (!slug) return null
+  const base = `../../../../templates/${slug}/thumbs/`
+  const main = savedThumbs[`${base}main.jpg`]
+  const sub = savedThumbs[`${base}sub.jpg`]
+  const meta = savedThumbMeta[`${base}thumbs.json`]
+  return main && sub && meta ? { main, sub, subLabel: meta.subLabel, takenAt: meta.takenAt } : null
 }
 
 /**
@@ -1009,11 +1020,11 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     pageLayouts: { ...t.pageLayouts },
     dataMenus: data ? data.menus.filter((m) => m.parentId === null).length : 0,
     dataPages: data ? data.pages.length : 0,
-    // 데모에는 템플릿 정보를 적어 두지 않는다.
-    license: '',
-    coreVersion: '',
-    requires: [],
-    changelog: [],
+    // 데모에서도 관리자가 적은 정보를 유지한다.
+    license: t.license ?? '',
+    coreVersion: t.coreVersion ?? '',
+    requires: t.requires ?? [],
+    changelog: t.changelog ?? [],
   })
   /** 지금 메뉴·페이지를 템플릿에 담을 형태로 복사한다. */
   const cloneSiteData = () => structuredClone({ menus: db.menus, pages: db.pages })
@@ -1030,7 +1041,7 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
 
   if (rawPath === '/design' && method === 'GET') {
     const t = templateForPreview()
-    return { slug: t.builtin ? 'basic' : t.header === 'interior' ? 'template-9' : t.header === 'dental' ? 'template-11' : undefined, header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
+    return { slug: demoTemplateSlug(t), header: t.header, footer: t.footer, updatedAt: t.updatedAt, ...(t === activeTemplate() ? {} : { preview: true }) }
   }
 
   // --- 화면별 레이아웃 — 활성 템플릿의 값이다 (?preview=<id> 면 그 템플릿의 값) ---
@@ -1053,7 +1064,9 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
     throw new DemoError('GitHub Pages 데모에서는 사이트 파일을 되돌릴 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
   }
   if (/^\/templates\/\d+\/info$/.test(rawPath) && method === 'GET') {
-    throw new DemoError('GitHub Pages 데모에서는 템플릿 파일을 읽을 수 없어 정보를 보여줄 수 없습니다.', 400)
+    const t = db.templates.find((x) => x.id === Number(rawPath.split('/')[2]))
+    if (!t) throw new DemoError('템플릿을 찾을 수 없습니다.', 404)
+    return { template: templateItem(t), pages: [], layouts: [], components: [], assets: [], languages: [] }
   }
   if (rawPath === '/templates/import-zip' && method === 'POST') {
     throw new DemoError('GitHub Pages 데모에서는 템플릿 파일(zip)을 설치할 수 없습니다. 로컬 개발 서버에서 이용하세요.', 400)
@@ -1228,6 +1241,10 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
         header: t.header,
         footer: t.footer,
         pageLayouts: { ...t.pageLayouts },
+        license: t.license ?? '',
+        coreVersion: t.coreVersion ?? '',
+        requires: t.requires ?? [],
+        changelog: t.changelog ?? [],
       }
     }
     if (!action && method === 'PUT') {
@@ -1246,6 +1263,10 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       if (typeof body.header === 'string') t.header = body.header
       if (typeof body.footer === 'string') t.footer = body.footer
       if (body.pageLayouts && typeof body.pageLayouts === 'object') t.pageLayouts = { ...body.pageLayouts }
+      if (typeof body.license === 'string') t.license = body.license.trim()
+      if (typeof body.coreVersion === 'string') t.coreVersion = body.coreVersion.trim()
+      if (Array.isArray(body.requires)) t.requires = structuredClone(body.requires)
+      if (Array.isArray(body.changelog)) t.changelog = structuredClone(body.changelog)
       t.updatedAt = new Date().toISOString()
       save(db)
       return templateItem(t)

@@ -308,11 +308,12 @@ templatesRouter.post('/import-zip', requireAuth,
             changelog: JSON.stringify(manifest.changelog ?? []),
           },
         })
+        await writeManifest(updated.id, manifestOf(updated))
         return res.status(201).json({ ...(await itemOf(updated)), files })
       } catch (e) {
         // 압축이 잘못됐으면 만들어 둔 행과 폴더를 되돌린다.
         await prisma.siteTemplate.delete({ where: { id: placeholder.id } }).catch(() => {})
-        await rm(slugDir(tempSlug), { recursive: true, force: true }).catch(() => {})
+        await rm(templateDir(placeholder.id), { recursive: true, force: true }).catch(() => {})
         return res.status(400).json({ message: (e as Error).message })
       }
     } catch (e) {
@@ -680,6 +681,10 @@ templatesRouter.post(
         header: row.header,
         footer: row.footer,
         pageLayouts: row.pageLayouts,
+        license: row.license,
+        coreVersion: row.coreVersion,
+        requires: row.requires,
+        changelog: row.changelog,
       },
     })
     created = await assignSlug(created.id, `${row.slug || slugify(row.name)}-copy`)
@@ -701,9 +706,11 @@ templatesRouter.get(
   asyncHandler(async (req, res) => {
     const row = await findTemplate(req.params.id)
     if (!row) return res.status(404).json({ message: '템플릿을 찾을 수 없습니다.' })
-    // 아직 파일이 없는 템플릿(예전 방식으로 만든 것)은 지금 사이트 모습을 담아 준다.
-    if (!hasFiles(row.id)) await snapshotLive(row.id, manifestOf(row))
-    else await writeManifest(row.id, manifestOf(row))
+    // 파일 없는 비활성 템플릿에 다른 디자인의 현재 사이트를 담지 않는다.
+    if (!hasFiles(row.id)) {
+      return res.status(400).json({ message: '이 템플릿에는 보관된 파일이 없어 ZIP으로 내보낼 수 없습니다. 파일이 담긴 템플릿을 먼저 설치해 주세요.' })
+    }
+    await writeManifest(row.id, manifestOf(row))
 
     const zip = await packZip(row.id)
     // 파일명에 쓸 수 없는 글자는 밑줄로 바꾼다. 한글 이름은 그대로 쓰되 헤더에는 인코딩해 담는다.

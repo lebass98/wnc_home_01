@@ -299,10 +299,13 @@ export default function TemplatesPage() {
   async function remove(row: SiteTemplateInfo) {
     if (!confirm(`'${row.name}' 템플릿을 삭제할까요?\n되돌릴 수 없습니다.`)) return
     try {
+      setWorking(true)
       await api(`/templates/${row.id}`, { method: 'DELETE', auth: true })
       await load()
     } catch (e) {
       alert((e as Error).message)
+    } finally {
+      setWorking(false)
     }
   }
 
@@ -341,6 +344,16 @@ export default function TemplatesPage() {
   /** 내보내기 — 화면·레이아웃·부품 파일이 담긴 zip 을 내려받는다. */
   async function exportOne(row: SiteTemplateInfo) {
     try {
+      if (IS_DEMO) {
+        const data = await api(`/templates/${row.id}/export`, { auth: true })
+        const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${row.name.replace(/[\\/:*?"<>|]/g, '_')}.wnc-template.json`
+        a.click()
+        URL.revokeObjectURL(url)
+        return
+      }
       const token = localStorage.getItem('wnc_admin_token')
       const res = await fetch(`/api/templates/${row.id}/export`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -373,6 +386,7 @@ export default function TemplatesPage() {
 
   return (
     <div>
+      {IS_DEMO && <p className="mb-4 rounded-lg bg-slate-100 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">GitHub Pages 데모입니다. 변경 사항은 이 브라우저에 저장됩니다. 썸네일은 배포에 포함된 촬영본이며, 새 촬영·ZIP 설치·파일 복원은 로컬 관리자에서 이용할 수 있습니다. 내보내기는 구성 JSON을 저장합니다.</p>}
       <PageHeader
         title="템플릿 관리"
         description="템플릿과 레이아웃을 관리하여 웹사이트의 디자인을 구성할 수 있습니다."
@@ -1048,6 +1062,7 @@ function InfoModal({ id, onClose, onEdit }: { id: number; onClose: () => void; o
         <Loading />
       ) : (
         <div className="space-y-6">
+          {IS_DEMO && <p className="text-sm text-slate-500">데모에서는 저장된 기본 정보를 표시합니다. 파일·외부 자원·지원 언어 분석은 로컬 관리자에서 확인하세요.</p>}
           <InfoSection icon="M10.3 4.3a2 2 0 013.4 0l.6 1a2 2 0 002 1l1.1-.1a2 2 0 011.7 3l-.6 1a2 2 0 000 2.2l.6 1a2 2 0 01-1.7 3l-1.1-.1a2 2 0 00-2 1l-.6 1a2 2 0 01-3.4 0l-.6-1a2 2 0 00-2-1l-1.1.1a2 2 0 01-1.7-3l.6-1a2 2 0 000-2.2l-.6-1a2 2 0 011.7-3l1.1.1a2 2 0 002-1z M15 12a3 3 0 11-6 0 3 3 0 016 0z" title="기본 정보">
             <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
               {[
@@ -1563,6 +1578,10 @@ function ImportModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
   async function install() {
     if (!file || !manifest) return
+    if (IS_DEMO) {
+      setProblem('GitHub Pages에서는 ZIP을 설치할 수 없습니다. 로컬 관리자에서 설치 후 저장소에 반영해 주세요.')
+      return
+    }
     setSaving(true)
     try {
       const form = new FormData()

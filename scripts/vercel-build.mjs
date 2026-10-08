@@ -35,7 +35,7 @@ await build({
   bundle: true,
   platform: 'node',
   format: 'esm',
-  target: 'node20',
+  target: 'node22',
   external: ['@prisma/client', '.prisma/client', 'playwright', 'playwright-core', 'esbuild'],
   // 묶인 CommonJS 의존성(express 등)이 require 를 쓸 수 있게 한다.
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
@@ -49,7 +49,7 @@ for (const dep of ['@prisma/client', '.prisma/client']) {
 }
 writeFileSync(
   path.join(func, '.vc-config.json'),
-  JSON.stringify({ runtime: 'nodejs20.x', handler: 'index.mjs', launcherType: 'Nodejs', maxDuration: 30, shouldAddHelpers: true }, null, 2),
+  JSON.stringify({ runtime: 'nodejs22.x', handler: 'index.mjs', launcherType: 'Nodejs', maxDuration: 30, shouldAddHelpers: true }, null, 2),
 )
 
 // 3) 경로 연결

@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { localOnly } from '../lib/localOnly.js'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { requireAuth, requireAdmin } from '../lib/auth.js'
@@ -61,6 +62,10 @@ import {
  * 목록에서 활성화·복제·수정·가져오기·내보내기 한다. 활성 템플릿은 항상 정확히 하나다.
  */
 export const templatesRouter = Router()
+
+// 배포 서버에서는 목록·정보 보기와 이름·헤더·푸터 같은 정보 수정(DB 만 바꿈)만 된다.
+// 만들기·켜기·담기·복제·삭제·가져오기·미리보기 촬영은 파일을 바꾸므로 로컬에서 한다.
+templatesRouter.use(localOnly('템플릿 만들기·적용·담기·복제·삭제·가져오기', (method, p) => method === 'GET' || (method === 'PUT' && /^\/\d+$/.test(p))))
 
 /** 레이아웃 키 — 영문·숫자·하이픈. 어떤 키가 유효한지는 web 등록부(src/layouts)가 가진다. */
 const layoutKey = z.string().trim().min(1).max(40).regex(/^[a-z0-9-]+$/i, '레이아웃 키는 영문·숫자·하이픈만 쓸 수 있습니다.')

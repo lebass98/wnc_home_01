@@ -4,11 +4,15 @@ import path from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
 import { asyncHandler } from '../lib/handler.js'
+import { localOnly } from '../lib/localOnly.js'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../lib/auth.js'
 import { loadActiveTemplate, parseLayouts } from '../lib/templates.js'
 
 export const sitePagesRouter = Router()
+
+// 화면 코드 편집은 사이트 소스 파일을 읽고 쓰므로 로컬 전용이다. 화면별 레이아웃(/layouts)은 DB 라 배포 서버에서도 된다.
+sitePagesRouter.use(localOnly('화면 코드 보기·편집', (_m, p) => p === '/layouts'))
 
 /**
  * 관리할 수 있는 화면 등록부 — packages/shared 의 SITE_PAGES 와 같은 목록이다.

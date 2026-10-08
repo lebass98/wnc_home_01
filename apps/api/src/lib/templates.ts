@@ -2,6 +2,7 @@ import path from 'node:path'
 import { existsSync } from 'node:fs'
 import { cp, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { prisma } from './prisma.js'
+import { env } from './env.js'
 import {
   hasFiles,
   isSlug,
@@ -112,6 +113,11 @@ export async function ensureBuiltin(): Promise<TemplateRow> {
 
   // 기본 템플릿은 지금 사이트 소스를 그대로 담은 샘플이다. 파일이 없으면 만들어 둔다.
   // 단 다른 템플릿이 켜져 있으면 지금 사이트는 그 템플릿의 모습이라 담지 않는다 — Basic 이 남의 화면으로 덮인다.
+  // 배포 서버(Vercel)에는 사이트 소스·templates 폴더를 쓸 수 없다 — 폴더 이름만 등록하고 DB 행을 돌려준다.
+  if (env.serverless) {
+    await syncTemplateFolders()
+    return row
+  }
   const otherActive = row.active ? null : await prisma.siteTemplate.findFirst({ where: { active: true } })
   await syncTemplateFolders()
   // 동기화가 이미 끝난 뒤 새로 만든 행일 수 있어 폴더 이름을 직접 알려 둔다.
@@ -167,6 +173,13 @@ let syncing: Promise<void> | null = null
  * 3) 파일 함수가 id 로 폴더를 찾을 수 있게 id → 폴더 이름을 알려 준다.
  */
 export function syncTemplateFolders(): Promise<void> {
+  // 배포 서버(Vercel)에는 templates 폴더가 없고 쓸 수도 없다 — 폴더는 건드리지 않고 id → 폴더 이름만 DB 에서 등록한다.
+  if (env.serverless) {
+    syncing ??= prisma.siteTemplate.findMany({ select: { id: true, slug: true } }).then((rows) => {
+      for (const r of rows) if (r.slug) registerTemplateSlug(r.id, r.slug)
+    })
+    return syncing
+  }
   syncing ??= doSync().catch((e) => {
     syncing = null
     throw e

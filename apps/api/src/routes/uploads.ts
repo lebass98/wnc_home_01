@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync } from 'node:fs'
+import { env } from '../lib/env.js'
 import path from 'node:path'
 import { Router } from 'express'
 import multer from 'multer'
@@ -17,7 +18,8 @@ function rememberOriginalName(filename: string, originalname: string) {
   return originalName
 }
 
-export const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads')
+// 배포 서버(Vercel)는 /tmp 만 쓸 수 있다 — 함수가 다시 뜨면 사라지므로 업로드 저장소 전환 전까지의 임시 자리다.
+export const UPLOAD_DIR = env.serverless ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads')
 
 if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true })
 

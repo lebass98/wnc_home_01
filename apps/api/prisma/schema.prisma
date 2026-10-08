@@ -5,8 +5,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // Neon Postgres — 로컬 개발과 Vercel 배포가 같은 종류의 DB 를 쓴다.
+  // DATABASE_URL 은 연결 풀(앱 실행용), DATABASE_URL_UNPOOLED 는 직접 연결(표 만들기·바꾸기용)이다.
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {

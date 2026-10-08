@@ -22,7 +22,7 @@
 **DB 연동 준비**
 
 - 화면에서 저장했으면 → DB 에 값이 실제로 들어갔는지 조회해 본다.
-  화면 성공 메시지만 믿지 않는다. (`sqlite3 apps/api/prisma/dev.db "..."`)
+  화면 성공 메시지만 믿지 않는다. (`npm run db:query -- 'select ... from "표이름"'` — Postgres 는 표·열 이름을 큰따옴표로 감싼다)
 - `schema.prisma` 를 바꿨으면 → `npx prisma generate` + `npx prisma db push` +
   서버 재시작까지 마치고, 새 표·열이 DB 에 생겼는지 확인한다.
 - `seed.ts` 를 바꿨으면 → 시드는 표가 비어 있을 때만 돌기 때문에
@@ -121,7 +121,7 @@ curl -s -o /dev/null -w "api:%{http_code}\n" http://localhost:4000/api/health
 ## 커밋 전 확인 사항
 
 - `.env`, `*.db`, `node_modules/`, `dist/`, `apps/api/uploads/` 가 스테이징되지 않았는지 확인한다.
-- 활성 템플릿이 Basic 인지 확인한다 (`sqlite3 apps/api/prisma/dev.db "select name from SiteTemplate where active=1;"`).
+- 활성 템플릿이 Basic 인지 확인한다 (`npm run db:query -- 'select name from "SiteTemplate" where active = true'`).
   다른 템플릿이 켜져 있으면 사이트 소스(`pages/site`·`layouts`·`components`)에 그 템플릿 파일이 덮여 있다.
   그대로 커밋하면 저장소의 Basic 이 그 디자인으로 바뀌어 다른 PC·배포본에서 Basic 이 사라진다 —
   해당 파일을 커밋하지 말고 사용자에게 알린다. (인테리어 작업 때 실제로 Basic 이 덮였던 사고가 있었다)
@@ -132,7 +132,7 @@ curl -s -o /dev/null -w "api:%{http_code}\n" http://localhost:4000/api/health
 
 ```
 apps/web/        프론트엔드 (Vite + React + Tailwind)
-apps/api/        백엔드 (Express + Prisma + SQLite)
+apps/api/        백엔드 (Express + Prisma + Postgres — 로컬·배포 모두 Neon)
 packages/shared/ 프론트·백엔드 공용 타입
 templates/       디자인 템플릿 — 폴더 하나가 템플릿 하나 (git 에 함께 올린다)
 ```

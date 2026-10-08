@@ -8,6 +8,7 @@
 
 ### 2026-10-08
 
+- DB 를 SQLite 에서 Neon Postgres 로 전환 — 로컬 데이터 전부 이전, Vercel 함수 지역을 DB 와 같은 미국 동부로, DB 조회 명령(db:query) 추가
 - Vercel 빌드를 Build Output 방식으로 변경 — API 를 파일 하나로 묶어 서버 함수로 배포(ES 모듈 불러오기 오류 해결)
 - Vercel 배포 준비 — API 를 앱·서버로 분리하고 서버 함수 진입점(api/index.ts)·vercel.json 추가
 - 치과 메인 원장 소개 4초 자동 슬라이드 — 마우스를 올리면 멈추고 떼면 바로 재개, 병원 소개와 같은 공용 훅으로 정리

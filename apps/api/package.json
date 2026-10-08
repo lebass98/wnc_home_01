@@ -11,7 +11,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "db:seed:boards": "tsx prisma/seedBoards.ts"
+    "db:seed:boards": "tsx prisma/seedBoards.ts",
+    "db:query": "tsx prisma/query.ts",
+    "db:migrate-from-sqlite": "tsx prisma/migrate-sqlite-to-postgres.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

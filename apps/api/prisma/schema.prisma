@@ -1,5 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Vercel 서버 함수(Amazon Linux, OpenSSL 3)에서도 돌도록 엔진을 함께 만든다.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

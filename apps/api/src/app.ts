@@ -25,7 +25,10 @@ import { sitePagesRouter } from './routes/sitePages.js'
 import { menusRouter } from './routes/menus.js'
 import { designRouter } from './routes/design.js'
 import { templatesRouter } from './routes/templates.js'
-import { uploadsRouter, UPLOAD_DIR } from './routes/uploads.js'
+import { uploadsRouter } from './routes/uploads.js'
+import { readUpload } from './lib/storage.js'
+import { asyncHandler } from './lib/handler.js'
+import path from 'node:path'
 import { trashRouter } from './routes/trash.js'
 import { redirectsRouter } from './routes/redirects.js'
 import { mediaRouter } from './routes/media.js'
@@ -40,23 +43,29 @@ app.use(cors({ origin: env.corsOrigin }))
 // 상세 본문에 이미지가 들어갈 수 있어 한도를 넉넉히 잡는다.
 app.use(express.json({ limit: '10mb' }))
 
-// 업로드된 이미지를 정적으로 서빙한다.
-// 확장자와 다른 내용이 실행되지 않도록 nosniff 를 붙이고,
-// 예전에 올라간 SVG 가 열리더라도 스크립트가 돌지 않도록 가둬 둔다.
-// 템플릿 원본 소스와 적용 백업(메뉴·페이지 데이터)도 uploads 아래에 있지만 공개 파일이 아니다 —
-// 관리자 API(/api/templates)로만 다루고, 정적 경로로는 내주지 않는다.
+// 템플릿 원본 소스와 적용 백업(메뉴·페이지 데이터)도 로컬 uploads 폴더 아래에 있지만 공개 파일이 아니다 —
+// 관리자 API(/api/templates)로만 다루고, /uploads 주소로는 내주지 않는다 (아래 /uploads/:name 은 맨 위 파일만 연다).
 app.use(['/uploads/templates', '/uploads/template-apply-backups'], (_req, res) => {
   res.status(404).end()
 })
-app.use(
-  '/uploads',
-  express.static(UPLOAD_DIR, {
-    setHeaders: (res, filePath) => {
-      res.setHeader('X-Content-Type-Options', 'nosniff')
-      if (filePath.toLowerCase().endsWith('.svg')) {
-        res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-      }
-    },
+// 업로드 파일 — 저장소(Vercel Blob 또는 로컬 폴더)에서 꺼내 보낸다. 주소는 늘 /uploads/<파일> 이다.
+// 파일 이름이 매번 새로 만들어지므로 한 번 보낸 파일은 CDN·브라우저가 오래 캐시해도 된다.
+app.get(
+  '/uploads/:name',
+  asyncHandler(async (req, res) => {
+    const file = await readUpload(req.params.name)
+    if (!file) return res.status(404).end()
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable')
+    res.setHeader('Content-Length', String(file.size))
+    if (file.etag) res.setHeader('ETag', file.etag)
+    if (file.contentType) res.type(file.contentType)
+    else res.type(path.extname(req.params.name))
+    // 예전에 올라간 SVG 가 열리더라도 스크립트가 돌지 않도록 가둬 둔다.
+    if (req.params.name.toLowerCase().endsWith('.svg')) {
+      res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+    }
+    file.stream.on('error', () => res.destroy()).pipe(res)
   }),
 )
 

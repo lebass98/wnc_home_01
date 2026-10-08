@@ -1,12 +1,12 @@
 import path from 'node:path'
 import { existsSync } from 'node:fs'
-import { readdir, readFile, rm, stat } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { asyncHandler } from '../lib/handler.js'
 import { requireAuth } from '../lib/auth.js'
-import { UPLOAD_DIR } from './uploads.js'
+import { deleteUpload, listUploads, localUploadPath, uploadExists, UPLOAD_NAME } from '../lib/storage.js'
 import { TEMPLATES_DIR } from '../lib/templateFiles.js'
 import { imageSize } from '../lib/imageSize.js'
 
@@ -17,7 +17,7 @@ import { imageSize } from '../lib/imageSize.js'
  */
 export const mediaRouter = Router()
 
-const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+const NAME = UPLOAD_NAME
 const KIND: [RegExp, string][] = [
   [/\.(png|jpe?g|gif|webp|avif|svg)$/i, 'image'],
   [/\.(mp4|webm|mov|m4v)$/i, 'video'],
@@ -94,24 +94,23 @@ async function collectUsages(): Promise<Map<string, MediaUsage[]>> {
   return map
 }
 
-/** uploads 폴더 맨 위의 파일들 — 하위 폴더(템플릿 백업 등)와 숨김 파일은 뺀다. */
+/** 업로드 파일 이름들 — 저장소(Blob 또는 로컬 폴더) 맨 위의 파일만 */
 async function listUploadFiles() {
-  const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
-  return entries.filter((e) => e.isFile() && NAME.test(e.name)).map((e) => e.name)
+  return (await listUploads()).map((f) => f.name)
 }
 
-function fileOf(name: string): string | null {
-  if (!NAME.test(name) || name.includes('..')) return null
-  const file = path.join(UPLOAD_DIR, name)
-  return existsSync(file) ? file : null
+/** 있는 파일인지 — 이름 규칙과 경로 이동(..)까지 함께 막는다 */
+async function fileOf(name: string): Promise<boolean> {
+  if (!NAME.test(name) || name.includes('..')) return false
+  return uploadExists(name)
 }
 
 mediaRouter.get(
   '/',
   requireAuth,
   asyncHandler(async (_req, res) => {
-    const [names, usages, assets, folders] = await Promise.all([
-      listUploadFiles(),
+    const [files, usages, assets, folders] = await Promise.all([
+      listUploads(),
       collectUsages(),
       prisma.mediaAsset.findMany(),
       prisma.mediaFolder.findMany(),
@@ -119,20 +118,20 @@ mediaRouter.get(
     const info = new Map(assets.map((a) => [a.path, a]))
     const folderName = new Map(folders.map((f) => [f.id, f.name]))
     const items = await Promise.all(
-      names.map(async (name) => {
-        const file = path.join(UPLOAD_DIR, name)
-        const st = await stat(file)
+      files.map(async ({ name, size, uploadedAt }) => {
         const url = `/uploads/${name}`
         const a = info.get(url)
         const kind = kindOf(name)
         // 그림은 가로·세로를 함께 알려 준다 — 목록에서 크기를 보고 고를 수 있게.
-        const dim = kind === 'image' ? await imageSize(file, st.mtimeMs) : null
+        // 로컬 폴더에 있는 파일만 계산한다 — Blob 파일은 크기 정보 없이 보여 준다.
+        const local = kind === 'image' ? localUploadPath(name) : null
+        const dim = local ? await imageSize(local, uploadedAt.getTime()) : null
         return {
           name,
           url,
           kind,
-          size: st.size,
-          createdAt: st.mtime.toISOString(),
+          size,
+          createdAt: uploadedAt.toISOString(),
           alt: a?.alt ?? '',
           title: a?.title ?? '',
           originalName: a?.originalName ?? '',
@@ -286,7 +285,7 @@ mediaRouter.put(
 
     let moved = 0
     for (const name of names) {
-      if (!fileOf(name)) continue
+      if (!(await fileOf(name))) continue
       const path = `/uploads/${name}`
       await prisma.mediaAsset.upsert({ where: { path }, create: { path, folderId }, update: { folderId } })
       moved += 1
@@ -299,7 +298,7 @@ mediaRouter.put(
   '/:name',
   requireAuth,
   asyncHandler(async (req, res) => {
-    if (!fileOf(req.params.name)) return res.status(404).json({ message: '파일을 찾을 수 없습니다.' })
+    if (!(await fileOf(req.params.name))) return res.status(404).json({ message: '파일을 찾을 수 없습니다.' })
     const { alt, title } = z
       .object({ alt: z.string().trim().max(300).default(''), title: z.string().trim().max(200).default('') })
       .parse(req.body)
@@ -317,8 +316,7 @@ mediaRouter.delete(
   '/:name',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const file = fileOf(req.params.name)
-    if (!file) return res.status(404).json({ message: '파일을 찾을 수 없습니다.' })
+    if (!(await fileOf(req.params.name))) return res.status(404).json({ message: '파일을 찾을 수 없습니다.' })
     const used = (await collectUsages()).get(req.params.name) ?? []
     if (used.length > 0 && req.query.force !== '1') {
       return res.status(409).json({
@@ -329,7 +327,7 @@ mediaRouter.delete(
         usages: used,
       })
     }
-    await rm(file, { force: true })
+    await deleteUpload(req.params.name)
     await prisma.mediaAsset.deleteMany({ where: { path: `/uploads/${req.params.name}` } })
     res.status(204).end()
   }),

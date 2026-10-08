@@ -1,11 +1,9 @@
 import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync } from 'node:fs'
-import { env } from '../lib/env.js'
-import path from 'node:path'
 import { Router } from 'express'
 import multer from 'multer'
 import { requireAuth } from '../lib/auth.js'
 import { prisma } from '../lib/prisma.js'
+import { saveUpload } from '../lib/storage.js'
 
 /** 올린 파일의 원래 이름을 미디어 정보에 적어 둔다 — [미디어 라이브러리]에서 찾기 쉽게. */
 function rememberOriginalName(filename: string, originalname: string) {
@@ -18,10 +16,11 @@ function rememberOriginalName(filename: string, originalname: string) {
   return originalName
 }
 
-// 배포 서버(Vercel)는 /tmp 만 쓸 수 있다 — 함수가 다시 뜨면 사라지므로 업로드 저장소 전환 전까지의 임시 자리다.
-export const UPLOAD_DIR = env.serverless ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads')
+// 저장 위치(Blob 또는 로컬 폴더)는 lib/storage.ts 가 정한다. 예전 코드가 쓰던 이름을 그대로 내보낸다.
+export { UPLOAD_DIR } from '../lib/storage.js'
 
-if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true })
+/** 저장할 파일 이름 — 원본 파일명은 신뢰하지 않고 확장자만 화이트리스트에서 가져온다. */
+const newName = (ext: string) => `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`
 
 /**
  * 올릴 수 있는 이미지 형식.
@@ -36,14 +35,8 @@ const ALLOWED = new Map([
 ])
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename: (_req, file, cb) => {
-      // 원본 파일명은 신뢰하지 않고 확장자만 화이트리스트에서 가져온다.
-      const ext = ALLOWED.get(file.mimetype) ?? ''
-      cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`)
-    },
-  }),
+  // 메모리로 받아 저장소(Blob 또는 로컬 폴더)에 넘긴다 — 배포 서버는 디스크에 쓸 수 없다.
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED.has(file.mimetype)) {
@@ -64,13 +57,8 @@ const ALLOWED_FILE = new Map([
 ])
 
 const uploadFile = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-    filename: (_req, file, cb) => {
-      const ext = ALLOWED_FILE.get(file.mimetype) ?? ''
-      cb(null, `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`)
-    },
-  }),
+  // 메모리로 받아 저장소(Blob 또는 로컬 폴더)에 넘긴다 — 배포 서버는 디스크에 쓸 수 없다.
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_FILE.has(file.mimetype)) {
@@ -89,10 +77,16 @@ uploadsRouter.post('/file', requireAuth, (req, res) => {
           : (err as Error).message
       return res.status(400).json({ message })
     }
-    if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' })
+    const file = req.file
+    if (!file) return res.status(400).json({ message: '파일이 없습니다.' })
 
-    const name = rememberOriginalName(req.file.filename, req.file.originalname)
-    res.status(201).json({ url: `/uploads/${req.file.filename}`, name, size: req.file.size })
+    const filename = newName(ALLOWED_FILE.get(file.mimetype) ?? '')
+    saveUpload(filename, file.buffer, file.mimetype)
+      .then(() => {
+        const name = rememberOriginalName(filename, file.originalname)
+        res.status(201).json({ url: `/uploads/${filename}`, name, size: file.size })
+      })
+      .catch((e) => res.status(500).json({ message: `파일을 저장하지 못했습니다. 잠시 뒤 다시 올려 주세요. (${(e as Error).message})` }))
   })
 })
 
@@ -105,9 +99,15 @@ uploadsRouter.post('/', requireAuth, (req, res) => {
           : (err as Error).message
       return res.status(400).json({ message })
     }
-    if (!req.file) return res.status(400).json({ message: '파일이 없습니다.' })
+    const file = req.file
+    if (!file) return res.status(400).json({ message: '파일이 없습니다.' })
 
-    rememberOriginalName(req.file.filename, req.file.originalname)
-    res.status(201).json({ url: `/uploads/${req.file.filename}` })
+    const filename = newName(ALLOWED.get(file.mimetype) ?? '')
+    saveUpload(filename, file.buffer, file.mimetype)
+      .then(() => {
+        rememberOriginalName(filename, file.originalname)
+        res.status(201).json({ url: `/uploads/${filename}` })
+      })
+      .catch((e) => res.status(500).json({ message: `그림을 저장하지 못했습니다. 잠시 뒤 다시 올려 주세요. (${(e as Error).message})` }))
   })
 })

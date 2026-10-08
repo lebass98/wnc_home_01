@@ -59,7 +59,7 @@ import {
  */
 
 // 시드 구성이 크게 바뀔 때 버전을 올린다 — 옛 저장본을 버리고 새 시드를 받게 한다.
-const STORAGE_KEY = 'wnc_demo_db_v6'
+const STORAGE_KEY = 'wnc_demo_db_v7'
 
 /** 디자인 템플릿 — 헤더·푸터·화면별 레이아웃 선택 한 벌 */
 interface DemoTemplate {
@@ -280,6 +280,11 @@ function seed(): DemoDb {
 
 function load(): DemoDb {
   try {
+    // 지난 버전 저장본은 치워 둔다 — 남겨 두면 브라우저 저장소만 차지한다.
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('wnc_demo_db_') && key !== STORAGE_KEY) localStorage.removeItem(key)
+    }
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as DemoDb

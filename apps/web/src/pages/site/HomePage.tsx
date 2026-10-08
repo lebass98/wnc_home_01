@@ -308,7 +308,7 @@ function Hero() {
           </div>
 
           <div className="flex items-center gap-[50px]">
-            <div className="relative flex items-center gap-5 text-base leading-[1.6] tracking-[-0.4px]">
+            <div className="relative flex items-center gap-3 text-base leading-[1.6] tracking-[-0.4px]">
               {slides.map((_, i) => (
                 <button
                   key={i}

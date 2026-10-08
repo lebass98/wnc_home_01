@@ -114,7 +114,7 @@ function Lines({ lines }: { lines: string[] }) {
 
 /* ---------- 메인 비주얼 ---------- */
 
-/** 둥근 큰 사진 위에 로고와 제목. 관리자 [메인 비주얼]의 슬라이드가 둘 이상이면 천천히 바뀐다. */
+/** 스크롤 구간 안에서 스케치 비주얼이 컬러 공간으로 이어진다. */
 function Hero() {
   const { mainVisual, header } = useComponentSettings()
   const section = useRef<HTMLElement>(null)

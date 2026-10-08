@@ -1,5 +1,5 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { useSiteSetting } from '../../lib/seo'
@@ -730,6 +730,37 @@ function useRing(count: number, index: number) {
   return { offsets, jumps }
 }
 
+/** 자동으로 다음 칸으로 넘어가는 간격 — 의료진·병원 소개 공통 */
+const AUTOPLAY_MS = 4000
+
+/**
+ * 자동 넘김 — ms 마다 다음 칸으로 넘긴다. 직접 넘기면 index 가 바뀌어 처음부터 다시 센다.
+ * 돌려주는 handlers 를 붙인 영역에 마우스를 올려 두거나 키보드로 들어와 있는 동안은 멈추고,
+ * 벗어나면 곧바로 다시 센다. 마우스로 누른 단추에 남는 포커스로는 멈추지 않는다(:focus-visible 일 때만).
+ * 움직임 줄이기 설정이면 자동으로 넘기지 않는다.
+ */
+function useAutoplay(index: number, next: () => void, ms = AUTOPLAY_MS) {
+  const [hovering, setHovering] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const paused = hovering || focused
+
+  useEffect(() => {
+    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const timer = window.setTimeout(next, ms)
+    return () => window.clearTimeout(timer)
+    // next 는 매번 새로 만들어지는 함수라 넣지 않는다 — index·paused 가 바뀔 때만 다시 센다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, paused, ms])
+
+  const handlers = {
+    onMouseEnter: () => setHovering(true),
+    onMouseLeave: () => setHovering(false),
+    onFocus: (e: FocusEvent<HTMLElement>) => e.target.matches(':focus-visible') && setFocused(true),
+    onBlur: (e: FocusEvent<HTMLElement>) => !e.currentTarget.contains(e.relatedTarget) && setFocused(false),
+  }
+  return { paused, handlers }
+}
+
 /* ---------- 의료진 ---------- */
 
 /**
@@ -746,9 +777,11 @@ function Doctors() {
   const [index, setIndex] = useState(0)
   const n = DOCTOR_RING.length
   const { offsets, jumps } = useRing(n, index)
+  // 4초마다 다음 원장님으로 — 섹션 위에 마우스가 있는 동안은 멈춘다
+  const { handlers } = useAutoplay(index, () => setIndex((i) => i + 1))
 
   return (
-    <section className="flex flex-col items-center gap-7 overflow-hidden [--w:min(448px,calc(100vw-40px))]">
+    <section {...handlers} className="flex flex-col items-center gap-7 overflow-hidden [--w:min(448px,calc(100vw-40px))]">
       <div className="flex w-full flex-col items-center gap-12">
         {/* 대표 칸 위 이름 자리 — 이름은 각 카드가 들고 있다가 가운데가 되면 이 자리로 나온다 */}
         <div className="h-[47px] w-full" aria-hidden />
@@ -877,25 +910,14 @@ const SPACE_CENTER = { w: 1, h: 462 / 740 }
 const SPACE_SIDE = { w: 306 / 740, h: 416 / 740 }
 /** 가운데에서 떨어진 칸별 카드 중심 위치 (시안: 571px, 925px) */
 const SPACE_X = [0, 571 / 740, 925 / 740, 1279 / 740]
-/** 자동으로 다음 칸으로 넘어가는 간격 */
-const SPACE_AUTOPLAY_MS = 4000
 
 function Spaces() {
   const [index, setIndex] = useState(0)
   const n = SPACE_RING.length
   const { offsets, jumps } = useRing(n, index)
   const current = mod(index, SPACES.length)
-  // 마우스를 올려 두거나 키보드로 들어와 있는 동안에는 멈춘다.
-  const [hovering, setHovering] = useState(false)
-  const [focused, setFocused] = useState(false)
-  const paused = hovering || focused
-
-  // 4초마다 다음 칸으로 — 직접 넘기면 index 가 바뀌어 4초를 처음부터 다시 센다.
-  useEffect(() => {
-    if (paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const timer = window.setTimeout(() => setIndex((i) => i + 1), SPACE_AUTOPLAY_MS)
-    return () => window.clearTimeout(timer)
-  }, [index, paused])
+  // 4초마다 다음 칸으로 — 사진 줄에 마우스를 올려 두면 멈추고, 멈춘 동안에도 옆 사진을 누르면 넘어간다.
+  const { handlers } = useAutoplay(index, () => setIndex((i) => i + 1))
 
   return (
     <section className="flex flex-col items-center gap-12 overflow-hidden [--w:min(740px,calc(100vw-40px))] sm:gap-20">
@@ -904,11 +926,7 @@ function Spaces() {
         <div
           className="relative w-full"
           style={{ height: `calc(var(--w) * ${SPACE_CENTER.h})` }}
-          onMouseEnter={() => setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
-          // 마우스로 누른 단추에 남는 포커스로는 멈추지 않는다 — 키보드로 들어왔을 때만.
-          onFocus={(e) => e.target.matches(':focus-visible') && setFocused(true)}
-          onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setFocused(false)}
+          {...handlers}
         >
           {SPACE_RING.map((space, i) => {
             const d = offsets[i]

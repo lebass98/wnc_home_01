@@ -3,7 +3,6 @@ import { z } from 'zod'
 import path from 'node:path'
 import { existsSync, mkdirSync } from 'node:fs'
 import { readFile, readdir, stat, writeFile, copyFile } from 'node:fs/promises'
-import { transform } from 'esbuild'
 import { asyncHandler } from '../lib/handler.js'
 import { prisma } from '../lib/prisma.js'
 import { requireAuth, requireAdmin } from '../lib/auth.js'
@@ -67,6 +66,8 @@ async function checkSyntax(content: string, file: string, requireDefault = true)
     }
   }
   try {
+    // 필요할 때만 불러온다 — 배포 서버 함수(Vercel)에는 esbuild 가 없어도 앱이 떠야 한다.
+    const { transform } = await import('esbuild')
     await transform(content, { loader: 'tsx', jsx: 'automatic', sourcefile: file })
     return { ok: true as const, message: '문법에 문제가 없습니다.', line: null, column: null, excerpt: null }
   } catch (e) {

@@ -17,3 +17,4 @@ apps/api/uploads/
 
 # 로고 글꼴 — Trial(개인용) 버전은 저장소에 올리지 않는다. 정식 구매본으로 바꾼 뒤 이 줄을 지운다.
 apps/web/public/fonts/Bitcoa.*
+.vercel

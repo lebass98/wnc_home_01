@@ -11,20 +11,37 @@ import { componentImageUrl } from '../lib/componentSettings'
  * - 브라우저는 소리 있는 자동 재생을 막으므로 늘 소리 없이 시작한다. 소리 단추는 관리자가 켰을 때만 보인다.
  * - 5초 넘게 움직이는 화면이라 멈춤 단추를 둔다. 움직임 줄이기 설정이면 처음부터 멈춰 두고 대표 이미지를 보여 준다.
  */
-export default function MainVisualVideo({ video, className = '' }: { video: MainVisualVideoValue; className?: string }) {
+export default function MainVisualVideo({ video, className = '', align = 'center' }: { video: MainVisualVideoValue; className?: string; align?: 'left' | 'center' }) {
   const ref = useRef<HTMLVideoElement>(null)
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
+  const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const mediaPosition = align === 'left' ? 'object-[25%_center] sm:object-center' : 'object-center'
 
   useEffect(() => {
     const element = ref.current
     if (!element) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      element.pause()
-      return
+    let active = true
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPlaying(false)
+    setMuted(true)
+    setReady(false)
+    setFailed(false)
+    const stopForReducedMotion = () => {
+      if (motion.matches) {
+        element.pause()
+        setPlaying(false)
+      }
     }
-    // 저절로 재생되지 않는 브라우저(저전력 모드 등)도 있어 한 번 더 청한다. 막히면 멈춤 상태로 둔다.
-    element.play().catch(() => setPlaying(false))
+    // autoPlay 속성 대신 환경 설정을 확인한 뒤 시작한다. 저전력 모드에서는 포스터를 유지한다.
+    if (!motion.matches) element.play().catch(() => { if (active) setPlaying(false) })
+    motion.addEventListener('change', stopForReducedMotion)
+    return () => {
+      active = false
+      motion.removeEventListener('change', stopForReducedMotion)
+      element.pause()
+    }
   }, [video.src])
 
   const togglePlay = () => {
@@ -42,36 +59,39 @@ export default function MainVisualVideo({ video, className = '' }: { video: Main
 
   return (
     <section className={`relative overflow-hidden bg-slate-950 ${className}`} aria-label="메인 비주얼">
+      {video.poster && (
+        <img src={componentImageUrl(video.poster)} alt="" className={`absolute inset-0 h-full w-full object-cover ${mediaPosition}`} fetchPriority="high" />
+      )}
       <video
         ref={ref}
         key={video.src}
         src={componentImageUrl(video.src)}
         poster={video.poster ? componentImageUrl(video.poster) : undefined}
-        autoPlay
         muted
         loop
         playsInline
-        preload="auto"
-        onPlay={() => setPlaying(true)}
+        preload="metadata"
+        onPlaying={() => { setPlaying(true); setReady(true) }}
         onPause={() => setPlaying(false)}
-        className="absolute inset-0 h-full w-full object-cover"
+        onError={() => { setPlaying(false); setFailed(true) }}
+        className={`absolute inset-0 h-full w-full object-cover ${mediaPosition} ${ready && !failed ? 'opacity-100' : 'opacity-0'}`}
         aria-hidden
       />
       {/* 글이 잘 보이도록 영상 위에 까는 암막 */}
       <div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: video.overlayOpacity / 100 }} aria-hidden />
 
       {(video.title || video.description) && (
-        <div className="container-wnc relative flex h-full flex-col items-center justify-center text-center text-white">
+        <div className={`container-wnc relative flex h-full flex-col justify-center text-white ${align === 'left' ? 'items-start text-left' : 'items-center text-center'}`}>
           {video.title && (
-            <h1 className="whitespace-pre-line text-3xl font-bold leading-[1.4] tracking-tight drop-shadow-md sm:text-[2.6rem]">{video.title}</h1>
+            <h1 className={`whitespace-pre-line font-bold leading-[1.3] tracking-tight drop-shadow-md ${align === 'left' ? 'text-5xl sm:text-6xl lg:max-w-[52%] lg:text-7xl' : 'text-3xl sm:text-[2.6rem]'}`}>{video.title}</h1>
           )}
           {video.description && (
-            <p className="mt-6 whitespace-pre-line text-sm leading-[2] text-white/90 drop-shadow-sm sm:text-base">{video.description}</p>
+            <p className={`mt-6 whitespace-pre-line break-keep leading-[1.8] text-white/90 drop-shadow-sm ${align === 'left' ? 'max-w-md text-lg sm:text-2xl lg:max-w-[52%]' : 'text-sm sm:text-base'}`}>{video.description}</p>
           )}
         </div>
       )}
 
-      <div className="absolute bottom-6 right-6 z-10 flex items-center gap-2 sm:bottom-8 sm:right-8">
+      {!failed && <div className="absolute bottom-6 right-6 z-10 flex items-center gap-2 sm:bottom-8 sm:right-8">
         {video.showSoundToggle && (
           <button
             type="button"
@@ -95,7 +115,7 @@ export default function MainVisualVideo({ video, className = '' }: { video: Main
             {playing ? <path d="M9 5v14M15 5v14" /> : <path d="M8 5v14l11-7z" fill="currentColor" />}
           </svg>
         </button>
-      </div>
+      </div>}
     </section>
   )
 }

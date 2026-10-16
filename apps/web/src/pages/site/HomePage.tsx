@@ -69,7 +69,7 @@ export default function HomePage() {
     <>
       {/* 관리자 [메인 비주얼]에서 '배경 영상'을 고르면 슬라이드 대신 영상을 깐다. */}
       {mainVisual.mode === 'video' && mainVisual.video?.src ? (
-        <MainVisualVideo video={mainVisual.video} className="h-screen h-[100dvh]" />
+        <MainVisualVideo video={mainVisual.video} align="left" className="h-screen h-[100dvh]" />
       ) : (
         <HeroSlider
           key={JSON.stringify(mainVisual)}

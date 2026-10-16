@@ -112,6 +112,7 @@ function interiorComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
   settings.mainVisual = {
     ...settings.mainVisual,
+    mode: 'slide',
     autoplay: true,
     interval: 3000,
     slides: [{ title: '워드앤코드 인테리어', description: '', image: '/images/interior/hero-main.png' }],
@@ -124,6 +125,7 @@ function dentalComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
   settings.mainVisual = {
     ...settings.mainVisual,
+    mode: 'slide',
     autoplay: true,
     interval: 5000,
     slides: [
@@ -255,11 +257,10 @@ function seed(): DemoDb {
   const privacyRevisions = createDemoPrivacyRevisions()
   const menus = createDemoMenus()
   return {
-    // 사이트 소스의 메인이 치과 시안이라 데모도 치과를 켠 상태로 시작한다 — 로컬과 같은 모습.
-    // 인테리어·Basic 은 꺼진 채로 두고 [템플릿 관리]의 프리뷰로 볼 수 있다.
-    templates: [{ ...basicTemplate(), active: false }, interiorTemplate(), { ...dentalTemplate(), active: true }],
+    // 현재 사이트와 같이 Basic의 데이터 웨이브 영상으로 시작한다.
+    templates: [basicTemplate(), interiorTemplate(), dentalTemplate()],
     nextTemplateId: 4,
-    componentSettings: { ...defaultComponentResponse(), settings: dentalComponents() },
+    componentSettings: defaultComponentResponse(),
     posts,
     contacts,
     categories,

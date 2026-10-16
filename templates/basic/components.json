@@ -27,7 +27,16 @@
         "description": "눈에 보이는 화면 뒤의 구조까지\n길게 쓰일 것을 생각하며 짓습니다",
         "image": "/images/main/main_hero_03.jpg"
       }
-    ]
+    ],
+    "mode": "video",
+    "video": {
+      "src": "/videos/data-wave-loop.mp4",
+      "poster": "/images/main/data-wave-poster.jpg",
+      "title": "웹을 넘어,",
+      "description": "더 큰 세상을 만들어가는 파트너",
+      "overlayOpacity": 15,
+      "showSoundToggle": false
+    }
   },
   "subVisual": {
     "showEyebrow": true,

@@ -1,5 +1,6 @@
 import TemplatePreviewPage from './components/TemplatePreviewPage'
 import ComponentsPage from './pages/admin/ComponentsPage'
+import MainVisualPage from './pages/admin/MainVisualPage'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ThemeProvider } from './lib/theme'
@@ -139,8 +140,11 @@ export default function App() {
             <Route path="pages/:id" element={<PageEditPage />} />
             <Route path="pages/:id/detail" element={<PageDetailPage />} />
             <Route path="pages/code/:key" element={<SitePageEditPage />} />
-            <Route path="components" element={<ComponentsPage />} />
+            {/* 컴포넌트·메인 비주얼은 켜진 템플릿에 딸린 값이라 [템플릿 관리] 안의 탭으로 둔다. */}
+            <Route path="components" element={<Navigate to="/admin/templates/components" replace />} />
             <Route path="templates" element={<TemplatesPage />} />
+            <Route path="templates/components" element={<ComponentsPage />} />
+            <Route path="templates/main-visual" element={<MainVisualPage />} />
             <Route path="templates/code" element={<TemplateCodePage />} />
             <Route path="popups" element={<PopupListPage />} />
             <Route path="popups/new" element={<PopupEditPage />} />

@@ -111,6 +111,7 @@ function demoThumbnails(t: DemoTemplate) {
 function interiorComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
   settings.mainVisual = {
+    ...settings.mainVisual,
     autoplay: true,
     interval: 3000,
     slides: [{ title: '워드앤코드 인테리어', description: '', image: '/images/interior/hero-main.png' }],
@@ -122,6 +123,7 @@ function interiorComponents(): ComponentSettings {
 function dentalComponents(): ComponentSettings {
   const settings = structuredClone(DEFAULT_COMPONENT_SETTINGS)
   settings.mainVisual = {
+    ...settings.mainVisual,
     autoplay: true,
     interval: 5000,
     slides: [
@@ -778,7 +780,11 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       const settings = templateComponents(t) ?? structuredClone(DEFAULT_COMPONENT_SETTINGS)
       return { settings, revisions: {} as Record<string, number> }
     }
-    return structuredClone(db.componentSettings ?? defaultComponentResponse())
+    const result = structuredClone(db.componentSettings ?? defaultComponentResponse())
+    // 예전에 저장한 데모 값에는 메인 비주얼 방식(슬라이드·영상)이 없다 — 서버처럼 기본값을 채워 돌려준다.
+    const mainVisual = componentSettingsSchema.shape.mainVisual.safeParse(result.settings.mainVisual)
+    if (mainVisual.success) result.settings.mainVisual = mainVisual.data
+    return result
   }
   const componentMatch = rawPath.match(/^\/components\/([^/]+)$/)
   if (componentMatch && method === 'PUT') {
@@ -2520,6 +2526,10 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
   // --- 업로드 (데모: 파일을 base64 로 그대로 돌려준다) ---
   if (rawPath === '/uploads' && method === 'POST') {
     return { url: body?.dataUrl ?? '' }
+  }
+  // 영상은 브라우저 저장소에 담기에 너무 크다 — 데모에서는 영상 주소 입력만 쓴다.
+  if (rawPath === '/uploads/video' && method === 'POST') {
+    throw new DemoError('데모 모드에서는 영상을 올릴 수 없습니다. [주소 입력]에 MP4·WEBM 영상 주소를 넣어 주세요.', 400)
   }
 
   // --- 대시보드 ---

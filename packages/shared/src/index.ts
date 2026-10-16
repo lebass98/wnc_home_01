@@ -1534,13 +1534,42 @@ export const SUB_VISUAL_PAGES = [
   { key: 'custom', path: '/page', label: '고객서비스', image: 'policy' },
 ] as const
 
+/** 메인 비주얼 표시 방식 */
+export const MAIN_VISUAL_MODES = ['slide', 'video'] as const
+export type MainVisualMode = (typeof MAIN_VISUAL_MODES)[number]
+/** 영상 주소 — 사이트 내부 경로(/uploads/...·/videos/...) 또는 http(s) 주소. 유튜브 같은 공유 페이지 주소가 아닌 영상 파일 주소여야 한다. */
+const videoUrl = z.string().max(2000).refine((value) =>
+  value === '' || /^\/(?!\/)[^\\\s]*$/.test(value) || /^https?:\/\/[^\s]+$/i.test(value),
+'영상은 사이트 내부 경로 또는 http(s) 영상 파일 주소(MP4·WEBM)를 입력하세요.')
+const mainVisualVideoSchema = z.object({
+  /** 영상 파일 주소 */
+  src: videoUrl,
+  /** 영상을 불러오는 동안·자동 재생이 막혔을 때 보여 줄 대표 이미지 */
+  poster: imageUrl,
+  title: z.string().max(200),
+  description: caption,
+  /** 글이 잘 보이도록 영상 위에 까는 어둡기(%) */
+  overlayOpacity: z.number().int().min(0).max(80),
+  /** 방문자가 소리를 켤 수 있는 단추를 보일지 — 자동 재생은 늘 소리 없이 시작한다. */
+  showSoundToggle: z.boolean(),
+})
+export type MainVisualVideo = z.infer<typeof mainVisualVideoSchema>
+export const DEFAULT_MAIN_VISUAL_VIDEO: MainVisualVideo = {
+  src: '', poster: '', title: '', description: '', overlayOpacity: 40, showSoundToggle: false,
+}
+
 export const componentSettingsSchema = z.object({
   header: z.object({ transparent: z.boolean(), logoText: z.string().max(80), logoImage: imageUrl }),
   footer: z.object({ showMenu: z.boolean(), showSocial: z.boolean() }),
   mainVisual: z.object({
+    /** 표시 방식 — 이미지 슬라이드 또는 배경 영상. 예전 저장본에는 없으므로 슬라이드로 읽는다. */
+    mode: z.enum(MAIN_VISUAL_MODES).default('slide'),
     autoplay: z.boolean(),
     interval: z.number().int().min(2000).max(30000),
     slides: z.array(z.object({ title: z.string().trim().min(1, '슬라이드 제목을 입력하세요.').max(200), description: caption, image: imageUrl })).min(1).max(6),
+    video: mainVisualVideoSchema.default(DEFAULT_MAIN_VISUAL_VIDEO),
+  }).superRefine((value, ctx) => {
+    if (value.mode === 'video' && !value.video.src) ctx.addIssue({ code: 'custom', path: ['video', 'src'], message: '영상 방식으로 저장하려면 영상 파일을 올리거나 영상 주소를 입력하세요.' })
   }),
   subVisual: z.object({
     showEyebrow: z.boolean(),
@@ -1557,7 +1586,7 @@ export type ComponentKey = keyof ComponentSettings
 export const COMPONENT_CATALOG: { key: ComponentKey; name: string; description: string; scope: string; path: string }[] = [
   { key: 'header', name: '헤더', description: '사이트 로고와 상단 배경을 관리합니다.', scope: '사이트 전체', path: '/' },
   { key: 'footer', name: '푸터', description: '하단 메뉴와 SNS 노출을 관리합니다.', scope: '사이트 전체', path: '/' },
-  { key: 'mainVisual', name: '메인 비주얼', description: '슬라이드 이미지·문구와 재생 방식을 관리합니다.', scope: '메인 페이지', path: '/' },
+  { key: 'mainVisual', name: '메인 비주얼', description: '이미지 슬라이드 또는 배경 영상과 문구를 관리합니다.', scope: '메인 페이지', path: '/' },
   { key: 'subVisual', name: '서브 비주얼', description: '페이지별 배경 이미지와 소제목을 관리합니다.', scope: '서브 페이지', path: '/about' },
   { key: 'breadcrumb', name: '브레드크럼', description: '현재 위치 안내와 홈 아이콘을 관리합니다.', scope: '서브 페이지', path: '/about' },
 ]
@@ -1565,7 +1594,7 @@ export const COMPONENT_CATALOG: { key: ComponentKey; name: string; description: 
 export const DEFAULT_COMPONENT_SETTINGS: ComponentSettings = {
   header: { transparent: true, logoText: '', logoImage: '' },
   footer: { showMenu: true, showSocial: true },
-  mainVisual: { autoplay: true, interval: 3000, slides: [
+  mainVisual: { mode: 'slide', video: { ...DEFAULT_MAIN_VISUAL_VIDEO }, autoplay: true, interval: 3000, slides: [
     { title: '고객과 우리의 생각을\n함께 구현하다', description: '필요한 것을 정확히 짚어내는 설계로\n비즈니스가 다음 단계로 나아가도록 돕습니다', image: '/images/main/main_hero_01.jpg' },
     { title: '기획부터 운영까지\n한 팀이 책임집니다', description: '흩어진 과정을 하나로 묶어\n더 빠르고 단단하게 만들어 냅니다', image: '/images/main/main_hero_02.jpg' },
     { title: '오래 쓸 수 있는\n서비스를 만듭니다', description: '눈에 보이는 화면 뒤의 구조까지\n길게 쓰일 것을 생각하며 짓습니다', image: '/images/main/main_hero_03.jpg' },

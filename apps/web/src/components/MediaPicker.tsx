@@ -5,18 +5,27 @@ import { EmptyState, ErrorMessage, Loading, Modal } from './ui'
 
 /**
  * 미디어 고르기 — 이미 올린 그림 중에서 골라 쓴다. 같은 그림을 또 올리지 않아도 된다.
- * 대체 텍스트·원래 파일 이름으로 찾을 수 있다.
+ * 대체 텍스트·원래 파일 이름으로 찾을 수 있다. kind 를 'video' 로 주면 영상만 보여 준다.
  */
-export default function MediaPicker({ onPick, onClose }: { onPick: (url: string) => void; onClose: () => void }) {
+export default function MediaPicker({
+  onPick,
+  onClose,
+  kind = 'image',
+}: {
+  onPick: (url: string) => void
+  onClose: () => void
+  kind?: 'image' | 'video'
+}) {
+  const noun = kind === 'video' ? '영상' : '그림'
   const [items, setItems] = useState<MediaItem[] | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
 
   useEffect(() => {
     api<MediaItem[]>('/media', { auth: true })
-      .then((list) => setItems(list.filter((m) => m.kind === 'image')))
+      .then((list) => setItems(list.filter((m) => m.kind === kind)))
       .catch((e: Error) => setError(e.message))
-  }, [])
+  }, [kind])
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -31,7 +40,7 @@ export default function MediaPicker({ onPick, onClose }: { onPick: (url: string)
       {!items ? (
         <Loading />
       ) : shown.length === 0 ? (
-        <EmptyState label={query ? '찾는 그림이 없습니다.' : '올린 그림이 없습니다. [파일 업로드]로 먼저 올려 주세요.'} />
+        <EmptyState label={query ? `찾는 ${noun}이 없습니다.` : `올린 ${noun}이 없습니다. [파일 업로드]로 먼저 올려 주세요.`} />
       ) : (
         <ul className="grid max-h-[60vh] grid-cols-3 gap-3 overflow-y-auto sm:grid-cols-4">
           {shown.map((m) => (
@@ -44,7 +53,11 @@ export default function MediaPicker({ onPick, onClose }: { onPick: (url: string)
                 }}
                 className="group block w-full overflow-hidden rounded-lg border border-slate-200 text-left transition hover:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700"
               >
-                <img src={m.url} alt={m.alt} loading="lazy" className="aspect-square w-full bg-slate-100 object-cover dark:bg-slate-900" />
+                {kind === 'video' ? (
+                  <video src={m.url} muted preload="metadata" className="aspect-square w-full bg-slate-900 object-cover" />
+                ) : (
+                  <img src={m.url} alt={m.alt} loading="lazy" className="aspect-square w-full bg-slate-100 object-cover dark:bg-slate-900" />
+                )}
                 <p className="truncate px-2 py-1.5 text-[11px] text-slate-600 dark:text-slate-300">{m.alt || m.originalName || m.name}</p>
               </button>
             </li>

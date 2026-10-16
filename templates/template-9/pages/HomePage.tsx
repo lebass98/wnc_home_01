@@ -1,6 +1,7 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
+import MainVisualVideo from '../../components/MainVisualVideo'
 import { api } from '../../lib/api'
 import Reveal from '../../components/Reveal'
 
@@ -821,10 +822,17 @@ function QuickContact() {
   )
 }
 
+/** 관리자 [메인 비주얼]에서 '배경 영상'을 고르면 스케치 연출 대신 화면을 꽉 채운 영상을 보여 준다. */
+function MainVisual() {
+  const { mainVisual } = useComponentSettings()
+  if (mainVisual.mode !== 'video' || !mainVisual.video?.src) return <Hero />
+  return <MainVisualVideo video={mainVisual.video} className="h-screen h-[100dvh]" />
+}
+
 export default function HomePage() {
   return (
     <div className="bg-[#f7f4ef]">
-      <Hero />
+      <MainVisual />
       <Stats />
       <Process />
       <Styles />

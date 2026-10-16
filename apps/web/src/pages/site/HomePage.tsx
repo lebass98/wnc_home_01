@@ -1,6 +1,7 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
 import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
+import MainVisualVideo from '../../components/MainVisualVideo'
 import { DEFAULT_COMPANY } from '@wnc/shared'
 import { useSiteSetting } from '../../lib/seo'
 
@@ -1088,10 +1089,21 @@ function Location() {
   )
 }
 
+/** 관리자 [메인 비주얼]에서 '배경 영상'을 고르면 같은 둥근 상자 안에 영상을 깐다. */
+function MainVisual() {
+  const { mainVisual } = useComponentSettings()
+  if (mainVisual.mode !== 'video' || !mainVisual.video?.src) return <Hero />
+  return (
+    <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-10 2xl:px-0">
+      <MainVisualVideo video={mainVisual.video} className="h-[520px] rounded-[24px] sm:h-[600px]" />
+    </div>
+  )
+}
+
 export default function HomePage() {
   return (
     <div className="flex flex-col gap-24 overflow-x-clip bg-[#faf9f6] pb-24 pt-6 sm:gap-[120px] sm:pb-[100px] sm:pt-12">
-      <Hero />
+      <MainVisual />
       <Programs />
       <Cases />
       <Doctors />

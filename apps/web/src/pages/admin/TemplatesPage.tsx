@@ -10,6 +10,7 @@ import { invalidatePageLayouts } from '../../lib/pageLayouts'
 import { invalidateSiteMenu } from '../../lib/menus'
 import { invalidateComponentSettings } from '../../lib/componentSettings'
 import { FOOTERS, HEADERS } from '../../layouts'
+import TemplateSectionTabs from '../../components/TemplateSectionTabs'
 import { Badge, EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination, RowMenu, ToggleSwitch } from '../../components/ui'
 
 /**
@@ -387,6 +388,7 @@ export default function TemplatesPage() {
   return (
     <div>
       {IS_DEMO && <p className="mb-4 rounded-lg bg-slate-100 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">GitHub Pages 데모입니다. 변경 사항은 이 브라우저에 저장됩니다. 썸네일은 배포에 포함된 촬영본이며, 새 촬영·ZIP 설치·파일 복원은 로컬 관리자에서 이용할 수 있습니다. 내보내기는 구성 JSON을 저장합니다.</p>}
+      <TemplateSectionTabs />
       <PageHeader
         title="템플릿 관리"
         description="템플릿과 레이아웃을 관리하여 웹사이트의 디자인을 구성할 수 있습니다."

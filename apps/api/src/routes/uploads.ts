@@ -90,6 +90,49 @@ uploadsRouter.post('/file', requireAuth, (req, res) => {
   })
 })
 
+/**
+ * 영상 — 메인 비주얼 배경 영상이 쓴다. MP4·WEBM 만, 개당 50MB.
+ * 배포 서버(Vercel)는 요청 하나에 4.5MB 까지만 받으므로 큰 영상은 로컬 관리자에서 올린다
+ * (로컬과 배포가 같은 저장소를 쓰므로 로컬에서 올린 영상도 배포에서 보인다).
+ */
+const ALLOWED_VIDEO = new Map([
+  ['video/mp4', '.mp4'],
+  ['video/webm', '.webm'],
+])
+
+const uploadVideo = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!ALLOWED_VIDEO.has(file.mimetype)) {
+      return cb(new Error('영상은 MP4 또는 WEBM 파일만 올릴 수 있습니다. 다른 형식은 MP4(H.264)로 변환해 올려 주세요.'))
+    }
+    cb(null, true)
+  },
+})
+
+uploadsRouter.post('/video', requireAuth, (req, res) => {
+  uploadVideo.single('file')(req, res, (err) => {
+    if (err) {
+      const message =
+        (err as { code?: string }).code === 'LIMIT_FILE_SIZE'
+          ? '영상 크기는 50MB 를 넘을 수 없습니다. 길이를 줄이거나 화질을 낮춰 다시 올려 주세요.'
+          : (err as Error).message
+      return res.status(400).json({ message })
+    }
+    const file = req.file
+    if (!file) return res.status(400).json({ message: '영상 파일이 없습니다.' })
+
+    const filename = newName(ALLOWED_VIDEO.get(file.mimetype) ?? '')
+    saveUpload(filename, file.buffer, file.mimetype)
+      .then(() => {
+        const name = rememberOriginalName(filename, file.originalname)
+        res.status(201).json({ url: `/uploads/${filename}`, name, size: file.size })
+      })
+      .catch((e) => res.status(500).json({ message: `영상을 저장하지 못했습니다. 잠시 뒤 다시 올려 주세요. (${(e as Error).message})` }))
+  })
+})
+
 uploadsRouter.post('/', requireAuth, (req, res) => {
   upload.single('file')(req, res, (err) => {
     if (err) {

@@ -7,6 +7,7 @@ import { boardName, useBoards } from '../../lib/boards'
 import { formatDate } from '../../lib/format'
 import SectionHeading from '../../components/SectionHeading'
 import HeroSlider from '../../components/HeroSlider'
+import MainVisualVideo from '../../components/MainVisualVideo'
 import CardCarousel from '../../components/CardCarousel'
 import Reveal from '../../components/Reveal'
 
@@ -66,12 +67,17 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroSlider
-        key={JSON.stringify(mainVisual)}
-        slides={mainVisual.slides.map((slide) => ({ title: slide.title.split('\n'), desc: slide.description.split('\n'), image: componentImageUrl(slide.image) }))}
-        interval={mainVisual.interval}
-        autoplay={mainVisual.autoplay}
-      />
+      {/* 관리자 [메인 비주얼]에서 '배경 영상'을 고르면 슬라이드 대신 영상을 깐다. */}
+      {mainVisual.mode === 'video' && mainVisual.video?.src ? (
+        <MainVisualVideo video={mainVisual.video} className="h-screen h-[100dvh]" />
+      ) : (
+        <HeroSlider
+          key={JSON.stringify(mainVisual)}
+          slides={mainVisual.slides.map((slide) => ({ title: slide.title.split('\n'), desc: slide.description.split('\n'), image: componentImageUrl(slide.image) }))}
+          interval={mainVisual.interval}
+          autoplay={mainVisual.autoplay}
+        />
+      )}
 
       {/* 소개 */}
       <section className="py-24 sm:py-28">

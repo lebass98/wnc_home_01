@@ -173,13 +173,6 @@ const NAV: NavItem[] = [
         icon: 'M12 3a9 9 0 100 18h.8a2 2 0 001.4-3.4 2 2 0 011.4-3.4H18a3.8 3.8 0 003.8-3.8C21.8 6 17.4 3 12 3z',
       },
       {
-        to: '/admin/components',
-        label: '컴포넌트 관리',
-        end: false,
-        adminOnly: true,
-        icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
-      },
-      {
         to: '/admin/menus',
         label: '메뉴 관리',
         end: false,

@@ -55,6 +55,14 @@ app.get(
   asyncHandler(async (req, res) => {
     const file = await readUpload(req.params.name)
     if (!file) return res.status(404).end()
+    // 영상은 브라우저가 구간(Range)으로 나눠 달라고 한다(Safari 는 이게 안 되면 재생하지 않는다).
+    // 로컬 파일은 sendFile 이 구간 응답을 알아서 처리한다.
+    if (req.headers.range && file.localPath) {
+      file.stream.destroy()
+      res.setHeader('X-Content-Type-Options', 'nosniff')
+      res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable')
+      return res.sendFile(file.localPath)
+    }
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable')
     res.setHeader('Content-Length', String(file.size))

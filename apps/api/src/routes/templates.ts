@@ -640,16 +640,27 @@ templatesRouter.post(
     if (current) await writeBackupMeta(applied.backup, { templateId: current.id, templateName: current.name })
 
     // 3) 함께 적용을 골랐으면 메뉴·페이지를 템플릿 데이터로 갈아 끼운다.
-    let dataApplied: { menus: number; pages: number } | null = null
-    if (withData) dataApplied = await applySiteData(await readTemplateData(row.id))
-    // 컴포넌트 설정(메인 비주얼 사진 등)은 화면의 일부라 늘 함께 바꾼다.
-    if (nextComponents) await applySiteComponents(nextComponents)
-
     // 4) 켜짐 표시를 옮긴다.
-    await prisma.$transaction([
-      prisma.siteTemplate.updateMany({ where: { active: true }, data: { active: false } }),
-      prisma.siteTemplate.update({ where: { id: row.id }, data: { active: true } }),
-    ])
+    // 여기서 실패하면 화면 파일만 새 템플릿으로 바뀌고 DB 는 옛 템플릿으로 남는다(실제로 있었던 일).
+    // 그러면 방금 남긴 백업으로 화면 파일을 되돌려, 사이트를 적용 전 모습으로 돌려놓는다.
+    let dataApplied: { menus: number; pages: number } | null = null
+    try {
+      if (withData) dataApplied = await applySiteData(await readTemplateData(row.id))
+      // 컴포넌트 설정(메인 비주얼 사진 등)은 화면의 일부라 늘 함께 바꾼다.
+      if (nextComponents) await applySiteComponents(nextComponents)
+      await prisma.$transaction([
+        prisma.siteTemplate.updateMany({ where: { active: true }, data: { active: false } }),
+        prisma.siteTemplate.update({ where: { id: row.id }, data: { active: true } }),
+      ])
+    } catch (error) {
+      console.error('[템플릿 적용 실패 — 화면 파일을 되돌립니다]', error)
+      await restoreApplyBackup(applied.backup)
+      if (current && dataApplied) await applySiteData(currentData).catch(() => {})
+      if (nextComponents) await applySiteComponents(currentComponents).catch(() => {})
+      return res.status(500).json({
+        message: `템플릿을 적용하는 중 DB 저장에 실패해 원래 화면으로 되돌렸습니다. 잠시 뒤 다시 적용해 주세요. (${(error as Error).message.split('\n').filter(Boolean).pop() ?? ''})`,
+      })
+    }
 
     // 5) 적용된 사이트를 찍어 이 템플릿의 미리보기로 남긴다.
     const shot = await captureAfterApply(row.id)

@@ -75,49 +75,56 @@ export async function applySiteData(raw: unknown): Promise<{ menus: number; page
   }
   const data = parsed.data
 
-  await prisma.$transaction(async (tx) => {
-    await tx.menuItem.deleteMany({})
-    for (const [i, root] of data.menus.entries()) {
-      const { children, ...fields } = root
-      const parent = await tx.menuItem.create({ data: { ...fields, sortOrder: i } })
-      for (const [j, child] of children.entries()) {
-        await tx.menuItem.create({ data: { ...child, parentId: parent.id, sortOrder: j } })
+  // DB(Neon)가 멀리 있어 쿼리 한 번이 수백 ms 걸린다. 기본 제한(5초) 안에 끝나지 않아 트랜잭션이
+  // 중간에 끊기는 일이 있었다 — 왕복 횟수를 줄이고(하위 메뉴는 한 번에, 버전은 페이지와 함께)
+  // 제한 시간도 넉넉히 준다.
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.menuItem.deleteMany({})
+      for (const [i, root] of data.menus.entries()) {
+        const { children, ...fields } = root
+        const parent = await tx.menuItem.create({ data: { ...fields, sortOrder: i } })
+        if (children.length) {
+          await tx.menuItem.createMany({ data: children.map((child, j) => ({ ...child, parentId: parent.id, sortOrder: j })) })
+        }
       }
-    }
 
-    // 페이지는 버전 이력까지 함께 지워지고(cascade), 새 페이지는 1버전부터 시작한다.
-    await tx.page.deleteMany({})
-    for (const page of data.pages) {
-      const { titleI18n, contentI18n, metaTitle, metaDescription, metaKeywords, ...fields } = page
-      const created = await tx.page.create({
-        data: {
-          ...fields,
-          title: titleI18n.ko?.trim() || page.title,
-          content: contentI18n.ko ?? page.content,
-          titleI18n: JSON.stringify(titleI18n),
-          contentI18n: JSON.stringify(contentI18n),
-          publishedAt: page.published ? new Date() : null,
-          version: 1,
-          metaTitle: metaTitle || null,
-          metaDescription: metaDescription || null,
-          metaKeywords: metaKeywords || null,
-        },
-      })
-      await tx.pageVersion.create({
-        data: {
-          pageId: created.id,
-          version: 1,
-          title: created.title,
-          description: created.description,
-          content: created.content,
-          published: created.published,
-          showInNav: created.showInNav,
-          note: '템플릿 데모 데이터 적용',
-          authorName: '템플릿',
-        },
-      })
-    }
-  })
+      // 페이지는 버전 이력까지 함께 지워지고(cascade), 새 페이지는 1버전부터 시작한다.
+      await tx.page.deleteMany({})
+      for (const page of data.pages) {
+        const { titleI18n, contentI18n, metaTitle, metaDescription, metaKeywords, ...fields } = page
+        const title = titleI18n.ko?.trim() || page.title
+        const content = contentI18n.ko ?? page.content
+        await tx.page.create({
+          data: {
+            ...fields,
+            title,
+            content,
+            titleI18n: JSON.stringify(titleI18n),
+            contentI18n: JSON.stringify(contentI18n),
+            publishedAt: page.published ? new Date() : null,
+            version: 1,
+            metaTitle: metaTitle || null,
+            metaDescription: metaDescription || null,
+            metaKeywords: metaKeywords || null,
+            versions: {
+              create: {
+                version: 1,
+                title,
+                description: fields.description,
+                content,
+                published: fields.published,
+                showInNav: fields.showInNav,
+                note: '템플릿 데모 데이터 적용',
+                authorName: '템플릿',
+              },
+            },
+          },
+        })
+      }
+    },
+    { maxWait: 10_000, timeout: 60_000 },
+  )
 
   return { menus: data.menus.length, pages: data.pages.length }
 }

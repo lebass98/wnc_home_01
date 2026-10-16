@@ -9,6 +9,7 @@
     "showSocial": true
   },
   "mainVisual": {
+    "mode": "slide",
     "autoplay": true,
     "interval": 5000,
     "slides": [
@@ -27,7 +28,15 @@
         "description": "치료가 끝난 뒤에도\n정기 관리로 꾸준히 함께합니다.",
         "image": "/images/dental/hero-03.png"
       }
-    ]
+    ],
+    "video": {
+      "src": "",
+      "poster": "",
+      "title": "",
+      "description": "",
+      "overlayOpacity": 40,
+      "showSoundToggle": false
+    }
   },
   "subVisual": {
     "showEyebrow": true,

@@ -9,6 +9,7 @@ import { useVisitLog } from '../lib/visit'
 import { useSiteDesign } from '../lib/siteDesign'
 import { footerComponent, headerComponent } from '../layouts'
 import SitePopups from './SitePopups'
+import PreviewBanner from './PreviewBanner'
 import RedirectGate from './RedirectGate'
 import SitemapDrawer from './SitemapDrawer'
 import MobileNavDrawer from './MobileNavDrawer'
@@ -76,6 +77,8 @@ export default function SiteLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <SitePopups />
+      {/* 템플릿 프리뷰 중이면 실제 적용과 헷갈리지 않게 안내 띠를 띄운다 */}
+      <PreviewBanner />
       {/* 주소를 바꾼 화면 — [리디렉션]에 등록된 옛 주소면 새 주소로 넘긴다 */}
       <RedirectGate />
       <SitemapDrawer open={sitemapOpen} onClose={() => setSitemapOpen(false)} />

@@ -9,6 +9,7 @@
     "showSocial": true
   },
   "mainVisual": {
+    "mode": "video",
     "autoplay": true,
     "interval": 3000,
     "slides": [
@@ -28,14 +29,40 @@
         "image": "/images/main/main_hero_03.jpg"
       }
     ],
-    "mode": "video",
     "video": {
       "src": "/videos/data-wave-loop.mp4",
       "poster": "/images/main/data-wave-poster.jpg",
-      "title": "웹을 넘어,",
-      "description": "더 큰 세상을 만들어가는 파트너",
+      "title": "웹을 넘어,\n더 큰 세상으로",
+      "description": "2003년부터 기관과 기업의 디지털 파트너로\n한 걸음씩 함께 걸어왔습니다.",
       "overlayOpacity": 15,
-      "showSoundToggle": false
+      "showSoundToggle": false,
+      "captions": [
+        {
+          "eyebrow": "WORDNCODE · SINCE 2003",
+          "title": "웹을 넘어,\n더 큰 세상으로",
+          "description": "2003년부터 기관과 기업의 디지털 파트너로\n한 걸음씩 함께 걸어왔습니다.",
+          "align": "left"
+        },
+        {
+          "eyebrow": "WEB DEVELOPMENT",
+          "title": "기획부터 운영까지\n한 팀이 완성합니다",
+          "description": "웹사이트 구축과 유지보수를\n처음부터 끝까지 책임집니다.",
+          "align": "right"
+        },
+        {
+          "eyebrow": "DATA & VISUALIZATION",
+          "title": "흩어진 데이터를\n읽히는 이야기로",
+          "description": "데이터 시각화와 마이그레이션으로\n정보가 가진 가치를 드러냅니다.",
+          "align": "left"
+        },
+        {
+          "eyebrow": "CONTENT & CMS",
+          "title": "오래 쓰는 플랫폼을\n짓습니다",
+          "description": "웹진·뉴스레터 제작과 CMS 도입으로\n매일의 운영을 가볍게 만듭니다.",
+          "align": "right"
+        }
+      ],
+      "captionInterval": 6000
     }
   },
   "subVisual": {

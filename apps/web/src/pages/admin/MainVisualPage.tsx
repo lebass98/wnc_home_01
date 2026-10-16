@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { DEFAULT_COMPONENT_SETTINGS, componentSettingsSchema, type ComponentSettings, type ComponentSettingsResponse, type MainVisualMode } from '@wnc/shared'
+import { DEFAULT_COMPONENT_SETTINGS, DEFAULT_MAIN_VISUAL_CAPTIONS, MAX_MAIN_VISUAL_CAPTIONS, componentSettingsSchema, type ComponentSettings, type ComponentSettingsResponse, type MainVisualCaption, type MainVisualCaptionAlign, type MainVisualMode } from '@wnc/shared'
 import { api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { componentImageUrl, invalidateComponentSettings, loadComponentSettings } from '../../lib/componentSettings'
@@ -8,11 +8,46 @@ import { ErrorMessage, Loading, PageHeader } from '../../components/ui'
 import ThumbnailInput from '../../components/ThumbnailInput'
 import VideoInput from '../../components/VideoInput'
 import TemplateSectionTabs from '../../components/TemplateSectionTabs'
+import MainVisualVideo from '../../components/MainVisualVideo'
 
 type MainVisual = ComponentSettings['mainVisual']
 type Slide = MainVisual['slides'][number]
 
 const MAX_SLIDES = 6
+
+const ALIGNS: { value: MainVisualCaptionAlign; label: string }[] = [
+  { value: 'left', label: '왼쪽' },
+  { value: 'center', label: '가운데' },
+  { value: 'right', label: '오른쪽' },
+]
+
+/**
+ * 예전 저장본(제목·설명 한 장)을 문구 목록으로 옮겨 읽는다 — 저장본과 작성본에 똑같이 적용해
+ * 열자마자 '저장하지 않은 변경'으로 보이지 않게 한다.
+ */
+function normalize(value: MainVisual): MainVisual {
+  const video = value.video
+  if (video.captions.length || !video.title.trim()) return value
+  return { ...value, video: { ...video, captions: [{ eyebrow: '', title: video.title, description: video.description, align: 'left' }] } }
+}
+
+/** 실제 홈페이지 부품을 1600×900 으로 그려 상자 폭에 맞춰 줄인다 — 글자 크기·애니메이션이 화면과 같다. */
+function ScaledPreview({ children }: { children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.5)
+  useEffect(() => {
+    const element = box.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / 1600))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  return (
+    <div ref={box} className="relative aspect-video overflow-hidden rounded-xl bg-slate-950">
+      <div className="absolute left-0 top-0 h-[900px] w-[1600px] origin-top-left" style={{ transform: `scale(${scale})` }}>{children}</div>
+    </div>
+  )
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="block space-y-2 text-sm font-medium"><span>{label}</span>{children}</label>
@@ -36,14 +71,18 @@ export default function MainVisualPage() {
   const [saved, setSaved] = useState<{ value: MainVisual; revision: number } | null>(null)
   const [draft, setDraft] = useState<MainVisual | null>(null)
   const [slideIndex, setSlideIndex] = useState(0)
+  const [captionIndex, setCaptionIndex] = useState(0)
+  /** 미리보기에서 고치는 문구만 볼지, 홈페이지처럼 차례로 넘겨 볼지 */
+  const [playAll, setPlayAll] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const dirty = !!saved && !!draft && JSON.stringify(saved.value) !== JSON.stringify(draft)
 
   const apply = (value: ComponentSettingsResponse) => {
-    setSaved({ value: value.settings.mainVisual, revision: value.revisions.mainVisual ?? 0 })
-    setDraft(structuredClone(value.settings.mainVisual))
+    const mainVisual = normalize(value.settings.mainVisual)
+    setSaved({ value: mainVisual, revision: value.revisions.mainVisual ?? 0 })
+    setDraft(structuredClone(mainVisual))
   }
 
   useEffect(() => {
@@ -69,6 +108,24 @@ export default function MainVisualPage() {
   const slide = draft.slides[index]
   const changeSlide = (values: Partial<Slide>) => update({ slides: draft.slides.map((item, i) => i === index ? { ...item, ...values } : item) })
   const changeVideo = (values: Partial<MainVisual['video']>) => update({ video: { ...draft.video, ...values } })
+  const captions = draft.video.captions
+  const cIndex = Math.min(captionIndex, Math.max(captions.length - 1, 0))
+  const caption = captions[cIndex] as MainVisualCaption | undefined
+  const changeCaptions = (next: MainVisualCaption[]) => changeVideo({ captions: next })
+  const changeCaption = (values: Partial<MainVisualCaption>) => changeCaptions(captions.map((item, i) => i === cIndex ? { ...item, ...values } : item))
+  const addCaption = () => {
+    // 새 문구는 앞 문구의 반대편에 둔다 — 좌우로 번갈아 나타나도록.
+    const last = captions[captions.length - 1]
+    changeCaptions([...captions, { eyebrow: '', title: '새 문구', description: '', align: last?.align === 'left' ? 'right' : 'left' }])
+    setCaptionIndex(captions.length)
+  }
+  const moveCaption = (step: -1 | 1) => {
+    const next = [...captions]
+    const target = cIndex + step
+    ;[next[cIndex], next[target]] = [next[target], next[cIndex]]
+    changeCaptions(next)
+    setCaptionIndex(target)
+  }
   const moveSlide = (step: -1 | 1) => {
     const slides = [...draft.slides]
     const target = index + step
@@ -79,15 +136,18 @@ export default function MainVisualPage() {
 
   async function save() {
     if (!draft || !saved) return
-    const parsed = componentSettingsSchema.shape.mainVisual.safeParse(draft)
+    // 문구를 저장하면 예전 칸(제목·설명)에도 첫 장을 담는다 — 문구 목록을 모르는 화면도 같은 제목을 보인다.
+    const first = draft.video.captions[0]
+    const value = { ...draft, video: { ...draft.video, title: first?.title ?? '', description: first?.description ?? '' } }
+    const parsed = componentSettingsSchema.shape.mainVisual.safeParse(value)
     if (!parsed.success) { setError(parsed.error.issues.map((issue) => issue.message).join(' ')); return }
     setBusy(true); setError(''); setMessage('')
     try {
       const result = await api<{ value: MainVisual; revision: number }>('/components/mainVisual', {
         method: 'PUT', auth: true, body: { value: parsed.data, revision: saved.revision },
       })
-      setSaved({ value: result.value, revision: result.revision })
-      setDraft(structuredClone(result.value))
+      setSaved({ value: normalize(result.value), revision: result.revision })
+      setDraft(structuredClone(normalize(result.value)))
       invalidateComponentSettings()
       setMessage(`메인 비주얼을 ${result.value.mode === 'video' ? '배경 영상' : '이미지 슬라이드'}으로 저장했습니다. 홈페이지에 반영되었습니다.`)
     } catch (e) { setError((e as Error).message) }
@@ -197,21 +257,81 @@ export default function MainVisualPage() {
             onChange={(src) => changeVideo({ src })} />
           <ThumbnailInput label="대표 이미지 (선택)" hint="영상을 불러오는 동안, 또는 움직임 줄이기 설정을 켠 방문자에게 대신 보여 줍니다."
             value={draft.video.poster ? componentImageUrl(draft.video.poster) : null} onChange={(poster) => changeVideo({ poster: poster ?? '' })} />
-          <Field label="제목 (줄바꿈 가능, 비우면 영상만 표시)"><textarea className="input" rows={2} maxLength={200} value={draft.video.title} onChange={(e) => changeVideo({ title: e.target.value })} /></Field>
-          <Field label="설명 (줄바꿈 가능)"><textarea className="input" rows={3} maxLength={500} value={draft.video.description} onChange={(e) => changeVideo({ description: e.target.value })} /></Field>
           <Field label={`영상 어둡기 ${draft.video.overlayOpacity}%`}><input className="w-full accent-blue-600" type="range" min={0} max={80} value={draft.video.overlayOpacity} onChange={(e) => changeVideo({ overlayOpacity: Number(e.target.value) })} /></Field>
           <Toggle label="방문자가 소리를 켤 수 있는 단추 표시" checked={draft.video.showSoundToggle} onChange={(showSoundToggle) => changeVideo({ showSoundToggle })} />
 
-          <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-950 text-center text-white">
-            {draft.video.src
-              ? <video key={draft.video.src} src={componentImageUrl(draft.video.src)} poster={draft.video.poster ? componentImageUrl(draft.video.poster) : undefined} muted loop autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />
-              : <p className="absolute inset-0 grid place-items-center text-sm text-white/60">영상을 올리면 여기에서 미리 볼 수 있습니다.</p>}
-            <div className="absolute inset-0 bg-black" style={{ opacity: draft.video.overlayOpacity / 100 }} aria-hidden />
-            <div className="relative flex h-full flex-col items-center justify-center px-5">
-              <p className="whitespace-pre-line text-xl font-bold">{draft.video.title}</p>
-              <p className="mt-3 whitespace-pre-line text-sm">{draft.video.description}</p>
+          {/* 영상 위 문구 — 여러 장을 왼쪽·가운데·오른쪽 자리에 차례로 띄운다. */}
+          <div className="space-y-5 rounded-xl border border-slate-200 p-5 dark:border-slate-700">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">영상 위 문구 ({captions.length}/{MAX_MAIN_VISUAL_CAPTIONS})</p>
+                <p className="mt-1 text-xs text-slate-500">여러 장이면 정한 시간마다 다음 문구로 넘어갑니다. 비워 두면 영상만 보입니다.</p>
+              </div>
+              <button type="button" className="btn-secondary" onClick={() => { changeCaptions(DEFAULT_MAIN_VISUAL_CAPTIONS.map((item) => ({ ...item }))); setCaptionIndex(0) }}>추천 문구로 채우기</button>
             </div>
-            <span className="absolute left-3 top-3 rounded bg-black/50 px-2 py-1 text-[11px]">작성 중 미리보기</span>
+            <Field label="문구 한 장이 머무는 시간 (초)"><input className="input sm:max-w-[200px]" type="number" min={3} max={20} step={1} value={draft.video.captionInterval / 1000} onChange={(e) => changeVideo({ captionInterval: Number(e.target.value) * 1000 })} /></Field>
+
+            <ul className="flex flex-wrap gap-2">
+              {captions.map((item, i) => (
+                <li key={i}>
+                  <button type="button" aria-pressed={cIndex === i} onClick={() => setCaptionIndex(i)}
+                    className={`flex max-w-[220px] items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition ${cIndex === i ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500 dark:bg-slate-800' : 'border-slate-200 hover:border-brand-300 dark:border-slate-700'}`}>
+                    <b>{i + 1}</b>
+                    <span className="truncate">{item.title.split('\n')[0] || '제목 없음'}</span>
+                    <span className="shrink-0 text-xs text-slate-400">{ALIGNS.find((a) => a.value === item.align)?.label}</span>
+                  </button>
+                </li>
+              ))}
+              {captions.length < MAX_MAIN_VISUAL_CAPTIONS && (
+                <li><button type="button" className="rounded-lg border border-dashed border-slate-300 px-3 py-2.5 text-sm text-slate-500 transition hover:border-brand-400 hover:text-brand-600 dark:border-slate-600" onClick={addCaption}>+ 문구 추가</button></li>
+              )}
+            </ul>
+
+            {caption && (
+              <div className="space-y-5 border-t border-slate-200 pt-5 dark:border-slate-700">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold">문구 {cIndex + 1} 편집</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" className="btn-secondary" disabled={cIndex === 0} onClick={() => moveCaption(-1)}>앞으로</button>
+                    <button type="button" className="btn-secondary" disabled={cIndex === captions.length - 1} onClick={() => moveCaption(1)}>뒤로</button>
+                    <button type="button" className="btn-secondary text-red-600" onClick={() => { changeCaptions(captions.filter((_, i) => i !== cIndex)); setCaptionIndex(Math.max(0, cIndex - 1)) }}>삭제</button>
+                  </div>
+                </div>
+                <div>
+                  <span className="mb-2 block text-sm font-medium">자리</span>
+                  <div role="radiogroup" aria-label="문구 자리" className="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
+                    {ALIGNS.map((a) => (
+                      <button key={a.value} type="button" role="radio" aria-checked={caption.align === a.value} onClick={() => changeCaption({ align: a.value })}
+                        className={`border-l border-slate-300 px-5 py-2.5 text-sm first:border-l-0 dark:border-slate-600 ${caption.align === a.value ? 'bg-brand-600 font-semibold text-white' : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300'}`}>
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs text-slate-500">휴대폰처럼 좁은 화면에서는 읽기 쉽도록 늘 왼쪽에 맞춥니다.</p>
+                </div>
+                <Field label="소제목 (영문 권장, 선택)"><input className="input" maxLength={60} placeholder="예: WEB DEVELOPMENT" value={caption.eyebrow} onChange={(e) => changeCaption({ eyebrow: e.target.value })} /></Field>
+                <Field label="제목 (줄바꿈하면 줄마다 차례로 떠오릅니다)"><textarea className="input" rows={2} maxLength={200} value={caption.title} onChange={(e) => changeCaption({ title: e.target.value })} /></Field>
+                <Field label="설명 (줄바꿈 가능)"><textarea className="input" rows={3} maxLength={500} value={caption.description} onChange={(e) => changeCaption({ description: e.target.value })} /></Field>
+              </div>
+            )}
+          </div>
+
+          {/* 실제 홈페이지 부품 그대로의 미리보기 — 고치는 문구에 멈춰 두거나, 홈페이지처럼 차례로 넘겨 본다. */}
+          <div>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium">작성 중 미리보기</p>
+              <div role="radiogroup" aria-label="미리보기 방식" className="inline-flex overflow-hidden rounded-lg border border-slate-300 text-xs dark:border-slate-600">
+                {[{ value: false, label: `문구 ${cIndex + 1} 고정` }, { value: true, label: '전체 재생' }].map((o) => (
+                  <button key={String(o.value)} type="button" role="radio" aria-checked={playAll === o.value} onClick={() => setPlayAll(o.value)}
+                    className={`border-l border-slate-300 px-3 py-1.5 first:border-l-0 dark:border-slate-600 ${playAll === o.value ? 'bg-slate-900 font-semibold text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {draft.video.src
+              ? <ScaledPreview><MainVisualVideo video={draft.video} align="left" className="h-full w-full" pinned={playAll ? undefined : cIndex} /></ScaledPreview>
+              : <p className="grid aspect-video place-items-center rounded-xl bg-slate-950 text-sm text-white/60">영상을 올리면 여기에서 미리 볼 수 있습니다.</p>}
           </div>
         </section>
       )}

@@ -1541,6 +1541,20 @@ export type MainVisualMode = (typeof MAIN_VISUAL_MODES)[number]
 const videoUrl = z.string().max(2000).refine((value) =>
   value === '' || /^\/(?!\/)[^\\\s]*$/.test(value) || /^https?:\/\/[^\s]+$/i.test(value),
 '영상은 사이트 내부 경로 또는 http(s) 영상 파일 주소(MP4·WEBM)를 입력하세요.')
+/** 영상 위 문구의 자리 */
+export const MAIN_VISUAL_CAPTION_ALIGNS = ['left', 'center', 'right'] as const
+export type MainVisualCaptionAlign = (typeof MAIN_VISUAL_CAPTION_ALIGNS)[number]
+/** 영상 위에 차례로 나타나는 문구 한 장 */
+const mainVisualCaptionSchema = z.object({
+  /** 제목 위의 작은 영문 소제목 (선택) */
+  eyebrow: z.string().max(60),
+  title: z.string().trim().min(1, '문구 제목을 입력하세요.').max(200),
+  description: caption,
+  align: z.enum(MAIN_VISUAL_CAPTION_ALIGNS),
+})
+export type MainVisualCaption = z.infer<typeof mainVisualCaptionSchema>
+export const MAX_MAIN_VISUAL_CAPTIONS = 6
+
 const mainVisualVideoSchema = z.object({
   /** 영상 파일 주소 */
   src: videoUrl,
@@ -1552,11 +1566,26 @@ const mainVisualVideoSchema = z.object({
   overlayOpacity: z.number().int().min(0).max(80),
   /** 방문자가 소리를 켤 수 있는 단추를 보일지 — 자동 재생은 늘 소리 없이 시작한다. */
   showSoundToggle: z.boolean(),
+  /**
+   * 차례로 나타나는 문구들. 비어 있으면 위의 title·description 한 장을 보여 준다
+   * (예전 저장본과의 호환 — 문구를 저장하면 title·description 에는 첫 장이 함께 담긴다).
+   */
+  captions: z.array(mainVisualCaptionSchema).max(MAX_MAIN_VISUAL_CAPTIONS).default([]),
+  /** 문구 한 장이 머무는 시간(ms) */
+  captionInterval: z.number().int().min(3000).max(20000).default(6000),
 })
 export type MainVisualVideo = z.infer<typeof mainVisualVideoSchema>
 export const DEFAULT_MAIN_VISUAL_VIDEO: MainVisualVideo = {
-  src: '', poster: '', title: '', description: '', overlayOpacity: 40, showSoundToggle: false,
+  src: '', poster: '', title: '', description: '', overlayOpacity: 40, showSoundToggle: false, captions: [], captionInterval: 6000,
 }
+
+/** 워드앤코드 메인 영상의 기본 문구 — 서비스 다섯 갈래를 네 장으로 나눠 좌우로 번갈아 보여 준다. */
+export const DEFAULT_MAIN_VISUAL_CAPTIONS: MainVisualCaption[] = [
+  { eyebrow: 'WORDNCODE · SINCE 2003', title: '웹을 넘어,\n더 큰 세상으로', description: '2003년부터 기관과 기업의 디지털 파트너로\n한 걸음씩 함께 걸어왔습니다.', align: 'left' },
+  { eyebrow: 'WEB DEVELOPMENT', title: '기획부터 운영까지\n한 팀이 완성합니다', description: '웹사이트 구축과 유지보수를\n처음부터 끝까지 책임집니다.', align: 'right' },
+  { eyebrow: 'DATA & VISUALIZATION', title: '흩어진 데이터를\n읽히는 이야기로', description: '데이터 시각화와 마이그레이션으로\n정보가 가진 가치를 드러냅니다.', align: 'left' },
+  { eyebrow: 'CONTENT & CMS', title: '오래 쓰는 플랫폼을\n짓습니다', description: '웹진·뉴스레터 제작과 CMS 도입으로\n매일의 운영을 가볍게 만듭니다.', align: 'right' },
+]
 
 export const componentSettingsSchema = z.object({
   header: z.object({ transparent: z.boolean(), logoText: z.string().max(80), logoImage: imageUrl }),
@@ -1596,8 +1625,9 @@ export const DEFAULT_COMPONENT_SETTINGS: ComponentSettings = {
   footer: { showMenu: true, showSocial: true },
   mainVisual: { mode: 'video', video: {
     src: '/videos/data-wave-loop.mp4', poster: '/images/main/data-wave-poster.jpg',
-    title: '웹을 넘어,', description: '더 큰 세상을 만들어가는 파트너',
+    title: '웹을 넘어,\n더 큰 세상으로', description: '2003년부터 기관과 기업의 디지털 파트너로\n한 걸음씩 함께 걸어왔습니다.',
     overlayOpacity: 15, showSoundToggle: false,
+    captions: DEFAULT_MAIN_VISUAL_CAPTIONS.map((item) => ({ ...item })), captionInterval: 6000,
   }, autoplay: true, interval: 3000, slides: [
     { title: '고객과 우리의 생각을\n함께 구현하다', description: '필요한 것을 정확히 짚어내는 설계로\n비즈니스가 다음 단계로 나아가도록 돕습니다', image: '/images/main/main_hero_01.jpg' },
     { title: '기획부터 운영까지\n한 팀이 책임집니다', description: '흩어진 과정을 하나로 묶어\n더 빠르고 단단하게 만들어 냅니다', image: '/images/main/main_hero_02.jpg' },

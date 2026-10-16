@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import { exitPreview, getPreview, previewQuery } from '../lib/preview'
+import { exitPreview, getPreview, inPreviewWindow, previewQuery } from '../lib/preview'
 
 /**
- * 템플릿 프리뷰 안내 띠.
+ * 템플릿 프리뷰 표시 — 화면 아래 가운데의 작은 알약.
  *
- * 프리뷰 주소를 한 번 열면 같은 탭에서는 주소에 표시가 없어도 프리뷰가 이어진다(preview.ts).
- * 표시가 없으면 실제로 그 템플릿이 적용된 줄 알게 되므로 — 실제로 '기본 템플릿이 켜져 있는데
- * 인테리어가 뜬다'는 혼란이 있었다 — 프리뷰 중에는 늘 이 띠를 띄우고 끝내는 단추를 둔다.
+ * 프리뷰 화면은 실제 적용 화면과 똑같이 생겨, 표시가 없으면 그 템플릿이 켜진 줄 알게 된다
+ * (실제로 '기본 템플릿이 켜져 있는데 인테리어가 뜬다'는 혼란이 있었다). 그래서 프리뷰 중에는
+ * 늘 이 표시를 띄운다. 끝내는 방법은 창을 닫는 것이라 따로 단추를 두지 않는다(lib/preview.ts).
  * 프리뷰하던 템플릿이 그사이 켜졌거나 지워졌으면 프리뷰를 조용히 끝낸다.
  */
 export default function PreviewBanner() {
@@ -29,27 +29,13 @@ export default function PreviewBanner() {
 
   if (!preview) return null
 
-  const finish = () => {
-    exitPreview()
-    // 주소에 남은 프리뷰 쿼리도 걷어 내고 실제 적용된 디자인으로 다시 그린다.
-    const url = new URL(window.location.href)
-    url.searchParams.delete('previewTemplate')
-    url.searchParams.delete('previewName')
-    window.location.replace(url.toString())
-  }
-
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-4 z-[1000] mx-auto flex max-w-xl flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl bg-slate-900/95 px-5 py-3 text-sm text-white shadow-2xl backdrop-blur sm:rounded-full"
+      className="pointer-events-none fixed bottom-4 left-1/2 z-[1000] -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900/90 px-4 py-2 text-xs text-white shadow-lg backdrop-blur"
     >
-      <span>
-        <b className="font-semibold text-amber-300">미리보기 중</b> · {preview.name || `템플릿 ${preview.id}`}
-        <span className="ml-1 text-white/70">— 실제 사이트에는 적용되지 않았습니다</span>
-      </span>
-      <button type="button" onClick={finish} className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-slate-900 transition hover:bg-slate-200">
-        미리보기 끝내기
-      </button>
+      <b className="font-semibold text-amber-300">미리보기</b> · {preview.name || `템플릿 ${preview.id}`}
+      <span className="ml-1.5 text-white/60">{inPreviewWindow() ? '창을 닫으면 끝납니다' : '새로고침하면 실제 화면으로 돌아갑니다'}</span>
     </div>
   )
 }

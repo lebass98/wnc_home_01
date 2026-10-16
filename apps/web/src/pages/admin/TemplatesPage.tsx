@@ -11,6 +11,7 @@ import { invalidateSiteMenu } from '../../lib/menus'
 import { invalidateComponentSettings } from '../../lib/componentSettings'
 import { FOOTERS, HEADERS } from '../../layouts'
 import TemplateSectionTabs from '../../components/TemplateSectionTabs'
+import { previewWindowName } from '../../lib/preview'
 import { Badge, EmptyState, ErrorMessage, Loading, Modal, PageHeader, Pagination, RowMenu, ToggleSwitch } from '../../components/ui'
 
 /**
@@ -311,13 +312,14 @@ export default function TemplatesPage() {
   }
 
   /**
-   * 프리뷰 — 이 템플릿을 켜지(활성화하지) 않고 새 탭에서 모습만 미리 본다.
+   * 프리뷰 — 이 템플릿을 켜지(활성화하지) 않고 미리보기 창에서 모습만 본다.
    * 지금 사이트의 메뉴·글·페이지 데이터는 그대로 두고, 헤더·푸터·화면별 레이아웃·메인 비주얼 같은
    * 디자인만 이 템플릿의 것으로 보여 준다 (서버의 /design·/components·/site-pages/layouts 가
    * ?preview=<id> 를 받아 처리한다).
    */
   /**
-   * 주소를 만들기만 한다 — 실제로 새 탭을 여는 일은 <a target="_blank"> 에게 맡긴다.
+   * 주소를 만들기만 한다 — 실제로 창을 여는 일은 <a target={미리보기 창 이름}> 에게 맡긴다.
+   * 이름 붙은 창으로 열어야 그 창에서만 프리뷰가 이어지고, 창을 닫으면 끝난다(lib/preview.ts).
    * window.open() 으로 열면 Safari 등에서 '사용자가 직접 누른 동작'으로 보지 않고
    * 조용히 막는 경우가 있어(에러도 없이 그냥 안 열림), 브라우저 기본 링크 동작을 쓴다.
    */
@@ -505,9 +507,8 @@ export default function TemplatesPage() {
                         </svg>
                         <a
                           href={previewUrl(row)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="누르면 이 템플릿 모습을 새 탭에서 봅니다. 주소를 복사해 다른 창·다른 기기에서도 열 수 있습니다."
+                          target={previewWindowName(row.id)}
+                          title="누르면 이 템플릿 모습을 미리보기 창에서 봅니다. 창을 닫으면 미리보기가 끝납니다."
                           className="min-w-0 truncate underline decoration-dotted underline-offset-2 hover:text-brand-600"
                         >
                           {previewUrl(row)}
@@ -564,9 +565,8 @@ export default function TemplatesPage() {
                     {!row.active && (
                       <a
                         href={previewUrl(row)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="켜지 않고 새 탭에서 모습만 미리 봅니다"
+                        target={previewWindowName(row.id)}
+                        title="켜지 않고 미리보기 창에서 모습만 봅니다. 창을 닫으면 미리보기가 끝납니다."
                         className="btn-secondary hidden sm:inline-flex"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">

@@ -9,6 +9,8 @@ const asset = (path: string) => {
 
 type Sample = {
   id: string
+  /** HomeCategoryNav 의 업종 열쇠말 */
+  category: string
   image: string
   title: string
   desc: string
@@ -18,34 +20,39 @@ type Sample = {
 const SAMPLES: Sample[] = [
   {
     id: 'sample-01',
+    category: 'hospital',
     image: '/images/home/sample-01.jpg',
-    title: '신뢰감을 강조한 기업 소개형',
-    desc: '회사 소개·사업 분야·문의에 적합',
-    tags: ['simple', 'Sophisticated'],
+    title: '진료 과정을 보여주는 병원형',
+    desc: '진료 안내·시술 사례·예약에 적합',
+    tags: ['Clean', 'Trustworthy'],
   },
   {
     id: 'sample-02',
+    category: 'food',
     image: '/images/home/sample-02.jpg',
-    title: '신뢰감을 강조한 기업 소개형',
-    desc: '회사 소개·사업 분야·문의에 적합',
-    tags: ['simple', 'Sophisticated'],
+    title: '메뉴가 돋보이는 디저트형',
+    desc: '메뉴 소개·주문·매장 안내에 적합',
+    tags: ['Warm', 'Delicious'],
   },
   {
     id: 'sample-03',
+    category: 'wedding',
     image: '/images/home/sample-03.jpg',
-    title: '신뢰감을 강조한 기업 소개형',
-    desc: '회사 소개·사업 분야·문의에 적합',
-    tags: ['simple', 'Sophisticated'],
+    title: '감성을 담은 웨딩·스튜디오형',
+    desc: '포트폴리오·촬영 상담·예약에 적합',
+    tags: ['Elegant', 'Romantic'],
   },
   {
     id: 'sample-04',
+    category: 'interior',
     image: '/images/home/sample-04.jpg',
-    title: '신뢰감을 강조한 기업 소개형',
-    desc: '회사 소개·사업 분야·문의에 적합',
-    tags: ['simple', 'Sophisticated'],
+    title: '시공 사례 중심 인테리어형',
+    desc: '시공 사례·견적 문의·상담에 적합',
+    tags: ['Modern', 'Calm'],
   },
   {
     id: 'sample-05',
+    category: 'business',
     image: '/images/home/sample-05.jpg',
     title: '신뢰감을 강조한 기업 소개형',
     desc: '회사 소개·사업 분야·문의에 적합',
@@ -53,10 +60,11 @@ const SAMPLES: Sample[] = [
   },
   {
     id: 'sample-06',
+    category: 'stay',
     image: '/images/home/sample-06.jpg',
-    title: '신뢰감을 강조한 기업 소개형',
-    desc: '회사 소개·사업 분야·문의에 적합',
-    tags: ['simple', 'Sophisticated'],
+    title: '편안함을 앞세운 숙소형',
+    desc: '객실 안내·이용 안내·예약에 적합',
+    tags: ['Cozy', 'Soft'],
   },
 ]
 
@@ -132,12 +140,33 @@ function SampleCard({ sample, index }: { sample: Sample; index: number }) {
   )
 }
 
-/** 디자인 샘플 여섯 장을 세 칸씩 늘어놓는다. */
-export default function HomeSampleGrid() {
+/**
+ * 디자인 샘플을 세 칸씩 늘어놓는다.
+ * 위 띠에서 고른 업종만 보여 주고, 'all' 이면 전부 보여 준다.
+ */
+export default function HomeSampleGrid({ category = 'all' }: { category?: string }) {
+  const shown = category === 'all' ? SAMPLES : SAMPLES.filter((s) => s.category === category)
+
+  if (shown.length === 0) {
+    return (
+      <div className="rounded-[16px] border border-dashed border-[#e1e1e1] bg-[#fafafa] py-20 text-center">
+        <p className="text-[17px] font-semibold text-[#111]">이 업종의 디자인 샘플을 준비하고 있어요.</p>
+        <p className="mt-2 text-[15px] text-[#999]">필요하신 모습이 있다면 맞춤 제작으로 만들어 드립니다.</p>
+        <Link
+          to="/contact"
+          className="mt-6 inline-flex h-[42px] items-center rounded-[8px] bg-[#044acf] px-6 text-[15px] font-semibold text-white transition hover:bg-[#0340b4]"
+        >
+          맞춤 제작 상담하기
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-      {SAMPLES.map((sample, index) => (
-        <SampleCard key={sample.id} sample={sample} index={index} />
+      {shown.map((sample, index) => (
+        // 업종을 바꾸면 카드가 새로 등장하도록 열쇠에 업종을 섞는다.
+        <SampleCard key={`${category}-${sample.id}`} sample={sample} index={index} />
       ))}
     </div>
   )

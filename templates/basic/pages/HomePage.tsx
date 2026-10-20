@@ -1,4 +1,5 @@
 import { componentImageUrl, useComponentSettings } from '../../lib/componentSettings'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import HeroSlider from '../../components/HeroSlider'
 import MainVisualVideo from '../../components/MainVisualVideo'
@@ -26,6 +27,8 @@ const FAQ_BG = 'radial-gradient(1169px 578px at 41% 56%, #dbeaf9 0%, rgba(247,25
 
 export default function HomePage() {
   const { mainVisual } = useComponentSettings()
+  // 디자인 샘플을 추려 보는 업종. 기본은 전체보기다.
+  const [category, setCategory] = useState('all')
 
   return (
     <>
@@ -50,11 +53,11 @@ export default function HomePage() {
           />
 
           <div className="mt-10">
-            <HomeCategoryNav />
+            <HomeCategoryNav active={category} onChange={setCategory} />
           </div>
 
           <div className="mt-[60px]">
-            <HomeSampleGrid />
+            <HomeSampleGrid category={category} />
           </div>
 
           <Reveal rise index={3} step={150} className="mt-10 flex flex-wrap items-end justify-center gap-4 text-[17px] leading-[1.5] tracking-[-0.425px]">

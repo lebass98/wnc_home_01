@@ -1,0 +1,84 @@
+import Reveal from './Reveal'
+
+const asset = (path: string) => {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+type Step = {
+  /** 영문 단계 이름 — 칸마다 색이 다르다. */
+  step: string
+  stepColor: string
+  title: string
+  desc: string[]
+  image: string
+  /** 배경 그림을 위아래로 뒤집어 깐다 */
+  flip?: boolean
+}
+
+const STEPS: Step[] = [
+  {
+    step: 'STEP 01. Design Selection',
+    stepColor: '#073989',
+    title: '디자인 선택',
+    desc: ['카테고리별 디자인 샘플을 둘러보고', '브랜드와 적합한 스타일을 선택하세요!'],
+    image: '/images/home/step-01.jpg',
+    flip: true,
+  },
+  {
+    step: 'STEP 02. Content Submission',
+    stepColor: '#00154c',
+    title: '자료전달',
+    desc: ['로고와 이미지, 페이지에 들어갈 문구 등', '홈페이지 제작에 필요한 자료를 전달해 주세요.'],
+    image: '/images/home/step-02.jpg',
+  },
+  {
+    step: 'STEP 03. Production & Review',
+    stepColor: '#7ba4df',
+    title: '제작·확인',
+    desc: ['선택한 디자인에 전달해 주신 자료를 반영합니다.', '완성된 시안을 확인하고 수정 의견을 알려주세요.'],
+    image: '/images/home/step-03.jpg',
+    flip: true,
+  },
+  {
+    step: 'STEP 04. Launch',
+    stepColor: '#5698f6',
+    title: '홈페이지 오픈',
+    desc: ['최종 시안과 기능을 꼼꼼하게 점검한 뒤,', '우리 브랜드의 홈페이지를 정식으로 오픈합니다.'],
+    image: '/images/home/step-04.jpg',
+  },
+]
+
+/** 제작 네 단계 — 파란 그러데이션 칸 네 개가 나란히 선다. */
+export default function HomeProcess() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {STEPS.map((step, index) => (
+        <Reveal key={step.title} index={index}>
+          <div className="relative flex h-[328px] flex-col justify-end overflow-hidden rounded-[16px] border border-white/10 bg-[#92c7fe] px-[26px] py-[32px]">
+            <img
+              src={asset(step.image)}
+              alt=""
+              loading="lazy"
+              aria-hidden
+              className={`absolute inset-0 h-full w-full object-cover ${step.flip ? '-scale-y-100' : ''}`}
+            />
+            <div className="relative">
+              <p className="text-[14px] font-bold leading-[22.4px]" style={{ color: step.stepColor }}>
+                {step.step}
+              </p>
+              <p className="pt-[10px] text-[23px] font-bold leading-[1.5] tracking-[-0.575px] text-white">
+                {step.title}
+              </p>
+              <p className="pt-[14px] text-[14.5px] font-medium leading-[1.5] tracking-[-0.3625px] text-white">
+                {step.desc[0]}
+                <br />
+                {step.desc[1]}
+              </p>
+            </div>
+          </div>
+        </Reveal>
+      ))}
+    </div>
+  )
+}

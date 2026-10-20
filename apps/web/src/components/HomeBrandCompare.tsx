@@ -19,7 +19,7 @@ export default function HomeBrandCompare() {
               <div className="flex-1 rounded-[10px] bg-[#2c5bae]" />
             </div>
             <div className="flex-1 rounded-[10px] bg-[#86c5ff]" />
-            <p className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[18px] font-bold leading-[28.8px] text-white">
+            <p className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[15px] font-bold leading-[28.8px] text-white sm:text-[18px]">
               BRAND WEBSITE
             </p>
           </div>
@@ -87,7 +87,7 @@ export default function HomeBrandCompare() {
             <div className="flex-1 rounded-[10px] bg-[#d4d67d]" />
             <div className="flex-1 rounded-[10px] bg-[#b8c7f8]" />
             <div className="flex-1 rounded-[10px] bg-[#ff531f]" />
-            <p className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[18px] font-bold leading-[28.8px] text-[#ff531f]">
+            <p className="absolute left-1/2 top-[70px] -translate-x-1/2 whitespace-nowrap text-[15px] font-bold leading-[28.8px] text-[#ff531f] sm:text-[18px]">
               BRAND WEBSITE
             </p>
           </div>

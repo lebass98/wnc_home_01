@@ -32,10 +32,11 @@ export default function HomeQuickLinks() {
             to={link.to}
             className={`block h-full min-h-[163px] rounded-[16px] p-[30px] transition duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-18px_rgba(12,33,164,0.45)] ${link.className}`}
           >
-            <p className="text-[22px] font-bold leading-[29.92px]">{link.title}</p>
-            <p className="mt-[16px] text-[15px] font-semibold leading-[1.5]">
+            <p className="break-keep text-[20px] font-bold leading-[1.4] sm:text-[22px] sm:leading-[29.92px]">{link.title}</p>
+            <p className="mt-[16px] break-keep text-[14px] font-semibold leading-[1.55] sm:text-[15px]">
               {link.desc[0]}
-              <br />
+              {/* 넓은 화면에서만 시안대로 두 줄로 끊는다 */}
+              <br className="hidden lg:inline" />{' '}
               {link.desc[1]}
             </p>
           </Link>

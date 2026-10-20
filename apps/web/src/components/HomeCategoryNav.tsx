@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import React, { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 const asset = (path: string) => {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -71,7 +71,7 @@ function CategoryTab({
   children: ReactNode
 }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} className="flex w-[92px] shrink-0 flex-col items-center">
+    <button type="button" onClick={onClick} aria-pressed={active} className="flex w-[80px] shrink-0 flex-col items-center sm:w-[92px]">
       <span
         className={`relative flex h-[80px] w-[80px] items-start justify-center rounded-[24px] transition-colors duration-300 ${
           active ? 'bg-[#044acf]' : 'bg-[#f5f7f6]'
@@ -80,7 +80,7 @@ function CategoryTab({
         {children}
       </span>
       <span
-        className={`mt-[15px] text-center text-[15px] font-semibold transition-colors duration-300 ${
+        className={`mt-[12px] break-keep text-center text-[13px] font-semibold leading-[1.3] transition-colors duration-300 sm:mt-[15px] sm:text-[15px] ${
           active ? 'text-[#044acf]' : 'text-[#111]'
         }`}
       >
@@ -159,6 +159,18 @@ export default function HomeCategoryNav({
     setIndex((current) => current + direction)
   }, [])
 
+  // 손가락·마우스로 옆으로 밀면 한 칸 넘어간다. 세로 넘기기는 막지 않는다.
+  const dragFrom = useRef<number | null>(null)
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragFrom.current = e.clientX
+  }
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (dragFrom.current === null) return
+    const moved = e.clientX - dragFrom.current
+    dragFrom.current = null
+    if (Math.abs(moved) > 40) slide(moved < 0 ? 1 : -1)
+  }
+
   // 바깥 벌까지 갔으면 눈에 띄지 않게 가운데 벌의 같은 자리로 옮긴다.
   const settle = () => {
     if (index >= count * 2) {
@@ -174,12 +186,12 @@ export default function HomeCategoryNav({
   const loop = [...CATEGORIES, ...CATEGORIES, ...CATEGORIES]
 
   return (
-    <div className="flex items-start justify-center gap-4 sm:gap-10">
+    <div className="flex items-start justify-center gap-2 sm:gap-6 lg:gap-10">
       <button
         type="button"
         onClick={() => slide(-1)}
         aria-label="이전 업종 보기"
-        className="mt-[19px] hidden h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] bg-[#e9e9e9] transition hover:bg-[#dcdcdc] sm:grid"
+        className="mt-[22px] grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[12px] bg-[#e9e9e9] transition hover:bg-[#dcdcdc] sm:mt-[19px] sm:h-[42px] sm:w-[42px]"
       >
         <img src={asset('/images/home/arrow-prev.svg')} alt="" width={24} height={24} />
       </button>
@@ -197,18 +209,22 @@ export default function HomeCategoryNav({
       </CategoryTab>
 
       {/* 전체보기와 업종을 가르는 세로선 — 가로 선 그림을 세워 쓴다. */}
-      <div className="flex h-[108px] w-0 shrink-0 items-center justify-center" aria-hidden>
+      <div className="hidden h-[108px] w-0 shrink-0 items-center justify-center sm:flex" aria-hidden>
         <div className="rotate-90">
           <img src={asset('/images/home/divider.svg')} alt="" width={108} height={1} className="block max-w-none" />
         </div>
       </div>
 
       {/* 돌아가는 업종 띠 */}
-      <div className="min-w-0 flex-1 overflow-hidden sm:max-w-[756px]">
+      <div
+        className="min-w-0 flex-1 touch-pan-y overflow-hidden sm:max-w-[756px]"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+      >
         <div
           ref={trackRef}
           onTransitionEnd={settle}
-          className={`flex gap-4 sm:gap-[16px] ${sliding ? 'transition-transform duration-500 ease-out' : ''}`}
+          className={`flex gap-2 sm:gap-[16px] ${sliding ? 'transition-transform duration-500 ease-out' : ''}`}
           style={{ transform: `translateX(-${index * step}px)` }}
         >
           {loop.map((category, i) => (
@@ -233,7 +249,7 @@ export default function HomeCategoryNav({
         type="button"
         onClick={() => slide(1)}
         aria-label="다음 업종 보기"
-        className="mt-[19px] hidden h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] bg-[#bbb] transition hover:bg-[#a8a8a8] sm:grid"
+        className="mt-[22px] grid h-[36px] w-[36px] shrink-0 place-items-center rounded-[12px] bg-[#bbb] transition hover:bg-[#a8a8a8] sm:mt-[19px] sm:h-[42px] sm:w-[42px]"
       >
         <img src={asset('/images/home/arrow-next.svg')} alt="" width={24} height={24} />
       </button>

@@ -55,7 +55,7 @@ export default function HomeProcess() {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {STEPS.map((step, index) => (
         <Reveal key={step.title} rise index={index} step={160} className="group/step">
-          <div className="relative flex h-[328px] flex-col justify-end overflow-hidden rounded-[16px] border border-white/10 bg-[#92c7fe] px-[26px] py-[32px] transition duration-500 ease-out group-hover/step:-translate-y-2 group-hover/step:shadow-[0_22px_45px_-20px_rgba(12,33,164,0.55)]">
+          <div className="relative flex h-[240px] flex-col justify-end overflow-hidden rounded-[16px] sm:h-[280px] lg:h-[328px] border border-white/10 bg-[#92c7fe] px-[26px] py-[32px] transition duration-500 ease-out group-hover/step:-translate-y-2 group-hover/step:shadow-[0_22px_45px_-20px_rgba(12,33,164,0.55)]">
             {/* 뒤집기는 바깥 칸이 맡고, 안쪽 그림은 마우스를 올렸을 때만 천천히 커진다. */}
             <div className={`absolute inset-0 ${step.flip ? '-scale-y-100' : ''}`} aria-hidden>
               <img
@@ -66,15 +66,16 @@ export default function HomeProcess() {
               />
             </div>
             <div className="relative">
-              <p className="text-[14px] font-bold leading-[22.4px]" style={{ color: step.stepColor }}>
+              <p className="text-[13px] font-bold leading-[22.4px] sm:text-[14px]" style={{ color: step.stepColor }}>
                 {step.step}
               </p>
-              <p className="pt-[10px] text-[23px] font-bold leading-[1.5] tracking-[-0.575px] text-white">
+              <p className="break-keep pt-[10px] text-[20px] font-bold leading-[1.5] tracking-[-0.575px] text-white sm:text-[23px]">
                 {step.title}
               </p>
-              <p className="pt-[14px] text-[14.5px] font-medium leading-[1.5] tracking-[-0.3625px] text-white">
+              <p className="break-keep pt-[14px] text-[14px] font-medium leading-[1.55] tracking-[-0.3625px] text-white sm:text-[14.5px]">
                 {step.desc[0]}
-                <br />
+                {/* 넓은 화면에서만 시안대로 두 줄로 끊는다 */}
+                <br className="hidden lg:inline" />{' '}
                 {step.desc[1]}
               </p>
             </div>

@@ -16,7 +16,7 @@ export default function HomeSectionHeading({
 }) {
   return (
     <div className={`text-center ${className}`}>
-      <Reveal rise as="h2" className="text-[26px] font-bold leading-[1.5] tracking-[-0.8px] text-[#111] sm:text-[32px]">
+      <Reveal rise as="h2" className="break-keep text-[22px] font-bold leading-[1.4] tracking-[-0.8px] text-[#111] sm:text-[26px] sm:leading-[1.5] lg:text-[32px]">
         {title}
       </Reveal>
       <Reveal
@@ -24,7 +24,7 @@ export default function HomeSectionHeading({
         index={1}
         step={120}
         as="p"
-        className="mt-3 text-[16px] leading-[25.6px] tracking-[-0.45px] text-[#515f73] sm:text-[18px]"
+        className="mt-3 break-keep text-[15px] leading-[1.6] tracking-[-0.45px] text-[#515f73] sm:text-[16px] lg:text-[18px] lg:leading-[25.6px]"
       >
         {desc}
       </Reveal>

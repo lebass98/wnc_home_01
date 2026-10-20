@@ -41,8 +41,8 @@ export default function BasicFooter({ company, menu, onOpenSitemap }: SiteFooter
             ))}
           </ul>
 
-          <div className="flex items-center gap-4">
-            <p className="text-[15px] text-white sm:text-[16px]">어디서부터 뭘 어떻게 시작할지 모르겠다면</p>
+          <div className="flex flex-1 items-center justify-end gap-4">
+            <p className="break-keep text-[14px] text-white sm:text-[16px]">어디서부터 뭘 어떻게 시작할지 모르겠다면</p>
             <Link
               to="/contact"
               className="grid h-[40px] shrink-0 place-items-center rounded-[6px] border border-[#707070] px-6 text-[15px] font-semibold text-white transition hover:border-white hover:bg-white/10"

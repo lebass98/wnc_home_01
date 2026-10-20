@@ -45,7 +45,7 @@ export default function HomePage() {
       )}
 
       {/* 1구역 — 업종을 고르고 디자인 샘플을 둘러본다 */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-14 sm:py-20">
         <div className="container-wnc">
           <HomeSectionHeading
             title="어떤 홈페이지가 필요하세요?"
@@ -56,11 +56,11 @@ export default function HomePage() {
             <HomeCategoryNav active={category} onChange={setCategory} />
           </div>
 
-          <div className="mt-[60px]">
+          <div className="mt-10 sm:mt-[60px]">
             <HomeSampleGrid category={category} />
           </div>
 
-          <Reveal rise index={3} step={150} className="mt-10 flex flex-wrap items-end justify-center gap-4 text-[17px] leading-[1.5] tracking-[-0.425px]">
+          <Reveal rise index={3} step={150} className="mt-10 flex flex-wrap items-end justify-center gap-x-4 gap-y-2 break-keep text-center text-[15px] leading-[1.5] tracking-[-0.425px] sm:text-[17px]">
             <p className="text-[#64748b]">원하는 디자인이 없으신가요?</p>
             <Link to="/contact" className="font-bold text-[#044acf] underline">
               맞춤 제작 상담하기 →
@@ -70,13 +70,14 @@ export default function HomePage() {
       </section>
 
       {/* 2구역 — 제작 네 단계 */}
-      <section className="py-[100px]" style={{ backgroundImage: SECTION2_BG }}>
+      <section className="py-16 sm:py-20 lg:py-[100px]" style={{ backgroundImage: SECTION2_BG }}>
         <div className="container-wnc">
           <HomeSectionHeading
             title={
               <>
                 디자인 셀렉부터 홈페이지 오픈까지,
-                <br />네 단계로 간편하게 시작하세요.
+                <br className="hidden sm:inline" />{' '}
+                네 단계로 간편하게 시작하세요.
               </>
             }
             desc="마음에 드는 디자인과 준비한 콘텐츠로, 우리 브랜드의 홈페이지를 완성합니다."
@@ -86,7 +87,7 @@ export default function HomePage() {
             <HomeProcess />
           </div>
 
-          <Reveal rise index={4} step={160} className="mt-8 text-center text-[17px] leading-[24px] text-[#0c42bc]">
+          <Reveal rise index={4} step={160} className="mt-8 break-keep text-center text-[15px] leading-[1.6] text-[#0c42bc] sm:text-[17px] sm:leading-[24px]">
             <p>
               제작 일정은 자료 전달 완료 후 안내하며, 오픈 이후 <strong className="font-bold">유지관리</strong>는{' '}
               <strong className="font-bold">별도로 상담</strong>해 드립니다.
@@ -96,7 +97,7 @@ export default function HomePage() {
       </section>
 
       {/* 3구역 — 브랜딩에 따라 달라지는 결과 */}
-      <section className="bg-white py-[120px]">
+      <section className="bg-white py-16 sm:py-20 lg:py-[120px]">
         <div className="container-wnc">
           <HomeSectionHeading
             title="같은 사이트도 브랜딩에 따라 달라집니다."
@@ -107,7 +108,7 @@ export default function HomePage() {
             <HomeBrandCompare />
           </div>
 
-          <Reveal rise index={5} step={170} className="mt-8 text-center text-[17px] leading-[1.5] tracking-[-0.425px] text-[#0c42bc]">
+          <Reveal rise index={5} step={170} className="mt-8 break-keep text-center text-[15px] leading-[1.6] tracking-[-0.425px] text-[#0c42bc] sm:text-[17px] sm:leading-[1.5]">
             <p>
               기존 제작 샘플과 <strong className="font-bold">카테고리가 달라도</strong> 우리 브랜드에 맞게{' '}
               <strong className="font-bold">적용할 수 있어요!</strong>
@@ -119,14 +120,14 @@ export default function HomePage() {
       {/* FAQ */}
       <section className="bg-white">
         <div className="container-wnc">
-          <div className="rounded-[24px] px-6 py-[60px] sm:px-[100px]" style={{ backgroundImage: FAQ_BG }}>
+          <div className="rounded-[24px] px-5 py-10 sm:px-10 sm:py-14 lg:px-[100px] lg:py-[60px]" style={{ backgroundImage: FAQ_BG }}>
             <HomeSectionHeading title="어떤점이 궁금하세요?" desc="궁금한 점이 있다면 먼저 확인해 보세요." />
 
             <div className="mt-6">
               <HomeFaq />
             </div>
 
-            <Reveal rise index={5} step={110} className="mt-8 flex flex-wrap items-start justify-center gap-4 text-center text-[17px] leading-[1.5] tracking-[-0.425px]">
+            <Reveal rise index={5} step={110} className="mt-8 flex flex-wrap items-start justify-center gap-x-4 gap-y-2 break-keep text-center text-[15px] leading-[1.5] tracking-[-0.425px] sm:text-[17px]">
               <p className="text-[#0c42bc]">
                 템플릿만으로 어렵다면 <strong className="font-bold">제작 상담</strong>을 이용해 보세요.
               </p>
@@ -139,7 +140,7 @@ export default function HomePage() {
       </section>
 
       {/* 다음 걸음 단추 */}
-      <section className="bg-white pb-[120px] pt-16">
+      <section className="bg-white pb-20 pt-10 sm:pb-[120px] sm:pt-16">
         <div className="container-wnc">
           <HomeQuickLinks />
         </div>

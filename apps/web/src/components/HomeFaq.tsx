@@ -41,7 +41,7 @@ export default function HomeFaq() {
               className="group flex w-full items-center justify-between gap-4 px-[4px] py-[22px] text-left"
             >
               <span
-                className={`text-[17px] font-semibold leading-[1.6] tracking-[-0.5px] transition-colors duration-300 sm:text-[20px] ${
+                className={`break-keep text-[16px] font-semibold leading-[1.6] tracking-[-0.5px] transition-colors duration-300 sm:text-[18px] lg:text-[20px] ${
                   isOpen ? 'text-[#044acf]' : 'text-[#00154c] group-hover:text-[#044acf]'
                 }`}
               >
@@ -62,7 +62,7 @@ export default function HomeFaq() {
                 isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
               }`}
             >
-              <p className="overflow-hidden px-[4px] text-[16px] leading-[1.75] text-[#515f73]">
+              <p className="overflow-hidden break-keep px-[4px] text-[15px] leading-[1.75] text-[#515f73] sm:text-[16px]">
                 <span className="block pb-[22px]">{faq.a}</span>
               </p>
             </div>

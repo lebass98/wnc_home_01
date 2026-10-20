@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode, type TransitionEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode, type TransitionEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 export interface HeroSlide {
@@ -72,15 +72,53 @@ export default function HeroSlider({
   const [offset, setOffset] = useState<-1 | 0 | 1>(0)
   const [playing, setPlaying] = useState(autoplay)
   const moving = offset !== 0
+  /** 지금 밀리는 방향 — 리렌더와 무관하게 읽고 쓰려고 ref 로도 들고 있는다. */
+  const offsetRef = useRef<-1 | 0 | 1>(0)
 
   // 이미 움직이는 중이면 무시한다 — 연타해도 한 장씩만 넘어간다.
-  const go = useCallback((dir: -1 | 1) => setOffset((o) => (o !== 0 ? o : dir)), [])
+  const go = useCallback((dir: -1 | 1) => {
+    if (offsetRef.current !== 0) return
+    offsetRef.current = dir
+    setOffset(dir)
+  }, [])
+
+  /**
+   * 밀림을 마무리한다 — 현재 장을 바꾸고 전환 없이 제자리로 되돌린다.
+   * transitionend 하나에만 기대면 그 이벤트가 유실될 때 offset 이 0 으로 돌아오지 못해
+   * 자동 넘김이 영영 멈춘다. 그래서 어느 경로로 불려도 ref 로 한 번만 실행되게 잠근다.
+   */
+  const finish = useCallback(() => {
+    const dir = offsetRef.current
+    if (dir === 0) return
+    offsetRef.current = 0
+    setIndex((i) => (i - dir + count) % count)
+    setOffset(0)
+  }, [count])
+
+  // 안전 타이머 — 전환 시간이 지나면 강제로 마무리한다.
+  // 탭을 숨기거나 창이 가려져 transitionend 가 오지 않아도 다음 장으로 넘어간다.
+  useEffect(() => {
+    if (offset === 0) return
+    const timer = window.setTimeout(finish, SPEED + 400)
+    return () => window.clearTimeout(timer)
+  }, [offset, finish])
+
+  // 탭을 떠났다 돌아오면 밀리던 도중에 멈춰 있을 수 있다. 돌아오는 즉시 마무리해 루프를 잇는다.
+  useEffect(() => {
+    const resume = () => { if (!document.hidden) finish() }
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('pageshow', resume)
+    return () => {
+      document.removeEventListener('visibilitychange', resume)
+      window.removeEventListener('pageshow', resume)
+    }
+  }, [finish])
 
   // 자동 재생 — 한 장이 다 넘어간 뒤 interval 만큼 기다렸다가 다음 장으로 간다.
   useEffect(() => {
     if (!playing || moving || count <= 1) return
-    const timer = setTimeout(() => go(-1), interval)
-    return () => clearTimeout(timer)
+    const timer = window.setTimeout(() => go(-1), interval)
+    return () => window.clearTimeout(timer)
   }, [playing, moving, count, interval, index, go])
 
   /** 점을 눌러 이동 — 바로 옆 장이면 밀어서, 멀면 바로 바꾼다. */
@@ -92,11 +130,10 @@ export default function HeroSlider({
     else setIndex(target)
   }
 
-  /** 밀림이 끝나면 현재 장을 바꾸고, 전환 없이 제자리로 되돌린다. */
+  /** 밀림이 끝났다 — 자식 요소(배경)의 전환에는 반응하지 않는다. */
   const onTransitionEnd = (e: TransitionEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget || !moving) return
-    setIndex((i) => (i - offset + count) % count)
-    setOffset(0)
+    if (e.target !== e.currentTarget) return
+    finish()
   }
 
   // 화면에 깔아 둘 세 칸 — 이전·현재·다음

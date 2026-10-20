@@ -28,11 +28,25 @@ export default function MainVisualVideo({
   pinned?: number
 }) {
   const ref = useRef<HTMLVideoElement>(null)
+  /** 사용자가 멈춤 단추로 직접 멈췄는지 — 브라우저가 알아서 멈춘 것과 구분해야 되살릴 때 헷갈리지 않는다. */
+  const [userPaused, setUserPaused] = useState(false)
+  const pausedByUser = useRef(false)
+  pausedByUser.current = userPaused
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(true)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [reduceMotion, setReduceMotion] = useState(false)
   const mediaPosition = align === 'left' ? 'object-[25%_center] sm:object-center' : 'object-center'
+
+  // 움직임 줄이기 설정은 영상과 따로 지켜본다 — 문구 넘김 여부를 판단하는 기준이기도 하다.
+  useEffect(() => {
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReduceMotion(motion.matches)
+    sync()
+    motion.addEventListener('change', sync)
+    return () => motion.removeEventListener('change', sync)
+  }, [])
 
   // 문구가 없으면 예전처럼 제목·설명 한 장을 쓴다. 자리는 템플릿이 정한 정렬을 따른다.
   const captions: MainVisualCaption[] = video.captions?.length
@@ -44,14 +58,24 @@ export default function MainVisualVideo({
   const interval = Math.max(video.captionInterval ?? 6000, 3000)
   const [rotating, setRotating] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  /** 문구 타이머를 처음부터 다시 걸어야 할 때 올리는 번호 — 탭에서 돌아왔을 때 쓴다. */
+  const [cycle, setCycle] = useState(0)
   const index = pinned ?? rotating
   const current = captions[Math.min(index, count - 1)]
+  /**
+   * 문구를 계속 넘길지 — 영상이 도는지와 분리해서 판단한다.
+   * 영상 불러오기가 실패하거나, 저전력 상태라 재생이 시작되지 않거나,
+   * 브라우저가 play() 를 거부하면 playing 이 영영 false 로 남아 문구가 1번에서 굳어 버린다.
+   * 문구가 멈춰야 하는 경우는 사용자가 멈춤 단추를 눌렀을 때와 움직임 줄이기 설정일 때뿐이다.
+   */
+  const autoRotate = pinned === undefined && count >= 2 && !userPaused && !reduceMotion
 
   useEffect(() => {
     const element = ref.current
     if (!element) return
     let active = true
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setUserPaused(false)
     setPlaying(false)
     setMuted(true)
     setReady(false)
@@ -79,9 +103,41 @@ export default function MainVisualVideo({
     setLeaving(false)
   }, [captionsKey])
 
-  // 영상이 도는 동안만 넘긴다 — 머무는 시간이 끝나기 조금 전에 사라지기 시작해 다음 장으로 바꾼다.
+  // 탭을 떠나면 브라우저가 배경 영상을 멈춘다.
+  // 돌아왔을 때 사용자가 직접 멈춘 게 아니라면 다시 재생하고, 화면 표시도 실제 상태에 맞춘다.
   useEffect(() => {
-    if (!playing || count < 2 || pinned !== undefined) return
+    const resume = () => {
+      if (document.hidden) return
+      // 탭이 오래 가려져 있으면 브라우저가 타이머를 분 단위까지 늦춘다(크롬 절전).
+      // 돌아온 즉시 문구 타이머를 새로 걸어, 한참 멈춰 있는 것처럼 보이지 않게 한다.
+      setLeaving(false)
+      setCycle((c) => c + 1)
+      const element = ref.current
+      if (!element || pausedByUser.current) return
+      // 영상은 돌고 있는데 React 쪽 표시만 멈춤으로 굳은 경우 — 실제 상태로 되돌린다.
+      if (!element.paused) {
+        setPlaying(true)
+        return
+      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      element.play().catch(() => {})
+    }
+    document.addEventListener('visibilitychange', resume)
+    window.addEventListener('pageshow', resume)
+    return () => {
+      document.removeEventListener('visibilitychange', resume)
+      window.removeEventListener('pageshow', resume)
+    }
+  }, [])
+
+  // 문구 넘김 — 머무는 시간이 끝나기 조금 전에 사라지기 시작해 다음 장으로 바꾼다.
+  // 영상 재생 여부와 무관하게 돌린다(영상이 없거나 실패해도 문구는 계속 바뀌어야 한다).
+  useEffect(() => {
+    // 멈춰 있는 동안에는 사라지는 중이던 문구를 되돌린다 — 그대로 두면 글이 비어 보인다.
+    if (!autoRotate) {
+      setLeaving(false)
+      return
+    }
     const leave = window.setTimeout(() => setLeaving(true), interval - LEAVE)
     const next = window.setTimeout(() => {
       setRotating((i) => (i + 1) % count)
@@ -91,13 +147,20 @@ export default function MainVisualVideo({
       window.clearTimeout(leave)
       window.clearTimeout(next)
     }
-  }, [playing, count, interval, index, pinned])
+  }, [autoRotate, count, interval, index, cycle])
 
+  /**
+   * 멈춤·재생 단추 — 영상과 문구 넘김을 함께 다룬다.
+   * 영상이 실패했거나 재생되지 못하는 상황에서도 문구 넘김은 이 단추로만 멈춘다.
+   */
   const togglePlay = () => {
     const element = ref.current
+    const next = !userPaused
+    setUserPaused(next)
+    pausedByUser.current = next
     if (!element) return
-    if (element.paused) element.play().catch(() => setPlaying(false))
-    else element.pause()
+    if (next) element.pause()
+    else element.play().catch(() => setPlaying(false))
   }
   const toggleSound = () => {
     const element = ref.current
@@ -112,6 +175,13 @@ export default function MainVisualVideo({
   }
 
   const side = current?.align ?? 'center'
+  /**
+   * 단추에 보여 줄 상태 — 문구 넘김 기준을 먼저 따르고, 문구가 한 장뿐이면 영상 재생 여부를 따른다.
+   * 영상이 실패해도 문구가 돌고 있으면 '멈춤'으로 보여 멈출 수 있게 한다.
+   */
+  const running = !userPaused && !reduceMotion && (autoRotate || playing)
+  /** 영상이 실패해도 문구가 여러 장이면 멈출 수단은 남겨 둔다. */
+  const showControls = !failed || count > 1
 
   return (
     <section className={`relative overflow-hidden bg-slate-950 ${className}`} aria-label="메인 비주얼">
@@ -169,8 +239,8 @@ export default function MainVisualVideo({
                   <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/25 transition group-hover:bg-white/50" />
                   {i === index && (
                     <span
-                      key={`${index}-${captionsKey}`}
-                      className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white ${playing && pinned === undefined ? 'mv-progress' : ''}`}
+                      key={`${index}-${cycle}-${captionsKey}`}
+                      className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white ${autoRotate ? 'mv-progress' : ''}`}
                       style={{ animationDuration: `${interval}ms` }}
                     />
                   )}
@@ -182,8 +252,8 @@ export default function MainVisualVideo({
         </div>
       )}
 
-      {!failed && <div className="absolute bottom-6 right-6 z-10 flex items-center gap-2 sm:bottom-8 sm:right-8">
-        {video.showSoundToggle && (
+      {showControls && <div className="absolute bottom-6 right-6 z-10 flex items-center gap-2 sm:bottom-8 sm:right-8">
+        {video.showSoundToggle && !failed && (
           <button
             type="button"
             onClick={toggleSound}
@@ -199,11 +269,11 @@ export default function MainVisualVideo({
         <button
           type="button"
           onClick={togglePlay}
-          aria-label={playing ? '영상 일시정지' : '영상 재생'}
+          aria-label={running ? '메인 비주얼 멈춤' : '메인 비주얼 재생'}
           className="grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            {playing ? <path d="M9 5v14M15 5v14" /> : <path d="M8 5v14l11-7z" fill="currentColor" />}
+            {running ? <path d="M9 5v14M15 5v14" /> : <path d="M8 5v14l11-7z" fill="currentColor" />}
           </svg>
         </button>
       </div>}

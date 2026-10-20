@@ -87,7 +87,8 @@ export default function BasicFooter({ company, menu, onOpenSitemap }: SiteFooter
       <div className="container-wnc py-[30px]">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <Link to="/" aria-label={`${company.companyName} 홈으로`} className="text-white">
-            <BrandLogo className="h-[18px]" />
+            {/* 검은 바탕이라 심볼까지 흰 한 색으로 깐다. */}
+            <BrandLogo mono className="h-[18px]" />
           </Link>
           <nav className="flex flex-wrap items-center gap-x-[10px] gap-y-2 text-[12px]" aria-label="약관 및 정책">
             <Link to="/terms" className="text-[#9e9e9e] transition hover:text-white">

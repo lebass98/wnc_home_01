@@ -54,15 +54,17 @@ export default function HomeProcess() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {STEPS.map((step, index) => (
-        <Reveal key={step.title} index={index}>
-          <div className="relative flex h-[328px] flex-col justify-end overflow-hidden rounded-[16px] border border-white/10 bg-[#92c7fe] px-[26px] py-[32px]">
-            <img
-              src={asset(step.image)}
-              alt=""
-              loading="lazy"
-              aria-hidden
-              className={`absolute inset-0 h-full w-full object-cover ${step.flip ? '-scale-y-100' : ''}`}
-            />
+        <Reveal key={step.title} rise index={index} step={160} className="group/step">
+          <div className="relative flex h-[328px] flex-col justify-end overflow-hidden rounded-[16px] border border-white/10 bg-[#92c7fe] px-[26px] py-[32px] transition duration-500 ease-out group-hover/step:-translate-y-2 group-hover/step:shadow-[0_22px_45px_-20px_rgba(12,33,164,0.55)]">
+            {/* 뒤집기는 바깥 칸이 맡고, 안쪽 그림은 마우스를 올렸을 때만 천천히 커진다. */}
+            <div className={`absolute inset-0 ${step.flip ? '-scale-y-100' : ''}`} aria-hidden>
+              <img
+                src={asset(step.image)}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover/step:scale-110"
+              />
+            </div>
             <div className="relative">
               <p className="text-[14px] font-bold leading-[22.4px]" style={{ color: step.stepColor }}>
                 {step.step}

@@ -57,7 +57,7 @@ export default function HomePage() {
             <HomeSampleGrid />
           </div>
 
-          <Reveal className="mt-10 flex flex-wrap items-end justify-center gap-4 text-[17px] leading-[1.5] tracking-[-0.425px]">
+          <Reveal rise index={3} step={150} className="mt-10 flex flex-wrap items-end justify-center gap-4 text-[17px] leading-[1.5] tracking-[-0.425px]">
             <p className="text-[#64748b]">원하는 디자인이 없으신가요?</p>
             <Link to="/contact" className="font-bold text-[#044acf] underline">
               맞춤 제작 상담하기 →
@@ -83,7 +83,7 @@ export default function HomePage() {
             <HomeProcess />
           </div>
 
-          <Reveal className="mt-8 text-center text-[17px] leading-[24px] text-[#0c42bc]">
+          <Reveal rise index={4} step={160} className="mt-8 text-center text-[17px] leading-[24px] text-[#0c42bc]">
             <p>
               제작 일정은 자료 전달 완료 후 안내하며, 오픈 이후 <strong className="font-bold">유지관리</strong>는{' '}
               <strong className="font-bold">별도로 상담</strong>해 드립니다.
@@ -104,7 +104,7 @@ export default function HomePage() {
             <HomeBrandCompare />
           </div>
 
-          <Reveal className="mt-8 text-center text-[17px] leading-[1.5] tracking-[-0.425px] text-[#0c42bc]">
+          <Reveal rise index={5} step={170} className="mt-8 text-center text-[17px] leading-[1.5] tracking-[-0.425px] text-[#0c42bc]">
             <p>
               기존 제작 샘플과 <strong className="font-bold">카테고리가 달라도</strong> 우리 브랜드에 맞게{' '}
               <strong className="font-bold">적용할 수 있어요!</strong>
@@ -123,7 +123,7 @@ export default function HomePage() {
               <HomeFaq />
             </div>
 
-            <Reveal className="mt-8 flex flex-wrap items-start justify-center gap-4 text-center text-[17px] leading-[1.5] tracking-[-0.425px]">
+            <Reveal rise index={5} step={110} className="mt-8 flex flex-wrap items-start justify-center gap-4 text-center text-[17px] leading-[1.5] tracking-[-0.425px]">
               <p className="text-[#0c42bc]">
                 템플릿만으로 어렵다면 <strong className="font-bold">제작 상담</strong>을 이용해 보세요.
               </p>

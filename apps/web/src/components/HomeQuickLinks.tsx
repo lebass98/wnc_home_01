@@ -27,10 +27,10 @@ export default function HomeQuickLinks() {
   return (
     <div className="grid gap-6 md:grid-cols-3">
       {LINKS.map((link, index) => (
-        <Reveal key={link.title} index={index}>
+        <Reveal key={link.title} rise index={index} step={140}>
           <Link
             to={link.to}
-            className={`block h-full min-h-[163px] rounded-[16px] p-[30px] transition ${link.className}`}
+            className={`block h-full min-h-[163px] rounded-[16px] p-[30px] transition duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-18px_rgba(12,33,164,0.45)] ${link.className}`}
           >
             <p className="text-[22px] font-bold leading-[29.92px]">{link.title}</p>
             <p className="mt-[16px] text-[15px] font-semibold leading-[1.5]">

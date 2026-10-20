@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Reveal from './Reveal'
 
 const FAQS = [
   {
@@ -32,29 +33,40 @@ export default function HomeFaq() {
       {FAQS.map((faq, index) => {
         const isOpen = opened === index
         return (
-          <div key={faq.q} className="border-b border-[#cfd8e3]">
+          <Reveal key={faq.q} rise index={index} step={110} className="border-b border-[#cfd8e3]">
             <button
               type="button"
               onClick={() => setOpened(isOpen ? null : index)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-4 px-[4px] py-[22px] text-left"
+              className="group flex w-full items-center justify-between gap-4 px-[4px] py-[22px] text-left"
             >
-              <span className="text-[17px] font-semibold leading-[1.6] tracking-[-0.5px] text-[#00154c] sm:text-[20px]">
+              <span
+                className={`text-[17px] font-semibold leading-[1.6] tracking-[-0.5px] transition-colors duration-300 sm:text-[20px] ${
+                  isOpen ? 'text-[#044acf]' : 'text-[#00154c] group-hover:text-[#044acf]'
+                }`}
+              >
                 {faq.q}
               </span>
               <span
                 aria-hidden
-                className={`shrink-0 pl-[16px] text-[22px] font-bold text-[#044acf] transition-transform ${
-                  isOpen ? 'rotate-45' : ''
+                className={`shrink-0 pl-[16px] text-[22px] font-bold text-[#044acf] transition-transform duration-300 ease-out ${
+                  isOpen ? 'rotate-[135deg]' : 'group-hover:rotate-90'
                 }`}
               >
                 +
               </span>
             </button>
-            {isOpen && (
-              <p className="px-[4px] pb-[22px] text-[16px] leading-[1.75] text-[#515f73]">{faq.a}</p>
-            )}
-          </div>
+            {/* 답은 높이를 0→auto 로 늘려 부드럽게 펼친다. */}
+            <div
+              className={`grid transition-all duration-500 ease-out ${
+                isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <p className="overflow-hidden px-[4px] text-[16px] leading-[1.75] text-[#515f73]">
+                <span className="block pb-[22px]">{faq.a}</span>
+              </p>
+            </div>
+          </Reveal>
         )
       })}
     </div>

@@ -8,7 +8,7 @@ export default function HomeBrandCompare() {
   return (
     <div className="flex flex-col items-stretch justify-center gap-6 lg:flex-row lg:items-center lg:gap-0">
       {/* 왼쪽 — 따뜻한 색을 입힌 결과 */}
-      <Reveal className="flex-1">
+      <Reveal rise step={170} className="flex-1">
         <div className="flex h-full min-h-[358px] flex-col rounded-[14px] border-[3px] border-[#2c5bae] bg-[#fff0b5] p-[28px]">
           <p className="text-center text-[13px] font-black leading-[20.8px] tracking-[1.3px] text-[#2c5bae]">
             CUSTOMIZED
@@ -31,15 +31,18 @@ export default function HomeBrandCompare() {
         </div>
       </Reveal>
 
-      <p
+      <Reveal
+        rise
+        index={1}
+        step={170}
         aria-hidden
         className="w-[70px] shrink-0 self-center text-center text-[30px] font-black leading-[48px] text-[#515f73] max-lg:rotate-90"
       >
         ←
-      </p>
+      </Reveal>
 
       {/* 가운데 — 손대지 않은 기본 템플릿 */}
-      <Reveal index={1} className="flex-1">
+      <Reveal rise index={2} step={170} className="flex-1">
         <div className="flex h-full min-h-[358px] flex-col rounded-[14px] border-2 border-dashed border-[#e2e8f0] bg-white p-[28px]">
           <p className="text-center text-[13px] font-black leading-[20.8px] tracking-[1.3px] text-[#94a3b8]">
             TEMPLATE
@@ -63,15 +66,18 @@ export default function HomeBrandCompare() {
         </div>
       </Reveal>
 
-      <p
+      <Reveal
+        rise
+        index={3}
+        step={170}
         aria-hidden
         className="w-[70px] shrink-0 self-center text-center text-[30px] font-black leading-[48px] text-[#515f73] max-lg:rotate-90"
       >
         →
-      </p>
+      </Reveal>
 
       {/* 오른쪽 — 강한 색을 입힌 결과 */}
-      <Reveal index={2} className="flex-1">
+      <Reveal rise index={4} step={170} className="flex-1">
         <div className="flex h-full min-h-[358px] flex-col rounded-[14px] border-4 border-[#ff531f] bg-[#0c21a4] p-[28px]">
           <p className="text-center text-[13px] font-black leading-[20.8px] tracking-[1.3px] text-[#ff531f]">
             CUSTOMIZED

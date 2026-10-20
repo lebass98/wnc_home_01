@@ -13,6 +13,7 @@ export default function Reveal({
   /** 나타나기 시작하는 방향 */
   from = 'bottom',
   gentle = true,
+  rise = false,
   visible,
   as: Tag = 'div',
   className = '',
@@ -26,6 +27,8 @@ export default function Reveal({
   from?: 'bottom' | 'left' | 'right'
   /** 긴 페이드와 완만한 이동으로 천천히 등장 */
   gentle?: boolean
+  /** 아래에서 또렷하게 떠오르는 등장. 카드처럼 차례로 띄울 때 쓴다. gentle 보다 우선한다. */
+  rise?: boolean
   /** 그룹의 공통 시작 시점으로 등장 순서를 맞춘다. */
   visible?: boolean
   /** 감싸는 태그를 바꾼다. 표의 칸처럼 div 를 못 쓰는 자리에 쓴다. */
@@ -64,24 +67,35 @@ export default function Reveal({
         }
       },
       // 아래쪽에서 조금 올라왔을 때 시작해 자연스럽게 보이도록 한다.
-      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+      // rise 는 카드처럼 키가 큰 것에 쓰므로, 윗머리가 보이자마자 차례가 시작되게 한다.
+      rise ? { threshold: 0, rootMargin: '0px 0px -12% 0px' } : { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [visible])
+  }, [visible, rise])
 
   const isShown = visible ?? shown
 
   const hidden =
-    from === 'left' ? '-translate-x-6 opacity-0' : from === 'right' ? 'translate-x-6 opacity-0' : gentle ? 'translate-y-16 opacity-0' : 'translate-y-7 opacity-0'
+    from === 'left'
+      ? '-translate-x-6 opacity-0'
+      : from === 'right'
+        ? 'translate-x-6 opacity-0'
+        : rise
+          ? 'translate-y-14 scale-[0.98] opacity-0'
+          : gentle
+            ? 'translate-y-16 opacity-0'
+            : 'translate-y-7 opacity-0'
+
+  const motion = rise ? 'reveal-rise' : gentle ? 'reveal-gentle' : 'transition-all duration-700 ease-out'
 
   return (
     <Tag
       ref={ref}
       aria-label={ariaLabel}
       style={{ ...style, transitionDelay: isShown ? `${index * step}ms` : '0ms' }}
-      className={`${gentle ? 'reveal-gentle' : 'transition-all duration-700 ease-out'} motion-reduce:transition-none ${
-        isShown ? 'translate-x-0 translate-y-0 opacity-100' : hidden
+      className={`${motion} motion-reduce:transition-none ${
+        isShown ? 'translate-x-0 translate-y-0 scale-100 opacity-100' : hidden
       } ${className}`}
     >
       {children}

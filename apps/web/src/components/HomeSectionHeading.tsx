@@ -15,13 +15,19 @@ export default function HomeSectionHeading({
   className?: string
 }) {
   return (
-    <Reveal className={`text-center ${className}`}>
-      <h2 className="text-[26px] font-bold leading-[1.5] tracking-[-0.8px] text-[#111] sm:text-[32px]">
+    <div className={`text-center ${className}`}>
+      <Reveal rise as="h2" className="text-[26px] font-bold leading-[1.5] tracking-[-0.8px] text-[#111] sm:text-[32px]">
         {title}
-      </h2>
-      <p className="mt-3 text-[16px] leading-[25.6px] tracking-[-0.45px] text-[#515f73] sm:text-[18px]">
+      </Reveal>
+      <Reveal
+        rise
+        index={1}
+        step={120}
+        as="p"
+        className="mt-3 text-[16px] leading-[25.6px] tracking-[-0.45px] text-[#515f73] sm:text-[18px]"
+      >
         {desc}
-      </p>
-    </Reveal>
+      </Reveal>
+    </div>
   )
 }

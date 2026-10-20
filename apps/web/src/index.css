@@ -38,6 +38,16 @@ html.lenis { scroll-behavior: auto; }
   transition-duration: 1600ms, 1400ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-in-out;
 }
+/*
+ * 아래에서 또렷하게 떠오르는 등장. gentle 보다 짧고 이동 폭이 커서 움직임이 분명하다.
+ * 끝에서 한 번에 멎는 곡선(expo-out)이라 여러 개를 차례로 띄워도 흐트러지지 않는다.
+ */
+.reveal-rise {
+  transition-property: transform, opacity;
+  transition-duration: 900ms, 620ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1), cubic-bezier(0.33, 1, 0.68, 1);
+  will-change: transform, opacity;
+}
 .portfolio-image {
   opacity: var(--portfolio-image-opacity, 1);
   transform: scale(var(--portfolio-scale, 1));
@@ -48,6 +58,7 @@ html.lenis { scroll-behavior: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal-gentle { transition: none; }
+  .reveal-rise { transition: none; }
 }
 
 /* 메인 비주얼: 스크롤 위치에 맞춰 크기와 이미지, 카피를 함께 전환한다. */

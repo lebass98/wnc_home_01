@@ -38,6 +38,15 @@ const popupInputSchema = z
     path: ['endAt'],
   })
 
+/** 팝업 노출 설정 — 한 줄에 나란히 보여 줄 장수 */
+const settingsInputSchema = z.object({
+  perView: z.coerce
+    .number()
+    .int()
+    .min(1, '한 줄에 보여 줄 장수는 1 이상이어야 합니다.')
+    .max(3, '한 줄에 보여 줄 장수는 3 이하여야 합니다.'),
+})
+
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
@@ -126,6 +135,33 @@ popupsRouter.get(
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     })
     res.json(items.map((p) => toDetail(p, now)))
+  }),
+)
+
+/**
+ * 팝업 노출 설정 — 사이트 설정 한 벌에 함께 담겨 있다.
+ * 설정 행이 아직 없으면 기본값으로 답한다(저장할 때 만든다).
+ */
+popupsRouter.get(
+  '/settings',
+  asyncHandler(async (_req, res) => {
+    const setting = await prisma.siteSetting.findFirst({ orderBy: { id: 'asc' } })
+    res.json({ perView: setting?.popupPerView ?? 3 })
+  }),
+)
+
+popupsRouter.put(
+  '/settings',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { perView } = settingsInputSchema.parse(req.body)
+    const existing = await prisma.siteSetting.findFirst({ orderBy: { id: 'asc' } })
+    const saved = existing
+      ? await prisma.siteSetting.update({ where: { id: existing.id }, data: { popupPerView: perView } })
+      : await prisma.siteSetting.create({
+          data: { siteName: '워드앤코드', siteUrl: 'https://wnc.co.kr', adminEmail: 'admin@wnc.co.kr', popupPerView: perView },
+        })
+    res.json({ perView: saved.popupPerView })
   }),
 )
 

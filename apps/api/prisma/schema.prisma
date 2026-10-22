@@ -285,6 +285,10 @@ model SiteSetting {
   /// 지점 목록 [{name, phone, email, address}] — JSON 문자열
   branches     String @default("[]")
 
+  // --- 팝업 노출 ---
+  /// 넓은 화면에서 한 줄에 나란히 보여 줄 팝업 장수(1~3). 이보다 많으면 좌우로 넘겨 본다.
+  popupPerView Int @default(3)
+
   updatedAt DateTime @updatedAt
 }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import type { Popup } from '@wnc/shared'
+import type { Popup, PopupSettings } from '@wnc/shared'
 import { api } from '../lib/api'
 import { setPopupCount, usePopupOpenSeq } from '../lib/popupLayer'
 import RichText from './RichText'
@@ -20,10 +20,10 @@ const GAP = 20
 const GAP_MOBILE = 12
 /** 카드가 닫히는 데 걸리는 시간(ms) */
 const CLOSE_MS = 320
-/** 한 화면에 나란히 보여 주는 장수 — 이보다 많으면 옆으로 넘겨 본다. */
-const PER_VIEW = 3
-/** 태블릿 폭(1024px 미만)에서는 세 장이 들어가지 않아 두 장만 보여 준다. */
-const PER_VIEW_TABLET = 2
+/** 관리자가 장수를 정하기 전에 쓰는 기본값 — 이보다 많으면 옆으로 넘겨 본다. */
+const PER_VIEW_DEFAULT = 3
+/** 태블릿 폭(1024px 미만)에서는 세 장이 들어가지 않아 두 장까지만 보여 준다. */
+const PER_VIEW_TABLET_MAX = 2
 
 /** 좌우 이동 버튼 — 흰 동그라미 안에 화살표 */
 function ArrowButton({ direction, onClick }: { direction: 'prev' | 'next'; onClick: () => void }) {
@@ -198,6 +198,8 @@ function PopupLayer({
 export default function SitePopups() {
   const { pathname } = useLocation()
   const [popups, setPopups] = useState<Popup[]>([])
+  // 관리자 [팝업 관리]에서 정한 '한 줄에 나란히 보여 줄 장수'
+  const [perViewSetting, setPerViewSetting] = useState(PER_VIEW_DEFAULT)
   // 창으로 여는 팝업은 한 번만 열어야 하므로 이미 연 id 를 기억한다.
   const opened = useRef(new Set<number>())
   // '창닫기'로 내린 카드 — 저장하지 않으므로 다음 방문에는 다시 뜬다.
@@ -217,6 +219,10 @@ export default function SitePopups() {
       .then(setPopups)
       // 팝업은 부가 기능이라 실패해도 사이트 이용에는 지장이 없다.
       .catch(() => setPopups([]))
+    api<PopupSettings>('/popups/settings')
+      .then((s) => setPerViewSetting(s.perView))
+      // 설정을 못 읽으면 기본 장수로 보여 준다.
+      .catch(() => {})
   }, [])
 
   // 상단 메뉴에서 열기를 요청하면 닫아 둔 것도 다시 보여 준다.
@@ -373,9 +379,14 @@ export default function SitePopups() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  // 좁은 화면은 한 장씩, 태블릿은 두 장씩, 넓은 화면은 세 장씩 보여 준다. 그보다 많으면 옆으로 넘긴다.
+  // 좁은 화면은 한 장씩, 태블릿은 두 장까지, 넓은 화면은 관리자가 정한 장수만큼 보여 준다.
+  // 그보다 많으면 옆으로 넘긴다.
   const isMobile = viewWidth < 640
-  const perView = isMobile ? 1 : viewWidth < 1024 ? PER_VIEW_TABLET : PER_VIEW
+  const perView = isMobile
+    ? 1
+    : viewWidth < 1024
+      ? Math.min(perViewSetting, PER_VIEW_TABLET_MAX)
+      : perViewSetting
   const sliding = count > perView
   const mobileMulti = isMobile && sliding
   const desktopSlide = !isMobile && sliding

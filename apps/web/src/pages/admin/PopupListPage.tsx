@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import type { Paginated, PopupListItem, PopupSort, PopupStatus } from '@wnc/shared'
+import type { Paginated, PopupListItem, PopupSettings, PopupSort, PopupStatus } from '@wnc/shared'
 import {
+  POPUP_PER_VIEW_OPTIONS,
   POPUP_PLACEMENT_LABEL,
   POPUP_SORT_LABEL,
   POPUP_STATUS_LABEL,
@@ -63,6 +64,40 @@ export default function PopupListPage() {
 
   const [selected, setSelected] = useState<number[]>([])
   const [working, setWorking] = useState(false)
+
+  // --- 노출 설정: 한 줄에 나란히 보여 줄 장수 ---
+  const [perView, setPerView] = useState(3)
+  // 저장된 값 — 고친 게 있는지 가늠해 [저장] 단추를 켠다.
+  const [savedPerView, setSavedPerView] = useState(3)
+  const [savingPerView, setSavingPerView] = useState(false)
+
+  useEffect(() => {
+    api<PopupSettings>('/popups/settings')
+      .then((res) => {
+        setPerView(res.perView)
+        setSavedPerView(res.perView)
+      })
+      // 설정을 못 읽어도 목록은 쓸 수 있어야 하므로 기본값으로 둔다.
+      .catch(() => {})
+  }, [])
+
+  /** 노출 장수를 저장한다 — 홈페이지 팝업 묶음에 바로 반영된다. */
+  async function savePerView() {
+    setSavingPerView(true)
+    try {
+      const res = await api<PopupSettings>('/popups/settings', {
+        method: 'PUT',
+        body: { perView },
+        auth: true,
+      })
+      setPerView(res.perView)
+      setSavedPerView(res.perView)
+    } catch (e) {
+      alert((e as Error).message)
+    } finally {
+      setSavingPerView(false)
+    }
+  }
 
   const load = useCallback(() => {
     setLoading(true)
@@ -193,6 +228,41 @@ export default function PopupListPage() {
           </Link>
         }
       />
+
+      {/* 노출 설정 — 홈페이지에서 팝업을 몇 장씩 나란히 보여 줄지 정한다. */}
+      <div className="card mb-4 p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <span className="w-24 shrink-0 text-sm font-medium text-slate-700 dark:text-slate-300">
+            노출 장수
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={perView}
+              onChange={(e) => setPerView(Number(e.target.value))}
+              aria-label="한 줄에 나란히 보여 줄 팝업 장수"
+              className="select w-36"
+            >
+              {POPUP_PER_VIEW_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}장씩
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={savePerView}
+              disabled={savingPerView || perView === savedPerView}
+              className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {savingPerView ? '저장 중...' : '저장'}
+            </button>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              한 줄에 나란히 보여 줄 장수입니다. 이보다 많으면 좌우로 넘겨 봅니다
+              {perView > 2 && ' (태블릿 폭에서는 2장까지)'}.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* 검색 */}
       <form

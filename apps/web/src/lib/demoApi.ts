@@ -17,6 +17,7 @@ import type {
   Post,
   PostInput,
   PostListItem,
+  PopupSettings,
   SiteStats,
   StatCount,
   StatDaily,
@@ -215,6 +216,8 @@ interface DemoDb {
   boardSetting: DemoBoardSetting
   boards: DemoBoard[]
   popups: DemoPopup[]
+  /** 팝업 노출 설정 — 예전 저장본에는 없으므로 없으면 기본값을 쓴다. */
+  popupSettings?: PopupSettings
   /** 디자인 템플릿 — 활성 한 벌이 사이트에 적용된다 */
   templates: DemoTemplate[]
   nextTemplateId: number
@@ -271,6 +274,7 @@ function seed(): DemoDb {
     boardSetting: createDemoBoardSetting(),
     boards: createDemoBoards(),
     popups,
+    popupSettings: { perView: 3 },
     faqs,
     faqCategories,
     privacyRevisions,
@@ -1504,6 +1508,16 @@ function handleDemoRequestInner(path: string, method: string, body: any): unknow
       db.faqs.splice(idx, 1)
       save(db)
       return null
+    }
+  }
+
+  if (rawPath === '/popups/settings') {
+    if (method === 'GET') return db.popupSettings ?? { perView: 3 }
+    if (method === 'PUT') {
+      const perView = Math.min(3, Math.max(1, Math.round(Number(body.perView) || 3)))
+      db.popupSettings = { perView }
+      save(db)
+      return db.popupSettings
     }
   }
 

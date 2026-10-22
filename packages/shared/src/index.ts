@@ -791,6 +791,15 @@ export interface PopupInput {
   sortOrder?: number
 }
 
+/** 팝업 노출 설정 — 관리자 [팝업 관리] 화면에서 정한다. */
+export interface PopupSettings {
+  /** 넓은 화면에서 한 줄에 나란히 보여 줄 장수. 이보다 많으면 좌우로 넘겨 본다. */
+  perView: number
+}
+
+/** 고를 수 있는 장수 — 세 장보다 많으면 카드가 너무 작아져 넣지 않는다. */
+export const POPUP_PER_VIEW_OPTIONS = [1, 2, 3] as const
+
 /** 목록 검색 조건 */
 export type PopupSort = 'latest' | 'oldest' | 'startAt' | 'name'
 

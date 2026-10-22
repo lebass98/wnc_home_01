@@ -21,7 +21,9 @@ const GAP_MOBILE = 12
 /** 카드가 닫히는 데 걸리는 시간(ms) */
 const CLOSE_MS = 320
 /** 한 화면에 나란히 보여 주는 장수 — 이보다 많으면 옆으로 넘겨 본다. */
-const PER_VIEW = 2
+const PER_VIEW = 3
+/** 태블릿 폭(1024px 미만)에서는 세 장이 들어가지 않아 두 장만 보여 준다. */
+const PER_VIEW_TABLET = 2
 
 /** 좌우 이동 버튼 — 흰 동그라미 안에 화살표 */
 function ArrowButton({ direction, onClick }: { direction: 'prev' | 'next'; onClick: () => void }) {
@@ -371,22 +373,22 @@ export default function SitePopups() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  // 좁은 화면은 한 장씩, 넓은 화면은 두 장씩 보여 준다. 그보다 많으면 옆으로 넘긴다.
+  // 좁은 화면은 한 장씩, 태블릿은 두 장씩, 넓은 화면은 세 장씩 보여 준다. 그보다 많으면 옆으로 넘긴다.
   const isMobile = viewWidth < 640
-  const perView = isMobile ? 1 : PER_VIEW
+  const perView = isMobile ? 1 : viewWidth < 1024 ? PER_VIEW_TABLET : PER_VIEW
   const sliding = count > perView
   const mobileMulti = isMobile && sliding
   const desktopSlide = !isMobile && sliding
   /**
    * 카드 한 장이 쓸 수 있는 폭.
    * 좁은 화면에서 여러 장이면 다음 장이 오른쪽에 살짝 보이도록 더 줄이고,
-   * 넓은 화면에서 넘겨 볼 때는 두 장과 화살표가 함께 들어가도록 반으로 나눈다.
+   * 넓은 화면에서 넘겨 볼 때는 보여 줄 장수와 화살표가 함께 들어가도록 나눠 쓴다.
    */
   const availWidth = mobileMulti
     ? viewWidth - 88
     : desktopSlide
-      ? Math.floor((viewWidth - 200 - GAP) / 2)
-      : viewWidth - 32
+      ? Math.floor((viewWidth - 200 - GAP * (perView - 1)) / perView)
+      : Math.floor((viewWidth - 32 - GAP * (count - 1)) / Math.max(1, count))
   const scaleOf = (popup: Popup) =>
     popup.width > availWidth ? Math.max(0.35, Number((availWidth / popup.width).toFixed(3))) : 1
 
